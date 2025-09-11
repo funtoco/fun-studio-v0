@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { AuthGuard } from "@/components/auth-guard"
 import { DataTable, type Column } from "@/components/ui/data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
@@ -130,117 +131,119 @@ export default function ActionsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Support記録</h1>
-        <p className="text-muted-foreground mt-2">サポートアクションの一覧と進捗管理</p>
-      </div>
+    <AuthGuard>
+      <div className="p-6 space-y-6">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Support記録</h1>
+          <p className="text-muted-foreground mt-2">サポートアクションの一覧と進捗管理</p>
+        </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">総件数</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">総件数</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">未対応</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.open}</div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">未対応</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.open}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">対応中</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">対応中</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{stats.inProgress}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">完了</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.done}</div>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">完了</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.done}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">期限超過</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.overdue}</div>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">期限超過</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{stats.overdue}</div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Data Table */}
-      <DataTable
-        data={actionsWithPeople}
-        columns={columns}
-        filters={filters}
-        searchKeys={["title", "personName", "category"]}
-      />
+        {/* Data Table */}
+        <DataTable
+          data={actionsWithPeople}
+          columns={columns}
+          filters={filters}
+          searchKeys={["title", "personName", "category"]}
+        />
 
-      {/* Category Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>カテゴリ別件数</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {Array.from(new Set(supportActions.map((a) => a.category)))
-                .sort()
-                .map((category) => {
-                  const count = supportActions.filter((a) => a.category === category).length
-                  return (
-                    <div key={category} className="flex items-center justify-between text-sm">
-                      <span>{category}</span>
-                      <Badge variant="secondary">{count}</Badge>
-                    </div>
-                  )
-                })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>担当者別件数</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {Array.from(new Set(supportActions.map((a) => a.assignee).filter(Boolean)))
-                .sort()
-                .map((assignee) => {
-                  const total = supportActions.filter((a) => a.assignee === assignee).length
-                  const active = supportActions.filter((a) => a.assignee === assignee && a.status !== "done").length
-                  return (
-                    <div key={assignee} className="flex items-center justify-between text-sm">
-                      <span>{assignee}</span>
-                      <div className="flex gap-2">
-                        <Badge variant="outline">{active}</Badge>
-                        <Badge variant="secondary">{total}</Badge>
+        {/* Category Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>カテゴリ別件数</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Array.from(new Set(supportActions.map((a) => a.category)))
+                  .sort()
+                  .map((category) => {
+                    const count = supportActions.filter((a) => a.category === category).length
+                    return (
+                      <div key={category} className="flex items-center justify-between text-sm">
+                        <span>{category}</span>
+                        <Badge variant="secondary">{count}</Badge>
                       </div>
-                    </div>
-                  )
-                })}
-            </div>
-          </CardContent>
-        </Card>
+                    )
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>担当者別件数</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {Array.from(new Set(supportActions.map((a) => a.assignee).filter(Boolean)))
+                  .sort()
+                  .map((assignee) => {
+                    const total = supportActions.filter((a) => a.assignee === assignee).length
+                    const active = supportActions.filter((a) => a.assignee === assignee && a.status !== "done").length
+                    return (
+                      <div key={assignee} className="flex items-center justify-between text-sm">
+                        <span>{assignee}</span>
+                        <div className="flex gap-2">
+                          <Badge variant="outline">{active}</Badge>
+                          <Badge variant="secondary">{total}</Badge>
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 }
