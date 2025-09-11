@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatDateTime } from "@/lib/utils"
 import { Calendar, FileText, CheckSquare, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 export interface TimelineItem {
   id: string
@@ -14,7 +15,6 @@ export interface TimelineItem {
   datetime: string
   status?: string
   personName?: string
-  onClick?: () => void
 }
 
 interface TimelineProps {
@@ -37,6 +37,24 @@ const typeColors = {
 }
 
 export function Timeline({ items, className }: TimelineProps) {
+  const router = useRouter()
+
+  const handleItemClick = (item: TimelineItem) => {
+    switch (item.type) {
+      case "meeting":
+        router.push("/meetings")
+        break
+      case "visa":
+        router.push("/visas")
+        break
+      case "support":
+        router.push("/actions")
+        break
+      default:
+        router.push("/timeline")
+    }
+  }
+
   return (
     <div className={cn("space-y-4", className)}>
       {items.length === 0 ? (
@@ -62,8 +80,8 @@ export function Timeline({ items, className }: TimelineProps) {
 
               {/* Content */}
               <Card
-                className={cn("flex-1 transition-colors", item.onClick && "cursor-pointer hover:bg-muted/50")}
-                onClick={item.onClick}
+                className={cn("flex-1 transition-colors cursor-pointer hover:bg-muted/50")}
+                onClick={() => handleItemClick(item)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-4">

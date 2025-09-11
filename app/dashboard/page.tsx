@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Timeline } from "@/components/ui/timeline"
 import { Badge } from "@/components/ui/badge"
@@ -29,10 +31,7 @@ export default function DashboardPage() {
       description: `${activity.personName}`,
       datetime: activity.datetime,
       status: activity.status,
-      onClick: () => {
-        // Navigate to relevant page
-        window.location.href = activity.link
-      },
+      // Removed onClick handler - navigation will be handled by Timeline component internally
     }))
 
   return (
