@@ -33,7 +33,7 @@ const navigation = [
     icon: Clock,
   },
   {
-    name: "Support記録",
+    name: "サポート記録",
     href: "/actions",
     icon: CheckSquare,
   },

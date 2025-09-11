@@ -106,7 +106,7 @@ export default function PersonDetailPage({ params }: PersonDetailPageProps) {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="timeline">タイムライン</TabsTrigger>
               <TabsTrigger value="meetings">面談記録</TabsTrigger>
-              <TabsTrigger value="support">Support記録</TabsTrigger>
+              <TabsTrigger value="support">サポート記録</TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline" className="mt-6">
@@ -160,7 +160,7 @@ export default function PersonDetailPage({ params }: PersonDetailPageProps) {
                 {personSupportActions.length === 0 ? (
                   <Card>
                     <CardContent className="flex items-center justify-center py-8">
-                      <p className="text-muted-foreground">Support記録がありません</p>
+                      <p className="text-muted-foreground">サポート記録がありません</p>
                     </CardContent>
                   </Card>
                 ) : (

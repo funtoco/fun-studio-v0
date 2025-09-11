@@ -7,6 +7,7 @@ import { Suspense } from "react"
 import { AuthProvider } from "@/contexts/auth-context"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { ConditionalLayout } from "@/components/layout/conditional-layout"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -24,15 +25,9 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <AuthProvider>
-          <div className="flex h-screen bg-background">
-            <Sidebar />
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <Header />
-              <main className="flex-1 overflow-auto">
-                <Suspense fallback={null}>{children}</Suspense>
-              </main>
-            </div>
-          </div>
+          <ConditionalLayout>
+            <Suspense fallback={null}>{children}</Suspense>
+          </ConditionalLayout>
         </AuthProvider>
         <Analytics />
       </body>

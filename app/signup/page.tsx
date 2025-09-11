@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { AuthGuard } from "@/components/auth-guard"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -53,104 +52,100 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <AuthGuard requireAuth={false}>
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <Image src="/funstudio-logo.webp" alt="FunStudio" width={120} height={32} className="h-8 w-auto" />
-              </div>
-              <CardTitle className="text-2xl">登録完了</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Alert>
-                <AlertDescription>
-                  確認メールを送信しました。メールに記載されたリンクをクリックしてアカウントを有効化してください。
-                </AlertDescription>
-              </Alert>
-              <div className="mt-4">
-                <Link href="/login" className="text-primary hover:underline">
-                  ログインページに戻る
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </AuthGuard>
-    )
-  }
-
-  return (
-    <AuthGuard requireAuth={false}>
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <Image src="/funstudio-logo.webp" alt="FunStudio" width={120} height={32} className="h-8 w-auto" />
             </div>
-            <CardTitle className="text-2xl">新規登録</CardTitle>
-            <CardDescription>FunStudio ビザ進捗管理システムのアカウントを作成してください</CardDescription>
+            <CardTitle className="text-2xl">登録完了</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="email">メールアドレス</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">パスワード</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  minLength={6}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">パスワード（確認）</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  minLength={6}
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "登録中..." : "アカウント作成"}
-              </Button>
-            </form>
-
-            <div className="mt-4 text-center text-sm">
-              すでにアカウントをお持ちの方は{" "}
+          <CardContent className="text-center">
+            <Alert>
+              <AlertDescription>
+                確認メールを送信しました。メールに記載されたリンクをクリックしてアカウントを有効化してください。
+              </AlertDescription>
+            </Alert>
+            <div className="mt-4">
               <Link href="/login" className="text-primary hover:underline">
-                ログイン
+                ログインページに戻る
               </Link>
             </div>
           </CardContent>
         </Card>
       </div>
-    </AuthGuard>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Image src="/funstudio-logo.webp" alt="FunStudio" width={120} height={32} className="h-8 w-auto" />
+          </div>
+          <CardTitle className="text-2xl">新規登録</CardTitle>
+          <CardDescription>FunStudio ビザ進捗管理システムのアカウントを作成してください</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">メールアドレス</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">パスワード</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                minLength={6}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">パスワード（確認）</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={loading}
+                minLength={6}
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "登録中..." : "アカウント作成"}
+            </Button>
+          </form>
+
+          <div className="mt-4 text-center text-sm">
+            すでにアカウントをお持ちの方は{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              ログイン
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

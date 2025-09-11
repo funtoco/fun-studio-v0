@@ -100,7 +100,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>最近の活動</CardTitle>
-                <p className="text-sm text-muted-foreground">面談、ビザ更新、Support記録の最新10件</p>
+                <p className="text-sm text-muted-foreground">面談、ビザ更新、サポート記録の最新10件</p>
               </CardHeader>
               <CardContent>
                 <Timeline items={recentActivity} />
@@ -203,7 +203,7 @@ export default function DashboardPage() {
                   href="/actions"
                   className="block p-3 rounded-lg border hover:bg-muted/50 transition-colors text-sm"
                 >
-                  <div className="font-medium">Support記録を確認</div>
+                  <div className="font-medium">サポート記録を確認</div>
                   <div className="text-muted-foreground">対応中のサポート案件</div>
                 </Link>
                 <Link

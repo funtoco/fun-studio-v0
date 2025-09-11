@@ -11,12 +11,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
 
 export function Header() {
   const { user, signOut } = useAuth()
+  const router = useRouter()
+
+  // デバッグ用
+  console.log("Header - user:", user)
+  console.log("Header - user email:", user?.email)
 
   const handleSignOut = async () => {
+    console.log("ログアウトボタンがクリックされました")
     await signOut()
+    // AuthContextでリダイレクト処理を行うため、ここでは何もしない
+  }
+
+  const handleUserIconClick = () => {
+    console.log("ユーザーアイコンがクリックされました")
   }
 
   return (
@@ -38,21 +50,22 @@ export function Header() {
           <Settings className="h-5 w-5" />
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <div className="px-2 py-1.5 text-sm text-muted-foreground">{user?.email}</div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+        {user ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{user.email}</span>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleSignOut}
+              className="text-red-600 hover:text-red-700"
+            >
               <LogOut className="mr-2 h-4 w-4" />
               ログアウト
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </Button>
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">ログイン中...</div>
+        )}
       </div>
     </header>
   )

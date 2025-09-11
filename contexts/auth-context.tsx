@@ -26,6 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { session },
       } = await supabase.auth.getSession()
+      console.log("AuthContext - Initial session:", session)
+      console.log("AuthContext - Initial user:", session?.user)
       setUser(session?.user ?? null)
       setLoading(false)
     }
@@ -34,7 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+      console.log("AuthContext - Auth state change:", event, session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -47,6 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     })
+    
+    if (!error) {
+      // ログイン成功時はミドルウェアがリダイレクトを処理
+      window.location.href = "/dashboard"
+    }
+    
     return { error }
   }
 
@@ -62,7 +71,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    console.log("AuthContext - ログアウト開始")
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error("ログアウトエラー:", error)
+    } else {
+      console.log("AuthContext - ログアウト成功")
+      // ログアウト成功後、ログインページにリダイレクト
+      if (typeof window !== 'undefined') {
+        window.location.href = "/login"
+      }
+    }
   }
 
   const value = {
