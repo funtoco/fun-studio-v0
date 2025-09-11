@@ -20,16 +20,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+  
+  // 環境変数が設定されていない場合は認証を無効化
+  const isAuthEnabled = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      console.log("AuthContext - Initial session:", session)
-      console.log("AuthContext - Initial user:", session?.user)
-      setUser(session?.user ?? null)
+    if (!isAuthEnabled) {
+      console.log("認証機能が無効化されています（環境変数未設定）")
+      setUser(null)
       setLoading(false)
+      return
+    }
+
+    const getInitialSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        console.log("AuthContext - Initial session:", session)
+        console.log("AuthContext - Initial user:", session?.user)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      } catch (error) {
+        console.error("認証セッション取得エラー:", error)
+        setUser(null)
+        setLoading(false)
+      }
     }
 
     getInitialSession()
@@ -43,44 +59,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [supabase.auth, isAuthEnabled])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    
-    if (!error) {
-      // ログイン成功時はミドルウェアがリダイレクトを処理
-      window.location.href = "/dashboard"
+    if (!isAuthEnabled) {
+      console.log("認証機能が無効化されているため、ログインをスキップします")
+      return { error: new Error("認証機能が無効化されています") }
     }
-    
-    return { error }
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      
+      if (!error) {
+        // ログイン成功時はミドルウェアがリダイレクトを処理
+        window.location.href = "/dashboard"
+      }
+      
+      return { error }
+    } catch (error) {
+      console.error("ログインエラー:", error)
+      return { error }
+    }
   }
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
-      },
-    })
-    return { error }
+    if (!isAuthEnabled) {
+      console.log("認証機能が無効化されているため、サインアップをスキップします")
+      return { error: new Error("認証機能が無効化されています") }
+    }
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
+        },
+      })
+      return { error }
+    } catch (error) {
+      console.error("サインアップエラー:", error)
+      return { error }
+    }
   }
 
   const signOut = async () => {
-    console.log("AuthContext - ログアウト開始")
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error("ログアウトエラー:", error)
-    } else {
-      console.log("AuthContext - ログアウト成功")
-      // ログアウト成功後、ログインページにリダイレクト
+    if (!isAuthEnabled) {
+      console.log("認証機能が無効化されているため、ログアウトをスキップします")
       if (typeof window !== 'undefined') {
         window.location.href = "/login"
       }
+      return
+    }
+
+    console.log("AuthContext - ログアウト開始")
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error("ログアウトエラー:", error)
+      } else {
+        console.log("AuthContext - ログアウト成功")
+        // ログアウト成功後、ログインページにリダイレクト
+        if (typeof window !== 'undefined') {
+          window.location.href = "/login"
+        }
+      }
+    } catch (error) {
+      console.error("ログアウトエラー:", error)
     }
   }
 
