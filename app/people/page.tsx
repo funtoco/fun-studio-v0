@@ -1,10 +1,11 @@
 "use client"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { DataTable, type Column } from "@/components/ui/data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { people } from "@/data/people"
+import { getPeople } from "@/lib/supabase/people"
 import { visas } from "@/data/visas"
 import type { Person } from "@/lib/models"
 
@@ -16,6 +17,26 @@ interface PersonWithVisa extends Person {
 
 export default function PeoplePage() {
   const router = useRouter()
+  const [people, setPeople] = useState<Person[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchPeople() {
+      try {
+        setLoading(true)
+        const peopleData = await getPeople()
+        setPeople(peopleData)
+      } catch (err) {
+        console.error('Error fetching people:', err)
+        setError('データの取得に失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPeople()
+  }, [])
 
   // Combine people with their visa information
   const peopleWithVisas: PersonWithVisa[] = people.map((person) => {
@@ -120,6 +141,34 @@ export default function PeoplePage() {
 
   const handleRowClick = (person: PersonWithVisa) => {
     router.push(`/people/${person.id}`)
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">人材一覧</h1>
+          <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-muted-foreground">読み込み中...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">人材一覧</h1>
+          <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-red-500">{error}</div>
+        </div>
+      </div>
+    )
   }
 
   return (
