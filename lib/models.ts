@@ -27,7 +27,7 @@ export type Visa = {
   id: string
   personId: string
   status: VisaStatus
-  type: "技人国" | "特定技能" | "留学" | "家族滞在" | string
+  type: "新規" | "更新"
   expiryDate?: string
   submittedAt?: string
   resultAt?: string

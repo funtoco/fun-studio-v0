@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { AuthGuard } from "@/components/auth-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { TreeNoteView } from "@/components/ui/tree-note-view"
 import { Calendar, List, Search, Filter, Clock, User } from "lucide-react"
-import { people } from "@/data/people"
-import { allMeetings } from "@/data/meetings"
+import { getPeople } from "@/lib/supabase/people"
+import { getMeetings } from "@/lib/supabase/meetings"
 import { formatDateTime } from "@/lib/utils"
 import { meetingTaxonomy } from "@/constants/meeting-taxonomy"
+import type { Person, Meeting } from "@/lib/models"
 
 export default function MeetingsPage() {
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
@@ -21,9 +22,34 @@ export default function MeetingsPage() {
   const [personFilter, setPersonFilter] = useState<string>("all")
   const [sectionFilter, setSectionFilter] = useState<string>("all")
   const [dateFilter, setDateFilter] = useState<string>("all")
+  const [people, setPeople] = useState<Person[]>([])
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        const [peopleData, meetingsData] = await Promise.all([
+          getPeople(),
+          getMeetings()
+        ])
+        setPeople(peopleData)
+        setMeetings(meetingsData)
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setError('データの取得に失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   // Filter meetings
-  const filteredMeetings = allMeetings.filter((meeting) => {
+  const filteredMeetings = meetings.filter((meeting) => {
     const person = people.find((p) => p.id === meeting.personId)
     if (!person) return false
 
@@ -70,6 +96,38 @@ export default function MeetingsPage() {
     .filter(Boolean)
 
   const uniqueSections = Object.keys(meetingTaxonomy)
+
+  if (loading) {
+    return (
+      <AuthGuard>
+        <div className="p-6 space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">面談記録</h1>
+            <p className="text-muted-foreground mt-2">面談の記録と内容を管理</p>
+          </div>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">読み込み中...</div>
+          </div>
+        </div>
+      </AuthGuard>
+    )
+  }
+
+  if (error) {
+    return (
+      <AuthGuard>
+        <div className="p-6 space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">面談記録</h1>
+            <p className="text-muted-foreground mt-2">面談の記録と内容を管理</p>
+          </div>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-red-500">{error}</div>
+          </div>
+        </div>
+      </AuthGuard>
+    )
+  }
 
   return (
     <AuthGuard>

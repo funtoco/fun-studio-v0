@@ -1,0 +1,268 @@
+[
+  {
+    "id": "m001",
+    "personId": "p001",
+    "kind": "仕事",
+    "title": "月次面談 - 勤務状況確認",
+    "datetime": "2025-06-10T10:00:00Z",
+    "durationMin": 60,
+    "attendees": ["田中", "RENO MAULY ADINUGRAHA"],
+    "createdBy": "田中",
+    "notes": [
+      {
+        "section": "仕事関連",
+        "item": "勤務日数・勤務時間",
+        "level": "中",
+        "detail": "残業時間が月40時間程度で適切。休暇も取得できている。"
+      },
+      {
+        "section": "仕事関連",
+        "item": "仕事内容・業務内容",
+        "level": "大",
+        "detail": "新しいプロジェクトに参加し、技術スキルが向上している。"
+      },
+      {
+        "section": "健康・生活状況",
+        "item": "健康状態（軽度不調含め）",
+        "level": "小",
+        "detail": "特に問題なし。睡眠も十分取れている。"
+      }
+    ],
+    "createdAt": "2025-06-10T09:30:00Z",
+    "updatedAt": "2025-06-10T11:00:00Z"
+  },
+  {
+    "id": "m002",
+    "personId": "p002",
+    "kind": "プライベート",
+    "title": "生活相談 - 住居について",
+    "datetime": "2025-06-09T14:00:00Z",
+    "durationMin": 45,
+    "attendees": ["佐藤", "Raffi Test"],
+    "createdBy": "佐藤",
+    "notes": [
+      {
+        "section": "健康・生活状況",
+        "item": "生活リズム",
+        "level": "中",
+        "detail": "新しいアパートに引っ越し予定。現在の住環境に不満がある。"
+      },
+      {
+        "section": "日々の対応報告",
+        "item": "住居関連対応",
+        "level": "大",
+        "detail": "不動産会社との契約手続きをサポート。保証人の手配も完了。"
+      }
+    ],
+    "createdAt": "2025-06-09T13:30:00Z",
+    "updatedAt": "2025-06-09T14:45:00Z"
+  },
+  {
+    "id": "m003",
+    "personId": "p003",
+    "kind": "仕事",
+    "title": "キャリア相談",
+    "datetime": "2025-06-08T16:00:00Z",
+    "durationMin": 90,
+    "attendees": ["鈴木", "TEST WAKABA NAKAMURA"],
+    "createdBy": "鈴木",
+    "notes": [
+      {
+        "section": "キャリア・目標",
+        "item": "JLPT、NAT、TOEIC 受験計画",
+        "level": "大",
+        "detail": "JLPT N2を12月に受験予定。現在勉強中。"
+      },
+      {
+        "section": "キャリア・目標",
+        "item": "給与、昇格",
+        "level": "中",
+        "detail": "来年の昇進を目指している。必要なスキルを確認。"
+      },
+      {
+        "section": "仕事関連",
+        "item": "仕事内容・業務内容",
+        "level": "中",
+        "detail": "リーダーシップを発揮する機会が増えている。"
+      }
+    ],
+    "createdAt": "2025-06-08T15:30:00Z",
+    "updatedAt": "2025-06-08T17:30:00Z"
+  },
+  {
+    "id": "m004",
+    "personId": "p004",
+    "kind": "仕事",
+    "title": "ストレス相談",
+    "datetime": "2025-06-07T11:00:00Z",
+    "durationMin": 60,
+    "attendees": ["高橋", "NGUYEN VAN MINH"],
+    "createdBy": "高橋",
+    "notes": [
+      {
+        "section": "健康・生活状況",
+        "item": "健康状態（軽度不調含め）",
+        "level": "中",
+        "detail": "最近ストレスを感じることが多い。仕事のプレッシャーが原因。"
+      },
+      {
+        "section": "仕事関連",
+        "item": "職場の人間関係",
+        "level": "大",
+        "detail": "チームメンバーとのコミュニケーションに課題がある。"
+      }
+    ],
+    "createdAt": "2025-06-07T10:30:00Z",
+    "updatedAt": "2025-06-07T12:00:00Z"
+  },
+  {
+    "id": "m005",
+    "personId": "p005",
+    "kind": "プライベート",
+    "title": "家族の相談",
+    "datetime": "2025-06-06T15:30:00Z",
+    "durationMin": 75,
+    "attendees": ["渡辺", "CHEN WEI MING"],
+    "createdBy": "渡辺",
+    "notes": [
+      {
+        "section": "健康・生活状況",
+        "item": "家族・親族関係",
+        "level": "大",
+        "detail": "家族の健康状態について相談。定期的な連絡を取るようにアドバイス。"
+      },
+      {
+        "section": "日々の対応報告",
+        "item": "その他",
+        "level": "中",
+        "detail": "家族のビザ申請について情報提供。"
+      }
+    ],
+    "createdAt": "2025-06-06T15:00:00Z",
+    "updatedAt": "2025-06-06T16:45:00Z"
+  },
+  {
+    "id": "m006",
+    "personId": "p006",
+    "kind": "仕事",
+    "title": "技術研修の相談",
+    "datetime": "2025-06-05T09:00:00Z",
+    "durationMin": 45,
+    "attendees": ["田中", "PARK JI HOON"],
+    "createdBy": "田中",
+    "notes": [
+      {
+        "section": "キャリア・目標",
+        "item": "スキルアップ・研修",
+        "level": "大",
+        "detail": "新しいプログラミング言語の習得を希望。研修制度を紹介。"
+      },
+      {
+        "section": "仕事関連",
+        "item": "仕事内容・業務内容",
+        "level": "中",
+        "detail": "現在のプロジェクトで技術的な課題に直面している。"
+      }
+    ],
+    "createdAt": "2025-06-05T08:30:00Z",
+    "updatedAt": "2025-06-05T09:45:00Z"
+  },
+  {
+    "id": "m007",
+    "personId": "p007",
+    "kind": "プライベート",
+    "title": "健康診断の相談",
+    "datetime": "2025-06-04T14:00:00Z",
+    "durationMin": 30,
+    "attendees": ["佐藤", "MARIA SANTOS"],
+    "createdBy": "佐藤",
+    "notes": [
+      {
+        "section": "健康・生活状況",
+        "item": "健康状態（軽度不調含め）",
+        "level": "中",
+        "detail": "年1回の健康診断を受診予定。会社の健康診断制度を説明。"
+      }
+    ],
+    "createdAt": "2025-06-04T13:30:00Z",
+    "updatedAt": "2025-06-04T14:30:00Z"
+  },
+  {
+    "id": "m008",
+    "personId": "p008",
+    "kind": "仕事",
+    "title": "プロジェクト報告",
+    "datetime": "2025-06-03T16:00:00Z",
+    "durationMin": 90,
+    "attendees": ["鈴木", "KUMAR RAJESH"],
+    "createdBy": "鈴木",
+    "notes": [
+      {
+        "section": "仕事関連",
+        "item": "仕事内容・業務内容",
+        "level": "大",
+        "detail": "現在のプロジェクトの進捗状況を報告。予定通りに進行中。"
+      },
+      {
+        "section": "仕事関連",
+        "item": "勤務日数・勤務時間",
+        "level": "中",
+        "detail": "プロジェクト期間中は残業が多くなる予定。"
+      }
+    ],
+    "createdAt": "2025-06-03T15:30:00Z",
+    "updatedAt": "2025-06-03T17:30:00Z"
+  },
+  {
+    "id": "m009",
+    "personId": "p009",
+    "kind": "プライベート",
+    "title": "住居関連の相談",
+    "datetime": "2025-06-02T10:00:00Z",
+    "durationMin": 60,
+    "attendees": ["高橋", "TANAKA YUKI"],
+    "createdBy": "高橋",
+    "notes": [
+      {
+        "section": "日々の対応報告",
+        "item": "住居関連対応",
+        "level": "大",
+        "detail": "新しい住居の契約更新について相談。条件交渉をサポート。"
+      },
+      {
+        "section": "健康・生活状況",
+        "item": "生活リズム",
+        "level": "中",
+        "detail": "新しい住居での生活に慣れてきている。"
+      }
+    ],
+    "createdAt": "2025-06-02T09:30:00Z",
+    "updatedAt": "2025-06-02T11:00:00Z"
+  },
+  {
+    "id": "m010",
+    "personId": "p010",
+    "kind": "仕事",
+    "title": "昇進面談",
+    "datetime": "2025-06-01T13:00:00Z",
+    "durationMin": 120,
+    "attendees": ["渡辺", "AHMED HASSAN"],
+    "createdBy": "渡辺",
+    "notes": [
+      {
+        "section": "キャリア・目標",
+        "item": "給与、昇格",
+        "level": "大",
+        "detail": "来年の昇進を目指している。必要な条件を確認。"
+      },
+      {
+        "section": "キャリア・目標",
+        "item": "スキルアップ・研修",
+        "level": "中",
+        "detail": "管理職として必要なスキルを身につけるための研修を提案。"
+      }
+    ],
+    "createdAt": "2025-06-01T12:30:00Z",
+    "updatedAt": "2025-06-01T15:00:00Z"
+  }
+]

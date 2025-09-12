@@ -1,15 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ReadonlyKanban, type KanbanColumn } from "@/components/ui/readonly-kanban"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Search, Filter } from "lucide-react"
-import { people } from "@/data/people"
-import { visas } from "@/data/visas"
+import { getPeople } from "@/lib/supabase/people"
+import { getVisas } from "@/lib/supabase/visas"
 import { isExpiringSoon } from "@/lib/utils"
-import type { VisaStatus } from "@/lib/models"
+import type { VisaStatus, Person, Visa } from "@/lib/models"
 
 const visaStatuses: VisaStatus[] = [
   "書類準備中",
@@ -26,6 +26,31 @@ export default function VisasPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [managerFilter, setManagerFilter] = useState<string>("all")
   const [expiryFilter, setExpiryFilter] = useState<string>("all")
+  const [people, setPeople] = useState<Person[]>([])
+  const [visas, setVisas] = useState<Visa[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        const [peopleData, visasData] = await Promise.all([
+          getPeople(),
+          getVisas()
+        ])
+        setPeople(peopleData)
+        setVisas(visasData)
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setError('データの取得に失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   // Filter visas based on search and filters
   const filteredVisas = visas.filter((visa) => {
@@ -93,6 +118,34 @@ export default function VisasPage() {
   // Get unique values for filters
   const visaTypes = Array.from(new Set(visas.map((v) => v.type)))
   const managers = Array.from(new Set(visas.map((v) => v.manager).filter(Boolean)))
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">ビザ進捗管理</h1>
+          <p className="text-muted-foreground mt-2">ビザ申請の進捗状況をKanban形式で確認</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-muted-foreground">読み込み中...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">ビザ進捗管理</h1>
+          <p className="text-muted-foreground mt-2">ビザ申請の進捗状況をKanban形式で確認</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-red-500">{error}</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 space-y-6">
