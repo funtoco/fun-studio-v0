@@ -1,0 +1,714 @@
+[
+  {
+    "id": "sa001",
+    "personId": "p001",
+    "category": "郵便対応",
+    "title": "収入印紙の買い方を案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-06-01T09:00:00Z",
+    "updatedAt": "2025-06-01T10:00:00Z"
+  },
+  {
+    "id": "sa002",
+    "personId": "p002",
+    "category": "郵便対応",
+    "title": "転入・転出届を案内しました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-06-02T09:00:00Z",
+    "updatedAt": "2025-06-02T10:00:00Z"
+  },
+  {
+    "id": "sa003",
+    "personId": "p003",
+    "category": "郵便対応",
+    "title": "荷物の送り方を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-06-03T09:00:00Z",
+    "updatedAt": "2025-06-03T10:00:00Z"
+  },
+  {
+    "id": "sa004",
+    "personId": "p004",
+    "category": "郵便対応",
+    "title": "近くの郵便局を案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-06-04T09:00:00Z",
+    "updatedAt": "2025-06-04T10:00:00Z"
+  },
+  {
+    "id": "sa005",
+    "personId": "p005",
+    "category": "郵便対応",
+    "title": "レッターパックの買い方を案内しました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-06-05T09:00:00Z",
+    "updatedAt": "2025-06-05T10:00:00Z"
+  },
+  {
+    "id": "sa006",
+    "personId": "p006",
+    "category": "郵便対応",
+    "title": "小為替の買い方を案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-06-06T09:00:00Z",
+    "updatedAt": "2025-06-06T10:00:00Z"
+  },
+  {
+    "id": "sa007",
+    "personId": "p007",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "マイナンバーカードの更新を案内しました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-06-07T09:00:00Z",
+    "updatedAt": "2025-06-07T10:00:00Z"
+  },
+  {
+    "id": "sa008",
+    "personId": "p008",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "マイナンバーカードのオンライン申請を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-06-08T09:00:00Z",
+    "updatedAt": "2025-06-08T10:00:00Z"
+  },
+  {
+    "id": "sa009",
+    "personId": "p009",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "収入印紙の案内をしました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-06-09T09:00:00Z",
+    "updatedAt": "2025-06-09T10:00:00Z"
+  },
+  {
+    "id": "sa010",
+    "personId": "p010",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "課税・納税の取り方を案内しました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-06-10T09:00:00Z",
+    "updatedAt": "2025-06-10T10:00:00Z"
+  },
+  {
+    "id": "sa011",
+    "personId": "p011",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "マイナンバーカード受け取り方法を案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-06-11T09:00:00Z",
+    "updatedAt": "2025-06-11T10:00:00Z"
+  },
+  {
+    "id": "sa012",
+    "personId": "p012",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "ワクチン接種の申し込みしました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-06-12T09:00:00Z",
+    "updatedAt": "2025-06-12T10:00:00Z"
+  },
+  {
+    "id": "sa013",
+    "personId": "p013",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "物価高騰給付金の申し込みをしました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-06-13T09:00:00Z",
+    "updatedAt": "2025-06-13T10:00:00Z"
+  },
+  {
+    "id": "sa014",
+    "personId": "p014",
+    "category": "マイナンバーカード・役所手続き",
+    "title": "転入・転出届を案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-06-14T09:00:00Z",
+    "updatedAt": "2025-06-14T10:00:00Z"
+  },
+  {
+    "id": "sa015",
+    "personId": "p015",
+    "category": "年金対応",
+    "title": "年金の免除申請を案内しました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-06-15T09:00:00Z",
+    "updatedAt": "2025-06-15T10:00:00Z"
+  },
+  {
+    "id": "sa016",
+    "personId": "p016",
+    "category": "年金対応",
+    "title": "近くの年金事務所を調べ、案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-06-16T09:00:00Z",
+    "updatedAt": "2025-06-16T10:00:00Z"
+  },
+  {
+    "id": "sa017",
+    "personId": "p017",
+    "category": "年金対応",
+    "title": "ビザ申請に必要な年金書類の取得方法を案内しました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-06-17T09:00:00Z",
+    "updatedAt": "2025-06-17T10:00:00Z"
+  },
+  {
+    "id": "sa018",
+    "personId": "p018",
+    "category": "年金対応",
+    "title": "年金事務所に電話し、書類を取り寄せました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-06-18T09:00:00Z",
+    "updatedAt": "2025-06-18T10:00:00Z"
+  },
+  {
+    "id": "sa019",
+    "personId": "p019",
+    "category": "SIMカード・インターネット対応",
+    "title": "契約プランの変更を案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-06-19T09:00:00Z",
+    "updatedAt": "2025-06-19T10:00:00Z"
+  },
+  {
+    "id": "sa020",
+    "personId": "p020",
+    "category": "SIMカード・インターネット対応",
+    "title": "料金の支払い方法を案内しました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-06-20T09:00:00Z",
+    "updatedAt": "2025-06-20T10:00:00Z"
+  },
+  {
+    "id": "sa021",
+    "personId": "p001",
+    "category": "SIMカード・インターネット対応",
+    "title": "他社への乗り換え方法を案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-06-21T09:00:00Z",
+    "updatedAt": "2025-06-21T10:00:00Z"
+  },
+  {
+    "id": "sa022",
+    "personId": "p002",
+    "category": "SIMカード・インターネット対応",
+    "title": "Pocket WIFIの購入方法を案内しました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-06-22T09:00:00Z",
+    "updatedAt": "2025-06-22T10:00:00Z"
+  },
+  {
+    "id": "sa023",
+    "personId": "p003",
+    "category": "SIMカード・インターネット対応",
+    "title": "支払い納期限を過ぎたため、キャリアに連絡しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-06-23T09:00:00Z",
+    "updatedAt": "2025-06-23T10:00:00Z"
+  },
+  {
+    "id": "sa024",
+    "personId": "p004",
+    "category": "ライフライン対応",
+    "title": "銀行振込方法を案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-06-24T09:00:00Z",
+    "updatedAt": "2025-06-24T10:00:00Z"
+  },
+  {
+    "id": "sa025",
+    "personId": "p005",
+    "category": "ライフライン対応",
+    "title": "電気・ガスの契約、解約をしました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-06-25T09:00:00Z",
+    "updatedAt": "2025-06-25T10:00:00Z"
+  },
+  {
+    "id": "sa026",
+    "personId": "p006",
+    "category": "ライフライン対応",
+    "title": "電気・ガスの名前変更",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-06-26T09:00:00Z",
+    "updatedAt": "2025-06-26T10:00:00Z"
+  },
+  {
+    "id": "sa027",
+    "personId": "p007",
+    "category": "ライフライン対応",
+    "title": "水道の開栓手続きをしました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-06-27T09:00:00Z",
+    "updatedAt": "2025-06-27T10:00:00Z"
+  },
+  {
+    "id": "sa028",
+    "personId": "p008",
+    "category": "ライフライン対応",
+    "title": "口座振替の手続きを案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-06-28T09:00:00Z",
+    "updatedAt": "2025-06-28T10:00:00Z"
+  },
+  {
+    "id": "sa029",
+    "personId": "p009",
+    "category": "銀行対応",
+    "title": "パスワードの変更方法を案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-06-29T09:00:00Z",
+    "updatedAt": "2025-06-29T10:00:00Z"
+  },
+  {
+    "id": "sa030",
+    "personId": "p010",
+    "category": "銀行対応",
+    "title": "ATMでの送金、引き出しの案内をしました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-06-30T09:00:00Z",
+    "updatedAt": "2025-06-30T10:00:00Z"
+  },
+  {
+    "id": "sa031",
+    "personId": "p011",
+    "category": "銀行対応",
+    "title": "電話番号の変更手続きをしました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-07-01T09:00:00Z",
+    "updatedAt": "2025-07-01T10:00:00Z"
+  },
+  {
+    "id": "sa032",
+    "personId": "p012",
+    "category": "銀行対応",
+    "title": "口座開設の予約をした",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-07-02T09:00:00Z",
+    "updatedAt": "2025-07-02T10:00:00Z"
+  },
+  {
+    "id": "sa033",
+    "personId": "p013",
+    "category": "銀行対応",
+    "title": "住所変更手続きの案内をしました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-07-03T09:00:00Z",
+    "updatedAt": "2025-07-03T10:00:00Z"
+  },
+  {
+    "id": "sa034",
+    "personId": "p014",
+    "category": "銀行対応",
+    "title": "新しい在留カード受け取り後の更新手続きを案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-07-04T09:00:00Z",
+    "updatedAt": "2025-07-04T10:00:00Z"
+  },
+  {
+    "id": "sa035",
+    "personId": "p015",
+    "category": "病院対応",
+    "title": "対面対応をしました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-07-05T09:00:00Z",
+    "updatedAt": "2025-07-05T10:00:00Z"
+  },
+  {
+    "id": "sa036",
+    "personId": "p016",
+    "category": "病院対応",
+    "title": "病院予約をしました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-07-06T09:00:00Z",
+    "updatedAt": "2025-07-06T10:00:00Z"
+  },
+  {
+    "id": "sa037",
+    "personId": "p017",
+    "category": "病院対応",
+    "title": "オンラインからの通訳をしました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-07-07T09:00:00Z",
+    "updatedAt": "2025-07-07T10:00:00Z"
+  },
+  {
+    "id": "sa038",
+    "personId": "p018",
+    "category": "病院対応",
+    "title": "問診票の記入を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-07-08T09:00:00Z",
+    "updatedAt": "2025-07-08T10:00:00Z"
+  },
+  {
+    "id": "sa039",
+    "personId": "p019",
+    "category": "試験申し込み対応",
+    "title": "試験の申し込み方法を案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-07-09T09:00:00Z",
+    "updatedAt": "2025-07-09T10:00:00Z"
+  },
+  {
+    "id": "sa040",
+    "personId": "p020",
+    "category": "試験申し込み対応",
+    "title": "料金の支払い方法を案内しました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-07-10T09:00:00Z",
+    "updatedAt": "2025-07-10T10:00:00Z"
+  },
+  {
+    "id": "sa041",
+    "personId": "p001",
+    "category": "試験申し込み対応",
+    "title": "合格証明書の取得方法を案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-07-11T09:00:00Z",
+    "updatedAt": "2025-07-11T10:00:00Z"
+  },
+  {
+    "id": "sa042",
+    "personId": "p002",
+    "category": "試験申し込み対応",
+    "title": "試験会場の案内をしました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-07-12T09:00:00Z",
+    "updatedAt": "2025-07-12T10:00:00Z"
+  },
+  {
+    "id": "sa043",
+    "personId": "p003",
+    "category": "送金対応",
+    "title": "送金カード作成の案内",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-07-13T09:00:00Z",
+    "updatedAt": "2025-07-13T10:00:00Z"
+  },
+  {
+    "id": "sa044",
+    "personId": "p004",
+    "category": "送金対応",
+    "title": "送金カードへのお金の入れ方を案内しました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-07-14T09:00:00Z",
+    "updatedAt": "2025-07-14T10:00:00Z"
+  },
+  {
+    "id": "sa045",
+    "personId": "p005",
+    "category": "送金対応",
+    "title": "「扶養控除家族」用紙の記入方法",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-07-15T09:00:00Z",
+    "updatedAt": "2025-07-15T10:00:00Z"
+  },
+  {
+    "id": "sa046",
+    "personId": "p006",
+    "category": "車・バイク・自転車対応",
+    "title": "保険加入手続きをしました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-07-16T09:00:00Z",
+    "updatedAt": "2025-07-16T10:00:00Z"
+  },
+  {
+    "id": "sa047",
+    "personId": "p007",
+    "category": "車・バイク・自転車対応",
+    "title": "保険更新手続きをしました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-07-17T09:00:00Z",
+    "updatedAt": "2025-07-17T10:00:00Z"
+  },
+  {
+    "id": "sa048",
+    "personId": "p008",
+    "category": "車・バイク・自転車対応",
+    "title": "運転免許の申込方法を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-07-18T09:00:00Z",
+    "updatedAt": "2025-07-18T10:00:00Z"
+  },
+  {
+    "id": "sa049",
+    "personId": "p009",
+    "category": "買い物サポート対応",
+    "title": "防寒グッズの購入",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-07-19T09:00:00Z",
+    "updatedAt": "2025-07-19T10:00:00Z"
+  },
+  {
+    "id": "sa050",
+    "personId": "p010",
+    "category": "買い物サポート対応",
+    "title": "暑さ対策グッズの購入",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-07-20T09:00:00Z",
+    "updatedAt": "2025-07-20T10:00:00Z"
+  },
+  {
+    "id": "sa051",
+    "personId": "p011",
+    "category": "買い物サポート対応",
+    "title": "Amazonからの購入方法を案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-07-21T09:00:00Z",
+    "updatedAt": "2025-07-21T10:00:00Z"
+  },
+  {
+    "id": "sa052",
+    "personId": "p012",
+    "category": "買い物サポート対応",
+    "title": "近くのスーパーを調べ、案内しました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-07-22T09:00:00Z",
+    "updatedAt": "2025-07-22T10:00:00Z"
+  },
+  {
+    "id": "sa053",
+    "personId": "p013",
+    "category": "乗り物の乗り方",
+    "title": "ICカードの購入方法を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-07-23T09:00:00Z",
+    "updatedAt": "2025-07-23T10:00:00Z"
+  },
+  {
+    "id": "sa054",
+    "personId": "p014",
+    "category": "乗り物の乗り方",
+    "title": "ICカードの紛失対応をしました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-07-24T09:00:00Z",
+    "updatedAt": "2025-07-24T10:00:00Z"
+  },
+  {
+    "id": "sa055",
+    "personId": "p015",
+    "category": "乗り物の乗り方",
+    "title": "定期券の購入方法を案内しました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-07-25T09:00:00Z",
+    "updatedAt": "2025-07-25T10:00:00Z"
+  },
+  {
+    "id": "sa056",
+    "personId": "p016",
+    "category": "パスポート更新案内",
+    "title": "必要な書類の案内をしました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-07-26T09:00:00Z",
+    "updatedAt": "2025-07-26T10:00:00Z"
+  },
+  {
+    "id": "sa057",
+    "personId": "p017",
+    "category": "パスポート更新案内",
+    "title": "顔写真の撮り方、印刷方法を案内しました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-07-27T09:00:00Z",
+    "updatedAt": "2025-07-27T10:00:00Z"
+  },
+  {
+    "id": "sa058",
+    "personId": "p018",
+    "category": "パスポート更新案内",
+    "title": "大使館までの行き方を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-07-28T09:00:00Z",
+    "updatedAt": "2025-07-28T10:00:00Z"
+  },
+  {
+    "id": "sa059",
+    "personId": "p019",
+    "category": "ビザ更新対応",
+    "title": "必要な書類の案内をしました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-07-29T09:00:00Z",
+    "updatedAt": "2025-07-29T10:00:00Z"
+  },
+  {
+    "id": "sa060",
+    "personId": "p020",
+    "category": "ビザ更新対応",
+    "title": "マイナポータルの案内をしました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-07-30T09:00:00Z",
+    "updatedAt": "2025-07-30T10:00:00Z"
+  },
+  {
+    "id": "sa061",
+    "personId": "p001",
+    "category": "ビザ更新対応",
+    "title": "大使館までの行き方を案内しました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-07-31T09:00:00Z",
+    "updatedAt": "2025-07-31T10:00:00Z"
+  },
+  {
+    "id": "sa062",
+    "personId": "p002",
+    "category": "年末調整案内",
+    "title": "戸籍のNotary公認",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-08-01T09:00:00Z",
+    "updatedAt": "2025-08-01T10:00:00Z"
+  },
+  {
+    "id": "sa063",
+    "personId": "p003",
+    "category": "年末調整案内",
+    "title": "送金証明書の取得方法を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-08-02T09:00:00Z",
+    "updatedAt": "2025-08-02T10:00:00Z"
+  },
+  {
+    "id": "sa064",
+    "personId": "p004",
+    "category": "住居関連対応",
+    "title": "住居関連対応",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-08-03T09:00:00Z",
+    "updatedAt": "2025-08-03T10:00:00Z"
+  },
+  {
+    "id": "sa065",
+    "personId": "p005",
+    "category": "退職後対応",
+    "title": "転出届の案内をしました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-08-04T09:00:00Z",
+    "updatedAt": "2025-08-04T10:00:00Z"
+  },
+  {
+    "id": "sa066",
+    "personId": "p006",
+    "category": "退職後対応",
+    "title": "郵便物転送の案内をしました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-08-05T09:00:00Z",
+    "updatedAt": "2025-08-05T10:00:00Z"
+  },
+  {
+    "id": "sa067",
+    "personId": "p007",
+    "category": "退職後対応",
+    "title": "制服の返却を案内しました",
+    "status": "done",
+    "assignee": "佐藤",
+    "createdAt": "2025-08-06T09:00:00Z",
+    "updatedAt": "2025-08-06T10:00:00Z"
+  },
+  {
+    "id": "sa068",
+    "personId": "p008",
+    "category": "退職後対応",
+    "title": "健康保険証の返却を案内しました",
+    "status": "done",
+    "assignee": "鈴木",
+    "createdAt": "2025-08-07T09:00:00Z",
+    "updatedAt": "2025-08-07T10:00:00Z"
+  },
+  {
+    "id": "sa069",
+    "personId": "p009",
+    "category": "その他",
+    "title": "在留カードを紛失し、再発行に必要な書類の案内をしました",
+    "status": "done",
+    "assignee": "高橋",
+    "createdAt": "2025-08-08T09:00:00Z",
+    "updatedAt": "2025-08-08T10:00:00Z"
+  },
+  {
+    "id": "sa070",
+    "personId": "p010",
+    "category": "その他",
+    "title": "近くの交番を調べ、案内しました",
+    "status": "done",
+    "assignee": "渡辺",
+    "createdAt": "2025-08-09T09:00:00Z",
+    "updatedAt": "2025-08-09T10:00:00Z"
+  },
+  {
+    "id": "sa071",
+    "personId": "p011",
+    "category": "その他",
+    "title": "住民税の説明をしました",
+    "status": "done",
+    "assignee": "田中",
+    "createdAt": "2025-08-10T09:00:00Z",
+    "updatedAt": "2025-08-10T10:00:00Z"
+  }
+]
+
+
