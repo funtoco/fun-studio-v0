@@ -91,7 +91,7 @@ export default function MeetingsPage() {
   )
 
   // Get unique values for filters
-  const uniquePeople = Array.from(new Set(allMeetings.map((m) => m.personId)))
+  const uniquePeople = Array.from(new Set(meetings.map((m) => m.personId)))
     .map((id) => people.find((p) => p.id === id))
     .filter(Boolean)
 
