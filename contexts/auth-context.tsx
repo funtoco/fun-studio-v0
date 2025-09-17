@@ -9,9 +9,11 @@ import { createClient } from "@/lib/supabase/client"
 interface AuthContextType {
   user: User | null
   loading: boolean
+  role: string | null
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -19,6 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [role, setRole] = useState<string | null>(null)
   const supabase = createClient()
   
   // 環境変数が設定されていない場合は認証を無効化
@@ -40,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("AuthContext - Initial session:", session)
         console.log("AuthContext - Initial user:", session?.user)
         setUser(session?.user ?? null)
+        setRole(session?.user?.user_metadata?.role ?? null)
         setLoading(false)
       } catch (error) {
         console.error("認証セッション取得エラー:", error)
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       console.log("AuthContext - Auth state change:", event, session)
       setUser(session?.user ?? null)
+      setRole(session?.user?.user_metadata?.role ?? null)
       setLoading(false)
     })
 
@@ -132,12 +137,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const refreshUser = async () => {
+    if (!isAuthEnabled) {
+      console.log("認証機能が無効化されているため、リフレッシュをスキップします")
+      return
+    }
+
+    console.log("AuthContext - ユーザー情報リフレッシュ開始")
+    try {
+      const {
+        data: { user: refreshedUser },
+        error
+      } = await supabase.auth.getUser()
+      
+      if (error) {
+        console.error("ユーザー情報取得エラー:", error)
+        return
+      }
+      
+      console.log("AuthContext - リフレッシュされたユーザー:", refreshedUser)
+      console.log("AuthContext - リフレッシュされたuser_metadata:", refreshedUser?.user_metadata)
+      
+      setUser(refreshedUser)
+      setRole(refreshedUser?.user_metadata?.role ?? null)
+    } catch (error) {
+      console.error("ユーザー情報リフレッシュエラー:", error)
+    }
+  }
+
   const value = {
     user,
     loading,
+    role,
     signIn,
     signUp,
     signOut,
+    refreshUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

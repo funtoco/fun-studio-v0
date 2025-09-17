@@ -1,25 +1,36 @@
 "use client"
 
-import { Search, Bell, Settings, User, LogOut } from "lucide-react"
+import { useState } from "react"
+import { Search, Bell, Settings, User, LogOut, Building2, Eye, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/auth-context"
+import { useCompany } from "@/contexts/company-context"
 import { useRouter } from "next/navigation"
+import { currentUser } from "@/data/users"
 
 export function Header() {
-  const { user, signOut } = useAuth()
+  const { user, role, signOut, refreshUser } = useAuth()
+  const { selectedCompanyId, selectedCompany, availableCompanies, setSelectedCompanyId, isAllCompaniesView } = useCompany()
   const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("")
 
   // デバッグ用
   console.log("Header - user:", user)
-  console.log("Header - user email:", user?.email)
+  console.log("Header - role:", role)
+  console.log("Header - currentUser.role:", currentUser.role)
+  console.log("Header - role === 'admin':", role === "admin")
+  console.log("Header - currentUser.role === 'admin':", currentUser.role === "admin")
+  console.log("Header - 条件全体:", (role === "admin" || currentUser.role === "admin"))
 
   const handleSignOut = async () => {
     console.log("ログアウトボタンがクリックされました")
@@ -33,22 +44,80 @@ export function Header() {
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-background px-6">
-      {/* Search */}
-      <div className="flex items-center gap-4 flex-1 max-w-md">
-        <div className="relative flex-1">
+      {/* Search and Company Switcher */}
+      <div className="flex items-center gap-4 flex-1">
+        <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="人材名、会社名で検索... (/ でフォーカス)" className="pl-10" />
+          <Input 
+            placeholder="人材名、会社名で検索... (/ でフォーカス)" 
+            className="pl-10 w-80"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+            <SelectTrigger className="w-48">
+              <SelectValue>
+                {isAllCompaniesView ? (
+                  <div className="flex items-center space-x-2">
+                    <Eye className="h-4 w-4" />
+                    <span>全て表示</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Building2 className="h-4 w-4" />
+                    <span>{selectedCompany?.name || "会社を選択"}</span>
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                <div className="flex items-center space-x-2">
+                  <Eye className="h-4 w-4" />
+                  <span>全て表示</span>
+                </div>
+              </SelectItem>
+              {availableCompanies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  <div className="flex items-center space-x-2">
+                    <Building2 className="h-4 w-4" />
+                    <span>{company.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={refreshUser} title="ユーザー情報をリフレッシュ">
+          <RefreshCw className="h-5 w-5" />
+        </Button>
+        
         <Button variant="ghost" size="icon">
           <Bell className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon">
-          <Settings className="h-5 w-5" />
-        </Button>
+
+        {(role === "admin" || currentUser.role === "admin") && (
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
+              <Settings className="h-5 w-5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>管理者設定</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/admin/companies')}>
+                法人管理
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         {user ? (
           <div className="flex items-center gap-2">

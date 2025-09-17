@@ -95,3 +95,9 @@ export type ActivityItem = {
   status?: string
   link: string
 }
+
+export type Company = {
+  id: string
+  name: string
+  isActive: boolean
+}
