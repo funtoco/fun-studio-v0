@@ -1,16 +1,11 @@
-"use client"
-
-import { useState } from "react"
 import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PersonDetailTabs } from "@/components/person-detail-tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
-import { Timeline } from "@/components/ui/timeline"
-import { TreeNoteView } from "@/components/ui/tree-note-view"
-import { people } from "@/data/people"
+import { getPersonById } from "@/lib/supabase/people"
 import { visas } from "@/data/visas"
 import { allMeetings } from "@/data/meetings"
 import { supportActions } from "@/data/support-actions"
@@ -21,10 +16,8 @@ interface PersonDetailPageProps {
   params: { id: string }
 }
 
-export default function PersonDetailPage({ params }: PersonDetailPageProps) {
-  const [activeTab, setActiveTab] = useState("timeline")
-
-  const person = people.find((p) => p.id === params.id)
+export default async function PersonDetailPage({ params }: PersonDetailPageProps) {
+  const person = await getPersonById(params.id)
   const visa = visas.find((v) => v.personId === params.id)
   const personMeetings = allMeetings.filter((m) => m.personId === params.id)
   const personSupportActions = supportActions.filter((sa) => sa.personId === params.id)
@@ -34,24 +27,6 @@ export default function PersonDetailPage({ params }: PersonDetailPageProps) {
   }
 
   // Generate timeline for this person
-  const personTimeline = [
-    ...personMeetings.map((meeting) => ({
-      id: meeting.id,
-      type: "meeting" as const,
-      title: meeting.title,
-      description: `種別: ${meeting.kind}`,
-      datetime: meeting.datetime,
-      status: meeting.kind,
-    })),
-    ...personSupportActions.map((action) => ({
-      id: action.id,
-      type: "support" as const,
-      title: action.title,
-      description: `カテゴリ: ${action.category}`,
-      datetime: action.updatedAt,
-      status: action.status,
-    })),
-  ].sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())
 
   return (
     <div className="p-6 space-y-6">
@@ -105,96 +80,10 @@ export default function PersonDetailPage({ params }: PersonDetailPageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tabs Content */}
         <div className="lg:col-span-2">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="timeline">タイムライン</TabsTrigger>
-              <TabsTrigger value="meetings">面談記録</TabsTrigger>
-              <TabsTrigger value="support">サポート記録</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="timeline" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>活動タイムライン</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Timeline items={personTimeline} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="meetings" className="mt-6">
-              <div className="space-y-4">
-                {personMeetings.length === 0 ? (
-                  <Card>
-                    <CardContent className="flex items-center justify-center py-8">
-                      <p className="text-muted-foreground">面談記録がありません</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  personMeetings.map((meeting) => (
-                    <Card key={meeting.id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle className="text-lg">{meeting.title}</CardTitle>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                {formatDateTime(meeting.datetime)}
-                              </span>
-                              <Badge variant="outline">{meeting.kind}</Badge>
-                              {meeting.durationMin && <span>{meeting.durationMin}分</span>}
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <TreeNoteView notes={meeting.notes} />
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="support" className="mt-6">
-              <div className="space-y-4">
-                {personSupportActions.length === 0 ? (
-                  <Card>
-                    <CardContent className="flex items-center justify-center py-8">
-                      <p className="text-muted-foreground">サポート記録がありません</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  personSupportActions.map((action) => (
-                    <Card key={action.id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle className="text-lg">{action.title}</CardTitle>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge variant="outline">{action.category}</Badge>
-                              <StatusBadge status={action.status} type="support" />
-                            </div>
-                          </div>
-                          <div className="text-right text-sm text-muted-foreground">
-                            {action.assignee && <div>担当: {action.assignee}</div>}
-                            {action.due && <div>期日: {formatDate(action.due)}</div>}
-                          </div>
-                        </div>
-                      </CardHeader>
-                      {action.detail && (
-                        <CardContent>
-                          <p className="text-sm">{action.detail}</p>
-                        </CardContent>
-                      )}
-                    </Card>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+          <PersonDetailTabs 
+            personMeetings={personMeetings}
+            personSupportActions={personSupportActions}
+          />
         </div>
 
         {/* Sidebar */}

@@ -5,7 +5,7 @@ import { DataTable, type Column } from "@/components/ui/data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { people as localPeople } from "@/data/people"
+import { getPeople } from "@/lib/supabase/people"
 import { visas } from "@/data/visas"
 import type { Person } from "@/lib/models"
 
@@ -22,9 +22,20 @@ export default function PeoplePage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Use local data instead of Supabase for now
-    setPeople(localPeople)
-    setLoading(false)
+    async function fetchPeople() {
+      try {
+        setLoading(true)
+        const peopleData = await getPeople()
+        setPeople(peopleData)
+      } catch (err) {
+        console.error('Error fetching people:', err)
+        setError('データの取得に失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPeople()
   }, [])
 
   // Combine people with their visa information

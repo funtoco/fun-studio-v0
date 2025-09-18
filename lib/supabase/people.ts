@@ -4,14 +4,23 @@ import type { Person } from '@/lib/models'
 export async function getPeople(): Promise<Person[]> {
   const supabase = createClient()
   
+  console.log('getPeople: Starting query...')
+  
   const { data, error } = await supabase
     .from('people')
     .select('*')
     .order('created_at', { ascending: false })
   
+  console.log('getPeople: Query result:', { data, error, count: data?.length })
+  
   if (error) {
     console.error('Error fetching people:', error)
     throw error
+  }
+  
+  if (!data || data.length === 0) {
+    console.log('getPeople: No data found')
+    return []
   }
   
   // SupabaseのデータをPerson型に変換
@@ -21,7 +30,13 @@ export async function getPeople(): Promise<Person[]> {
     kana: person.kana,
     nationality: person.nationality,
     dob: person.dob,
+    specificSkillField: person.specific_skill_field,
     phone: person.phone,
+    employeeNumber: person.employee_number,
+    workingStatus: person.working_status,
+    residenceCardNo: person.residence_card_no,
+    residenceCardExpiryDate: person.residence_card_expiry_date,
+    residenceCardIssuedDate: person.residence_card_issued_date,
     email: person.email,
     address: person.address,
     company: person.company,
@@ -35,11 +50,15 @@ export async function getPeople(): Promise<Person[]> {
 export async function getPersonById(id: string): Promise<Person | null> {
   const supabase = createClient()
   
+  console.log('Fetching person with ID:', id)
+  
   const { data, error } = await supabase
     .from('people')
     .select('*')
     .eq('id', id)
     .single()
+  
+  console.log('Query result:', { data, error })
   
   if (error) {
     console.error('Error fetching person:', error)
@@ -52,7 +71,13 @@ export async function getPersonById(id: string): Promise<Person | null> {
     kana: data.kana,
     nationality: data.nationality,
     dob: data.dob,
+    specificSkillField: data.specific_skill_field,
     phone: data.phone,
+    employeeNumber: data.employee_number,
+    workingStatus: data.working_status,
+    residenceCardNo: data.residence_card_no,
+    residenceCardExpiryDate: data.residence_card_expiry_date,
+    residenceCardIssuedDate: data.residence_card_issued_date,
     email: data.email,
     address: data.address,
     company: data.company,
@@ -74,7 +99,13 @@ export async function createPerson(person: Omit<Person, 'createdAt' | 'updatedAt
       kana: person.kana,
       nationality: person.nationality,
       dob: person.dob,
+      specific_skill_field: person.specificSkillField,
       phone: person.phone,
+      employee_number: person.employeeNumber,
+      working_status: person.workingStatus,
+      residence_card_no: person.residenceCardNo,
+      residence_card_expiry_date: person.residenceCardExpiryDate,
+      residence_card_issued_date: person.residenceCardIssuedDate,
       email: person.email,
       address: person.address,
       company: person.company,
@@ -95,7 +126,13 @@ export async function createPerson(person: Omit<Person, 'createdAt' | 'updatedAt
     kana: data.kana,
     nationality: data.nationality,
     dob: data.dob,
+    specificSkillField: data.specific_skill_field,
     phone: data.phone,
+    employeeNumber: data.employee_number,
+    workingStatus: data.working_status,
+    residenceCardNo: data.residence_card_no,
+    residenceCardExpiryDate: data.residence_card_expiry_date,
+    residenceCardIssuedDate: data.residence_card_issued_date,
     email: data.email,
     address: data.address,
     company: data.company,
@@ -116,7 +153,13 @@ export async function updatePerson(id: string, updates: Partial<Omit<Person, 'id
       kana: updates.kana,
       nationality: updates.nationality,
       dob: updates.dob,
+      specific_skill_field: updates.specificSkillField,
       phone: updates.phone,
+      employee_number: updates.employeeNumber,
+      working_status: updates.workingStatus,
+      residence_card_no: updates.residenceCardNo,
+      residence_card_expiry_date: updates.residenceCardExpiryDate,
+      residence_card_issued_date: updates.residenceCardIssuedDate,
       email: updates.email,
       address: updates.address,
       company: updates.company,
@@ -138,7 +181,13 @@ export async function updatePerson(id: string, updates: Partial<Omit<Person, 'id
     kana: data.kana,
     nationality: data.nationality,
     dob: data.dob,
+    specificSkillField: data.specific_skill_field,
     phone: data.phone,
+    employeeNumber: data.employee_number,
+    workingStatus: data.working_status,
+    residenceCardNo: data.residence_card_no,
+    residenceCardExpiryDate: data.residence_card_expiry_date,
+    residenceCardIssuedDate: data.residence_card_issued_date,
     email: data.email,
     address: data.address,
     company: data.company,
