@@ -1,0 +1,8 @@
+-- Add policy to allow public read access for development
+-- This allows unauthenticated users to read people data
+
+CREATE POLICY "Allow public read access" ON people
+  FOR SELECT USING (true);
+
+-- Note: This is for development purposes only
+-- In production, you should remove this policy and ensure proper authentication

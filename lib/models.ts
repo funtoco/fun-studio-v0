@@ -4,7 +4,13 @@ export type Person = {
   kana?: string
   nationality?: string
   dob?: string
+  specificSkillField?: string
   phone?: string
+  employeeNumber?: string
+  workingStatus?: string
+  residenceCardNo?: string
+  residenceCardExpiryDate?: string
+  residenceCardIssuedDate?: string
   email?: string
   address?: string
   company?: string
@@ -27,7 +33,7 @@ export type Visa = {
   id: string
   personId: string
   status: VisaStatus
-  type: "新規" | "更新"
+  type: "認定申請" | "変更申請" | "更新申請" | "特定活動申請" | "資格変更（特定技能2号）"
   expiryDate?: string
   submittedAt?: string
   resultAt?: string

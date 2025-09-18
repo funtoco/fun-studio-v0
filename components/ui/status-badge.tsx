@@ -1,14 +1,17 @@
 import { cn } from "@/lib/utils"
-import { getVisaStatusColor, getSupportStatusColor } from "@/lib/utils"
+import { getVisaStatusColor, getSupportStatusColor, getWorkingStatusColor } from "@/lib/utils"
 
 interface StatusBadgeProps {
   status: string
-  type?: "visa" | "support"
+  type?: "visa" | "support" | "working"
   className?: string
 }
 
 export function StatusBadge({ status, type = "visa", className }: StatusBadgeProps) {
-  const colorClass = type === "visa" ? getVisaStatusColor(status) : getSupportStatusColor(status)
+  const colorClass = 
+    type === "visa" ? getVisaStatusColor(status) :
+    type === "support" ? getSupportStatusColor(status) :
+    getWorkingStatusColor(status)
 
   return (
     <span
