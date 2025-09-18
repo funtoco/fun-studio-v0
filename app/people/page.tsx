@@ -5,7 +5,7 @@ import { DataTable, type Column } from "@/components/ui/data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { getPeople } from "@/lib/supabase/people"
+import { people as localPeople } from "@/data/people"
 import { visas } from "@/data/visas"
 import type { Person } from "@/lib/models"
 
@@ -22,20 +22,9 @@ export default function PeoplePage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchPeople() {
-      try {
-        setLoading(true)
-        const peopleData = await getPeople()
-        setPeople(peopleData)
-      } catch (err) {
-        console.error('Error fetching people:', err)
-        setError('データの取得に失敗しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPeople()
+    // Use local data instead of Supabase for now
+    setPeople(localPeople)
+    setLoading(false)
   }, [])
 
   // Combine people with their visa information
@@ -91,19 +80,19 @@ export default function PeoplePage() {
         value ? <DeadlineChip date={value} label="期限" /> : <span className="text-muted-foreground">-</span>,
     },
     {
-      key: "visaType",
-      label: "ビザ種別",
+      key: "employeeNumber",
+      label: "従業員番号",
       sortable: true,
-      filterable: true,
-      render: (value) => value || <span className="text-muted-foreground">-</span>,
+      render: (value) =>
+        value ? <span className="text-sm font-mono">{value}</span> : <span className="text-muted-foreground">-</span>,
     },
     {
-      key: "visaStatus",
-      label: "ビザ進捗",
+      key: "workingStatus",
+      label: "就労ステータス",
       sortable: true,
       filterable: true,
       render: (value) =>
-        value ? <StatusBadge status={value} type="visa" /> : <span className="text-muted-foreground">-</span>,
+        value ? <StatusBadge status={value} type="working" /> : <span className="text-muted-foreground">-</span>,
     },
   ]
 
@@ -130,6 +119,17 @@ export default function PeoplePage() {
       key: "visaStatus",
       label: "ビザ進捗",
       options: ["書類準備中", "書類作成中", "書類確認中", "申請準備中", "ビザ申請準備中", "申請中", "ビザ取得済み"].map(
+        (status) => ({
+          value: status,
+          label: status,
+        }),
+      ),
+      multiple: true,
+    },
+    {
+      key: "workingStatus",
+      label: "就労ステータス",
+      options: ["入社待ち", "在籍中", "退職", "内定取消", "内定辞退", "支援終了"].map(
         (status) => ({
           value: status,
           label: status,
@@ -174,9 +174,11 @@ export default function PeoplePage() {
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">人材一覧</h1>
-        <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">人材一覧</h1>
+          <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
+        </div>
       </div>
 
       {/* Data Table */}
@@ -184,7 +186,7 @@ export default function PeoplePage() {
         data={peopleWithVisas}
         columns={columns}
         filters={filters}
-        searchKeys={["name", "company", "email"]}
+        searchKeys={["name", "company", "email", "nationality"]}
         onRowClick={handleRowClick}
       />
     </div>

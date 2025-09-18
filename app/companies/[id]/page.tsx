@@ -227,7 +227,7 @@ export default function CompanyDetailPage() {
           {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle>連絡先情報</CardTitle>
+              <CardTitle>本人情報</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

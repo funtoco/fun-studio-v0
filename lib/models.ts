@@ -4,7 +4,13 @@ export type Person = {
   kana?: string
   nationality?: string
   dob?: string
+  specificSkillField?: string
   phone?: string
+  employeeNumber?: string
+  workingStatus?: string
+  residenceCardNo?: string
+  residenceCardExpiryDate?: string
+  residenceCardIssuedDate?: string
   email?: string
   address?: string
   company?: string

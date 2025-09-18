@@ -15,7 +15,7 @@ import { visas } from "@/data/visas"
 import { allMeetings } from "@/data/meetings"
 import { supportActions } from "@/data/support-actions"
 import { formatDate, formatDateTime } from "@/lib/utils"
-import { Mail, Phone, MapPin, Building2, Calendar, User } from "lucide-react"
+import { Mail, Phone, MapPin, Building2, Calendar, User, IdCard, User2 } from "lucide-react"
 
 interface PersonDetailPageProps {
   params: { id: string }
@@ -79,6 +79,9 @@ export default function PersonDetailPage({ params }: PersonDetailPageProps) {
                         <Building2 className="h-3 w-3" />
                         {person.company}
                       </Badge>
+                    )}
+                    {person.workingStatus && (
+                      <StatusBadge status={person.workingStatus} type="working" />
                     )}
                   </div>
                 </div>
@@ -199,25 +202,88 @@ export default function PersonDetailPage({ params }: PersonDetailPageProps) {
           {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle>連絡先情報</CardTitle>
+              <CardTitle>本人情報</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {person.dob && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">生年月日</span>
+                  </div>
+                  <span className="text-sm">{person.dob}</span>
+                </div>
+              )}
+              {person.employeeNumber && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">従業員番号</span>
+                  </div>
+                  <span className="text-sm">{person.employeeNumber}</span>
+                </div>
+              )}
+              {person.residenceCardNo && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <IdCard className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">在留カード番号</span>
+                  </div>
+                  <span className="text-sm">{person.residenceCardNo}</span>
+                </div>
+              )}
+              {person.residenceCardExpiryDate && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">在留カード有効期限</span>
+                  </div>
+                  <span className="text-sm">{person.residenceCardExpiryDate}</span>
+                </div>
+              )}
+              {person.residenceCardIssuedDate && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">在留カード発行日</span>
+                  </div>
+                  <span className="text-sm">{person.residenceCardIssuedDate}</span>
+                </div>
+              )}
               {person.email && (
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">メールアドレス</span>
+                  </div>
                   <span className="text-sm">{person.email}</span>
                 </div>
               )}
               {person.phone && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">電話番号</span>
+                  </div>
                   <span className="text-sm">{person.phone}</span>
                 </div>
               )}
               {person.address && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">住所</span>
+                  </div>
                   <span className="text-sm">{person.address}</span>
+                </div>
+              )}
+              {person.specificSkillField && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">特定技能分野</span>
+                  </div>
+                  <span className="text-sm">{person.specificSkillField}</span>
                 </div>
               )}
             </CardContent>

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Search, FilterIcon, Download, ChevronUp, ChevronDown } from "lucide-react"
+import { Search, FilterIcon, Download, ChevronUp, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface Column<T> {
@@ -49,6 +49,7 @@ export function DataTable<T extends Record<string, any>>({
     direction: "asc" | "desc"
   } | null>(null)
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
+  const [selectValues, setSelectValues] = useState<Record<string, string>>({})
 
   // Filter data based on search and filters
   const filteredData = data.filter((row) => {
@@ -102,6 +103,36 @@ export function DataTable<T extends Record<string, any>>({
 
       return { ...current, [filterKey]: newValues }
     })
+    
+    // Update select value
+    setSelectValues((current) => ({
+      ...current,
+      [filterKey]: value
+    }))
+  }
+
+  const removeFilter = (filterKey: string, value: string) => {
+    setActiveFilters((current) => {
+      const currentValues = current[filterKey] || []
+      const newValues = currentValues.filter((v) => v !== value)
+      return { ...current, [filterKey]: newValues }
+    })
+    
+    // Clear select value if no filters remain for this key
+    setSelectValues((current) => {
+      const newValues = { ...current }
+      const remainingFilters = activeFilters[filterKey]?.filter((v) => v !== value) || []
+      if (remainingFilters.length === 0) {
+        delete newValues[filterKey]
+      }
+      return newValues
+    })
+  }
+
+  const clearAllFilters = () => {
+    setActiveFilters({})
+    setSelectValues({})
+    setSearchTerm("")
   }
 
   const exportToCsv = () => {
@@ -145,7 +176,11 @@ export function DataTable<T extends Record<string, any>>({
 
           {/* Filters */}
           {filters.map((filter) => (
-            <Select key={filter.key} onValueChange={(value) => handleFilterChange(filter.key, value)}>
+            <Select 
+              key={filter.key} 
+              value={selectValues[filter.key] || ""} 
+              onValueChange={(value) => handleFilterChange(filter.key, value)}
+            >
               <SelectTrigger className="w-40">
                 <div className="flex items-center gap-2">
                   <FilterIcon className="h-4 w-4" />
@@ -179,13 +214,22 @@ export function DataTable<T extends Record<string, any>>({
               <Badge
                 key={`${key}-${value}`}
                 variant="secondary"
-                className="cursor-pointer"
-                onClick={() => handleFilterChange(key, value)}
+                className="cursor-pointer hover:bg-secondary/80"
+                onClick={() => removeFilter(key, value)}
               >
                 {value} ×
               </Badge>
             )),
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3 w-3 mr-1" />
+            全てクリア
+          </Button>
         </div>
       )}
 
@@ -254,9 +298,25 @@ export function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Results count */}
-      <div className="text-sm text-muted-foreground">
-        {sortedData.length} 件中 {sortedData.length} 件を表示
-        {data.length !== sortedData.length && ` (全 ${data.length} 件)`}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div>
+          {data.length !== sortedData.length ? (
+            <>
+              <span className="font-medium text-foreground">{sortedData.length}</span> 件を表示 
+              <span className="mx-1">•</span> 
+              合計 <span className="font-medium text-foreground">{data.length}</span> 件
+            </>
+          ) : (
+            <>
+              合計 <span className="font-medium text-foreground">{data.length}</span> 件
+            </>
+          )}
+        </div>
+        {data.length !== sortedData.length && (
+          <div className="text-xs">
+            {Math.round((sortedData.length / data.length) * 100)}% を表示中
+          </div>
+        )}
       </div>
     </div>
   )

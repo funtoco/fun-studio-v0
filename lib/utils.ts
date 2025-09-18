@@ -64,6 +64,19 @@ export function getSupportStatusColor(status: string): string {
   return statusColors[status] || "bg-gray-100 text-gray-800"
 }
 
+// Get working status color
+export function getWorkingStatusColor(status: string): string {
+  const statusColors: Record<string, string> = {
+    入社待ち: "bg-blue-100 text-blue-800",
+    在籍中: "bg-green-100 text-green-800",
+    退職: "bg-red-100 text-red-800",
+    内定取消: "bg-red-100 text-red-800",
+    内定辞退: "bg-orange-100 text-orange-800",
+    支援終了: "bg-gray-100 text-gray-800",
+  }
+  return statusColors[status] || "bg-gray-100 text-gray-800"
+}
+
 // Generate activity timeline from various data sources
 export function generateActivityTimeline(
   people: Person[],
