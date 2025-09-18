@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { getPersonById } from "@/lib/supabase/people"
-import { visas } from "@/data/visas"
+import { getVisasByPersonId } from "@/lib/supabase/visas"
 import { allMeetings } from "@/data/meetings"
 import { supportActions } from "@/data/support-actions"
 import { formatDate, formatDateTime } from "@/lib/utils"
@@ -18,7 +18,8 @@ interface PersonDetailPageProps {
 
 export default async function PersonDetailPage({ params }: PersonDetailPageProps) {
   const person = await getPersonById(params.id)
-  const visa = visas.find((v) => v.personId === params.id)
+  const personVisas = await getVisasByPersonId(params.id)
+  const visa = personVisas[0] // 最新のvisa
   const personMeetings = allMeetings.filter((m) => m.personId === params.id)
   const personSupportActions = supportActions.filter((sa) => sa.personId === params.id)
 

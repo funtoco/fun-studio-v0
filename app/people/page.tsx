@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getPeople } from "@/lib/supabase/people"
-import { visas } from "@/data/visas"
+import { getVisas } from "@/lib/supabase/visas"
 import type { Person } from "@/lib/models"
 
 interface PersonWithVisa extends Person {
@@ -18,24 +18,29 @@ interface PersonWithVisa extends Person {
 export default function PeoplePage() {
   const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
+  const [visas, setVisas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchPeople() {
+    async function fetchData() {
       try {
         setLoading(true)
-        const peopleData = await getPeople()
+        const [peopleData, visaData] = await Promise.all([
+          getPeople(),
+          getVisas()
+        ])
         setPeople(peopleData)
+        setVisas(visaData)
       } catch (err) {
-        console.error('Error fetching people:', err)
+        console.error('Error fetching data:', err)
         setError('データの取得に失敗しました')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchPeople()
+    fetchData()
   }, [])
 
   // Combine people with their visa information

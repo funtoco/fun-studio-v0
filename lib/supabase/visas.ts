@@ -1,5 +1,16 @@
 import { createClient } from './client'
-import type { Visa } from '@/lib/models'
+import type { Visa, VisaStatus } from '@/lib/models'
+
+export interface VisaListResponse {
+  visas: Visa[]
+  totalCount: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+export interface VisaStatusCounts {
+  [key: string]: number
+}
 
 export async function getVisas(): Promise<Visa[]> {
   const supabase = createClient()
@@ -165,5 +176,93 @@ export async function deleteVisa(id: string): Promise<void> {
   if (error) {
     console.error('Error deleting visa:', error)
     throw error
+  }
+}
+
+export async function getVisaStatusCounts(): Promise<VisaStatusCounts> {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('visas')
+    .select('status')
+  
+  if (error) {
+    console.error('Error fetching visa status counts:', error)
+    throw error
+  }
+  
+  // Count occurrences of each status
+  const counts: VisaStatusCounts = {}
+  data.forEach(visa => {
+    counts[visa.status] = (counts[visa.status] || 0) + 1
+  })
+  
+  return counts
+}
+
+export async function getVisasPaginated(
+  status?: string,
+  page: number = 1,
+  pageSize: number = 20
+): Promise<VisaListResponse> {
+  const supabase = createClient()
+  
+  const offset = (page - 1) * pageSize
+  
+  let query = supabase
+    .from('visas')
+    .select(`
+      *,
+      people!inner(
+        id,
+        name,
+        kana,
+        nationality,
+        company
+      )
+    `, { count: 'exact' })
+    .order('updated_at', { ascending: false })
+    .range(offset, offset + pageSize - 1)
+  
+  if (status && status !== 'all') {
+    query = query.eq('status', status)
+  }
+  
+  const { data, error, count } = await query
+  
+  if (error) {
+    console.error('Error fetching paginated visas:', error)
+    throw error
+  }
+  
+  const visas: (Visa & { person: any })[] = data.map(item => ({
+    id: item.id,
+    personId: item.person_id,
+    status: item.status,
+    type: item.type,
+    expiryDate: item.expiry_date,
+    submittedAt: item.submitted_at,
+    resultAt: item.result_at,
+    manager: item.manager,
+    updatedAt: item.updated_at,
+    // Add person data for display
+    person: {
+      id: item.people.id,
+      name: item.people.name,
+      kana: item.people.kana,
+      nationality: item.people.nationality,
+      company: item.people.company
+    }
+  }))
+  
+  const totalCount = count || 0
+  const hasNextPage = offset + pageSize < totalCount
+  const hasPrevPage = page > 1
+  
+  return {
+    visas: visas as Visa[],
+    totalCount,
+    hasNextPage,
+    hasPrevPage
   }
 }
