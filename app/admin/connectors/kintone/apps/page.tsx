@@ -57,7 +57,7 @@ export default function KintoneAppsPage() {
       <PageHeader
         title="Kintone アプリ"
         description="接続されている Kintone アプリの一覧と詳細"
-        breadcrumbs={[{ label: "ダッシュボード", href: "/admin/connectors/dashboard" }, { label: "Kintone アプリ" }]}
+        breadcrumbs={[{ label: "概要", href: "/admin/connectors/dashboard" }, { label: "Kintone アプリ" }]}
         actions={
           <div className="flex items-center space-x-2">
             <Button variant="outline" disabled title="参照専用（現在は編集不可）">

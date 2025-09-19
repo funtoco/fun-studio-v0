@@ -62,7 +62,7 @@ export default function MappingsPage() {
       <PageHeader
         title="マッピング管理"
         description="Kintone アプリとサービス機能のマッピング設定"
-        breadcrumbs={[{ label: "ダッシュボード", href: "/admin/connectors/dashboard" }, { label: "マッピング管理" }]}
+        breadcrumbs={[{ label: "概要", href: "/admin/connectors/dashboard" }, { label: "マッピング管理" }]}
         actions={
           <div className="flex items-center space-x-2">
             <Button variant="outline" disabled title="参照専用（現在は編集不可）">

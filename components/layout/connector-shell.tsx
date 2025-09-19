@@ -17,7 +17,7 @@ interface ConnectorShellProps {
 
 const navigation = [
   {
-    name: "ダッシュボード",
+    name: "概要",
     href: "/admin/connectors/dashboard",
     icon: LayoutDashboard,
   },
@@ -92,7 +92,35 @@ export function ConnectorShell({ children }: ConnectorShellProps) {
             {/* Main Navigation */}
             <nav className="space-y-2">
               {navigation.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+                // Precise active state logic for each navigation item
+                let isActive = false
+                
+                switch (item.href) {
+                  case '/admin/connectors/dashboard':
+                    isActive = pathname === item.href
+                    break
+                  case '/admin/connectors':
+                    isActive = pathname === item.href || 
+                      (pathname.startsWith('/admin/connectors/') && 
+                       pathname !== '/admin/connectors/dashboard' &&
+                       !pathname.startsWith('/admin/connectors/kintone/') &&
+                       !pathname.startsWith('/admin/connectors/mappings'))
+                    break
+                  case '/admin/connectors/kintone/apps':
+                    isActive = pathname.startsWith('/admin/connectors/kintone/')
+                    break
+                  case '/admin/connectors/mappings':
+                    isActive = pathname.startsWith('/admin/connectors/mappings')
+                    break
+                  default:
+                    isActive = pathname === item.href
+                }
+                
+                // Debug log (remove in production)
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`Navigation: ${item.name} (${item.href}) - Current: ${pathname} - Active: ${isActive}`)
+                }
+                
                 return (
                   <Link
                     key={item.name}
@@ -166,7 +194,7 @@ export function ConnectorShell({ children }: ConnectorShellProps) {
               <Menu className="h-4 w-4" />
             </Button>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Kintone コネクター管理</h1>
+              <h1 className="text-lg font-semibold text-foreground">コネクター管理</h1>
               <p className="text-sm text-muted-foreground">接続状態とマッピング設定の確認</p>
             </div>
           </div>

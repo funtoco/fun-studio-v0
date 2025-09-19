@@ -73,7 +73,7 @@ export default function KintoneConnectorDetailPage() {
         title={connector.name}
         description="Kintone コネクターの詳細設定と状態"
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/admin/connectors/dashboard" },
+          { label: "概要", href: "/admin/connectors/dashboard" },
           { label: "コネクター", href: "/admin/connectors" },
           { label: "Kintone" },
         ]}

@@ -33,7 +33,7 @@ export default function ConnectorsPage() {
       <PageHeader
         title="コネクター"
         description="Kintone 接続の設定と状態を管理"
-        breadcrumbs={[{ label: "ダッシュボード", href: "/admin/connectors/dashboard" }, { label: "コネクター" }]}
+        breadcrumbs={[{ label: "概要", href: "/admin/connectors/dashboard" }, { label: "コネクター" }]}
         actions={
           <div className="flex items-center space-x-2">
             <Button variant="outline" disabled title="参照専用（現在は編集不可）">

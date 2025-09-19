@@ -89,7 +89,7 @@ export default function KintoneAppDetailPage({ params }: PageProps) {
         title={app.name}
         description={`アプリコード: ${app.appCode}`}
         breadcrumbs={[
-          { label: "ダッシュボード", href: "/admin/connectors/dashboard" },
+          { label: "概要", href: "/admin/connectors/dashboard" },
           { label: "Kintone アプリ", href: "/admin/connectors/kintone/apps" },
           { label: app.name },
         ]}
