@@ -27,3 +27,10 @@ yarn-error.log*
 next-env.d.ts
 
 sample/
+
+# tunnel logs and temporary files
+tunnel.log
+*.log
+
+# development documentation
+KINTONE_OAUTH_SETUP.md

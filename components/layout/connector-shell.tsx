@@ -15,7 +15,8 @@ interface ConnectorShellProps {
   children: React.ReactNode
 }
 
-const navigation = [
+// Simplified navigation - only main sections
+const getNavigation = (tenantId?: string) => [
   {
     name: "概要",
     href: "/admin/connectors/dashboard",
@@ -23,19 +24,9 @@ const navigation = [
   },
   {
     name: "コネクター",
-    href: "/admin/connectors",
+    href: `/admin/connectors${tenantId ? `?tenantId=${tenantId}` : ''}`,
     icon: Cable,
-  },
-  {
-    name: "Kintone アプリ",
-    href: "/admin/connectors/kintone/apps",
-    icon: Database,
-  },
-  {
-    name: "マッピング管理",
-    href: "/admin/connectors/mappings",
-    icon: GitBranch,
-  },
+  }
 ]
 
 const documentationLinks = [
@@ -59,6 +50,12 @@ const documentationLinks = [
 export function ConnectorShell({ children }: ConnectorShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  
+  // Extract tenantId from search params
+  const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const tenantId = urlParams.get('tenantId') || undefined
+  
+  const navigation = getNavigation(tenantId)
 
   return (
     <div className="flex h-screen bg-background">
@@ -92,34 +89,10 @@ export function ConnectorShell({ children }: ConnectorShellProps) {
             {/* Main Navigation */}
             <nav className="space-y-2">
               {navigation.map((item) => {
-                // Precise active state logic for each navigation item
-                let isActive = false
-                
-                switch (item.href) {
-                  case '/admin/connectors/dashboard':
-                    isActive = pathname === item.href
-                    break
-                  case '/admin/connectors':
-                    isActive = pathname === item.href || 
-                      (pathname.startsWith('/admin/connectors/') && 
-                       pathname !== '/admin/connectors/dashboard' &&
-                       !pathname.startsWith('/admin/connectors/kintone/') &&
-                       !pathname.startsWith('/admin/connectors/mappings'))
-                    break
-                  case '/admin/connectors/kintone/apps':
-                    isActive = pathname.startsWith('/admin/connectors/kintone/')
-                    break
-                  case '/admin/connectors/mappings':
-                    isActive = pathname.startsWith('/admin/connectors/mappings')
-                    break
-                  default:
-                    isActive = pathname === item.href
-                }
-                
-                // Debug log (remove in production)
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(`Navigation: ${item.name} (${item.href}) - Current: ${pathname} - Active: ${isActive}`)
-                }
+                // Precise active state logic - only exact matches or specific patterns
+                const isActive = pathname === item.href ||
+                  (item.href.includes('/apps') && pathname.includes('/apps')) ||
+                  (item.href.includes('/mappings') && pathname.includes('/mappings'))
                 
                 return (
                   <Link
