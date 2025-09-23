@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { encryptJson } from '@/lib/security/crypto'
 import { getManifest, validateProviderConfig } from '@/lib/connectors/manifests'
 import { type ProviderId } from '@/lib/connectors/types'
+import { listConnectors } from '@/lib/db/connectors'
 
 // Use Node.js runtime for crypto operations
 export const runtime = 'nodejs'
@@ -27,6 +28,7 @@ function getServerClient() {
 
 // Validation schema
 const createConnectorSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
   tenantId: z.string().uuid(),
   provider: z.enum(['kintone', 'hubspot']),
   providerConfig: z.record(z.any()).default({}),
@@ -35,13 +37,42 @@ const createConnectorSchema = z.object({
   scopes: z.array(z.string()).min(1, 'At least one scope is required')
 })
 
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const tenantId = searchParams.get('tenantId')
+    const searchQuery = searchParams.get('q')
+    
+    if (!tenantId) {
+      return NextResponse.json(
+        { error: 'tenantId is required' },
+        { status: 400 }
+      )
+    }
+    
+    const connectors = await listConnectors(tenantId, searchQuery || undefined)
+    
+    return NextResponse.json({
+      connectors,
+      total: connectors.length
+    })
+    
+  } catch (error) {
+    console.error('Get connectors error:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch connectors' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
     // Validate input
     const validatedData = createConnectorSchema.parse(body)
-    const { tenantId, provider, providerConfig, clientId, clientSecret, scopes } = validatedData
+    const { name, tenantId, provider, providerConfig, clientId, clientSecret, scopes } = validatedData
     
     // Get provider manifest and validate config
     const manifest = getManifest(provider as ProviderId)
@@ -70,6 +101,7 @@ export async function POST(request: NextRequest) {
       .from('connectors')
       .insert({
         tenant_id: tenantId,
+        name,
         provider,
         provider_config: providerConfig,
         scopes,

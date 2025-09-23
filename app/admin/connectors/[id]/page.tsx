@@ -24,6 +24,7 @@ import { ConnectorAppsTab } from "./connector-apps-tab"
 import { ConnectorMappingsTab } from "./connector-mappings-tab"
 import { OAuthSetupInfo } from "@/components/connectors/oauth-setup-info"
 import { SyncButton } from "@/components/connectors/sync-button"
+import { ConnectorRefreshHandler } from "@/components/connectors/connector-refresh-handler"
 
 interface ConnectorDetailPageProps {
   params: {
@@ -111,6 +112,7 @@ export default async function ConnectorDetailPage({
 
   return (
     <div className="space-y-6 p-6">
+      <ConnectorRefreshHandler connectorId={connectorId} tenantId={tenantId} />
       <PageHeader
         title={connector.name}
         description={`${connector.provider.charAt(0).toUpperCase() + connector.provider.slice(1)} コネクターの詳細設定と状態`}

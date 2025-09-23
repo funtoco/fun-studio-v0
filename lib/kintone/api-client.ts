@@ -53,7 +53,7 @@ export class KintoneApiClient {
     const response = await fetch(url, {
       ...options,
       headers: {
-        'X-Cybozu-Authorization': `Bearer ${this.accessToken}`,
+        'Authorization': `Bearer ${this.accessToken}`,
         'Content-Type': 'application/json',
         ...options.headers
       }
@@ -165,14 +165,17 @@ export class KintoneApiClient {
    */
   async testConnection(): Promise<{ success: boolean; userInfo?: any; error?: string }> {
     try {
-      // Try to get user info as a connection test
-      const userInfo = await this.request<any>('/k/v1/user.json')
+      // Try to get apps as a connection test (uses k:app_settings:read scope)
+      const appsResponse = await this.request<{ apps: any[] }>('/k/v1/apps.json')
       return {
         success: true,
         userInfo: {
-          id: userInfo.id,
-          name: userInfo.name,
-          email: userInfo.email
+          appsCount: appsResponse.apps.length,
+          accessibleApps: appsResponse.apps.map(app => ({
+            id: app.appId,
+            name: app.name,
+            code: app.code
+          }))
         }
       }
     } catch (error) {

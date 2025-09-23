@@ -17,7 +17,8 @@ const kintoneManifest: ProviderManifest = {
   authorizeUrl: (cfg) => {
     const subdomain = cfg.subdomain
     if (!subdomain) throw new Error('Subdomain required for Kintone')
-    return `https://${subdomain}.cybozu.com/oauth2/authorize`
+    // Kintone uses /oauth2/authorization (not /authorize)
+    return `https://${subdomain}.cybozu.com/oauth2/authorization`
   },
   
   tokenUrl: (cfg) => {

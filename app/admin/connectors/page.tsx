@@ -1,6 +1,5 @@
-import { Suspense } from 'react'
 import { PageHeader } from "@/components/ui/page-header"
-import { ConnectorListReal, ConnectorListLoading } from "./connector-list-real"
+import { ConnectorList } from "@/components/connectors/connector-list"
 
 interface ConnectorsPageProps {
   searchParams: {
@@ -22,12 +21,10 @@ export default function ConnectorsPage({ searchParams }: ConnectorsPageProps) {
         breadcrumbs={[{ label: "概要", href: "/admin/connectors/dashboard" }, { label: "コネクター" }]}
       />
 
-      <Suspense fallback={<ConnectorListLoading />}>
-        <ConnectorListReal 
-          tenantId={tenantId} 
-          searchQuery={searchQuery}
-        />
-      </Suspense>
+      <ConnectorList 
+        tenantId={tenantId} 
+        searchQuery={searchQuery}
+      />
     </div>
   )
 }

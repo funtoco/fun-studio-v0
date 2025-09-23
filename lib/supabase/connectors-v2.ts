@@ -180,3 +180,49 @@ export async function disconnectProviderV2(provider: string, tenantId: string, c
   // Refresh the page to show updated status
   window.location.reload()
 }
+
+// Delete connector
+export async function deleteConnector(connectorId: string): Promise<void> {
+  const supabase = getClient()
+  const { error } = await supabase
+    .from('connectors')
+    .delete()
+    .eq('id', connectorId)
+  
+  if (error) throw error
+}
+
+// Update connector
+export async function updateConnector(
+  connectorId: string, 
+  updates: Partial<Pick<ConnectorV2, 'name' | 'provider_config' | 'scopes'>>
+): Promise<ConnectorV2> {
+  const supabase = getClient()
+  
+  const updateData: any = {
+    updated_at: new Date().toISOString()
+  }
+  
+  if (updates.provider_config) {
+    updateData.provider_config = updates.provider_config
+  }
+  
+  if (updates.scopes) {
+    updateData.scopes = updates.scopes
+  }
+  
+  const { data, error } = await supabase
+    .from('connectors')
+    .update(updateData)
+    .eq('id', connectorId)
+    .select()
+    .single()
+  
+  if (error) throw error
+  
+  return {
+    ...data,
+    name: getConnectorDisplayName(data),
+    displayConfig: getDisplayConfig(data)
+  }
+}

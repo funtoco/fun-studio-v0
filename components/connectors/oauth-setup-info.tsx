@@ -134,8 +134,8 @@ export function OAuthSetupInfo({ provider, subdomain }: OAuthSetupInfoProps) {
             <div className="space-y-1">
               <div className="font-medium">開発環境での注意:</div>
               <div className="text-sm">
-                • 現在は localhost URL を使用しています<br/>
-                • 本番環境では HTTPS の実際のドメインを使用してください<br/>
+                • <code className="bg-blue-100 px-1 rounded">npm run dev:https</code> でHTTPS localhostを起動<br/>
+                • KintoneはHTTPSが必要なので、<code className="bg-blue-100 px-1 rounded">https://localhost:3000</code> を使用<br/>
                 • MOCK_OAUTH=1 でテスト可能です
               </div>
             </div>

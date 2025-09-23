@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Plus, Zap, Unplug } from "lucide-react"
-import { AddConnectorSimple } from "@/components/connectors/add-connector-simple"
+import { AddConnectorDialog } from "@/components/connectors/add-connector-dialog"
 import { type Connector } from "@/lib/db/connectors"
 
 interface ConnectorActionsProps {
@@ -80,7 +80,7 @@ export function ConnectorActions({ tenantId, connector, showLabel }: ConnectorAc
           {showLabel ? 'コネクター追加' : ''}
         </Button>
         
-        <AddConnectorSimple
+        <AddConnectorDialog
           open={showAddDialog}
           onOpenChange={setShowAddDialog}
           onSuccess={handleAddSuccess}
