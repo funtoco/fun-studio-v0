@@ -96,7 +96,6 @@ export function MembersTable({
                 {...(someSelected && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead>名前</TableHead>
             <TableHead>メール</TableHead>
             <TableHead>ロール</TableHead>
             <TableHead>ステータス</TableHead>
@@ -107,8 +106,7 @@ export function MembersTable({
         <TableBody>
           {members.map((member) => {
             const isCurrentUser = member.user_id === currentUserId
-            const displayName = member.user?.user_metadata?.name || member.user?.email || 'Unknown User'
-            const email = member.user?.email || ''
+            const email = member.email || ''
 
             return (
               <TableRow key={member.id}>
@@ -116,18 +114,18 @@ export function MembersTable({
                   <Checkbox
                     checked={selectedMembers.includes(member.id)}
                     onCheckedChange={(checked) => onSelectMember(member.id, checked as boolean)}
-                    aria-label={`${displayName}を選択`}
+                    aria-label={`${email}を選択`}
                   />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="text-xs">
-                        {displayName.charAt(0).toUpperCase()}
+                        {email.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{displayName}</span>
+                      <span className="font-medium">{email}</span>
                       {isCurrentUser && (
                         <Badge variant="outline" className="text-xs">
                           自分
@@ -136,7 +134,6 @@ export function MembersTable({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>{email}</TableCell>
                 <TableCell>
                   <RoleBadge role={member.role} />
                 </TableCell>

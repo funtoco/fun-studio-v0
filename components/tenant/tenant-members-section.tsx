@@ -126,7 +126,6 @@ export function TenantMembersSection({ tenantId, currentUserRole }: TenantMember
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>名前</TableHead>
                   <TableHead>メールアドレス</TableHead>
                   <TableHead>ロール</TableHead>
                   {canManageMembers && <TableHead className="w-[50px]"></TableHead>}
@@ -139,17 +138,16 @@ export function TenantMembersSection({ tenantId, currentUserRole }: TenantMember
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs">
-                            {member.user?.user_metadata?.name?.charAt(0) || member.user?.email?.charAt(0) || 'U'}
+                            {member.email?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <div className="font-medium">
-                            {member.user?.user_metadata?.name || member.user?.email || 'Unknown User'}
+                            {member.email || 'Unknown User'}
                           </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{member.user?.email}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getRoleIcon(member.role)}

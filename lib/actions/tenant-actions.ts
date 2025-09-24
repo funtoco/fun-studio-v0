@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/client"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -114,8 +115,15 @@ export async function getTenantMembersAction(tenantId: string) {
     throw new Error('認証が必要です')
   }
 
-  // Check if user has access to this tenant
-  const { data: userTenant } = await supabase
+  // Check if user has access to this tenant via user_metadata
+  const userTenantId = user.user_metadata?.tenant_id
+
+  if (userTenantId !== tenantId) {
+    throw new Error('このテナントにアクセスする権限がありません')
+  }
+
+  // Get user's role in this tenant
+  const { data: userTenant, error: userTenantError } = await supabase
     .from('user_tenants')
     .select('role')
     .eq('user_id', user.id)
@@ -123,21 +131,16 @@ export async function getTenantMembersAction(tenantId: string) {
     .eq('status', 'active')
     .single()
 
-  if (!userTenant) {
+  if (userTenantError || !userTenant) {
     throw new Error('このテナントにアクセスする権限がありません')
   }
 
+  // Get members from user_tenants table
   const { data: members, error } = await supabase
     .from('user_tenants')
-    .select(`
-      *,
-      user:user_id (
-        id,
-        email,
-        user_metadata
-      )
-    `)
+    .select('*')
     .eq('tenant_id', tenantId)
+    .eq('status', 'active')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -145,7 +148,7 @@ export async function getTenantMembersAction(tenantId: string) {
     throw new Error('メンバーの取得に失敗しました')
   }
 
-  return { members, currentUserRole: userTenant.role }
+  return { members: members || [], currentUserRole: userTenant.role }
 }
 
 // Invite member to tenant
@@ -175,7 +178,8 @@ export async function inviteMemberAction(data: InviteMemberData) {
     .from('user_tenants')
     .select('id')
     .eq('tenant_id', data.tenantId)
-    .eq('user_id', (await supabase.auth.admin.getUserByEmail(data.email)).data.user?.id)
+    .eq('email', data.email)
+    .eq('status', 'active')
     .single()
 
   if (existingMember) {

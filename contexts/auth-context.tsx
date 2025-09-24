@@ -123,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({
               userId: data.user.id,
               tenantName: tenantName,
+              email: email,
             }),
           })
 

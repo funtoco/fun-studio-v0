@@ -1,4 +1,4 @@
-import { createClient } from './client'
+import { createClient, createAdminClient } from './client'
 
 export interface Tenant {
   id: string
@@ -15,6 +15,7 @@ export interface UserTenant {
   id: string
   user_id: string
   tenant_id: string
+  email: string
   role: 'owner' | 'admin' | 'member' | 'guest'
   status: 'active' | 'pending' | 'suspended'
   invited_by?: string
@@ -22,14 +23,7 @@ export interface UserTenant {
   joined_at?: string
   created_at: string
   updated_at: string
-  user?: {
-    id: string
-    email: string
-    user_metadata?: {
-      name?: string
-      avatar_url?: string
-    }
-  }
+  tenant?: Tenant
 }
 
 export interface TenantInvitation {
@@ -91,51 +85,60 @@ export async function getCurrentUserTenants(): Promise<UserTenant[]> {
   if (!user) {
     return []
   }
-  
-  const { data, error } = await supabase
+
+  // Get user_tenants records for the current user
+  const { data: userTenants, error: userTenantsError } = await supabase
     .from('user_tenants')
     .select(`
       *,
-      user:user_id (
-        id,
-        email,
-        user_metadata
-      )
+      tenant:tenant_id (*)
     `)
     .eq('user_id', user.id)
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
   
-  if (error) {
-    console.error('Error fetching user tenants:', error)
-    throw error
+  if (userTenantsError) {
+    console.error('Error fetching user tenants:', userTenantsError)
+    return []
   }
   
-  return data || []
+  if (!userTenants || userTenants.length === 0) {
+    return []
+  }
+  
+  return userTenants.map((ut: UserTenant) => ({
+    id: ut.id,
+    user_id: ut.user_id,
+    tenant_id: ut.tenant_id,
+    email: ut.email,
+    role: ut.role,
+    status: ut.status,
+    created_at: ut.created_at,
+    updated_at: ut.updated_at,
+    tenant: ut.tenant
+  }))
 }
 
 export async function getTenantMembers(tenantId: string): Promise<UserTenant[]> {
   const supabase = createClient()
   
-  const { data, error } = await supabase
+  // Get members from user_tenants table
+  const { data: members, error } = await supabase
     .from('user_tenants')
-    .select(`
-      *,
-      user:user_id (
-        id,
-        email,
-        user_metadata
-      )
-    `)
+    .select('*')
     .eq('tenant_id', tenantId)
+    .eq('status', 'active')
     .order('created_at', { ascending: false })
   
   if (error) {
     console.error('Error fetching tenant members:', error)
     throw error
   }
-  
-  return data || []
+
+  if (!members || members.length === 0) {
+    return []
+  }
+
+  return members
 }
 
 export async function getTenantInvitations(tenantId: string): Promise<TenantInvitation[]> {
@@ -143,14 +146,7 @@ export async function getTenantInvitations(tenantId: string): Promise<TenantInvi
   
   const { data, error } = await supabase
     .from('tenant_invitations')
-    .select(`
-      *,
-      invited_by_user:invited_by (
-        id,
-        email,
-        user_metadata
-      )
-    `)
+    .select('*')
     .eq('tenant_id', tenantId)
     .is('accepted_at', null)
     .gt('expires_at', new Date().toISOString())

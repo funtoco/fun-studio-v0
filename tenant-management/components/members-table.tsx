@@ -97,7 +97,6 @@ export function MembersTable({
                 {...(someSelected && { "data-state": "indeterminate" })}
               />
             </TableHead>
-            <TableHead>名前</TableHead>
             <TableHead>メール</TableHead>
             <TableHead>ロール</TableHead>
             <TableHead>ステータス</TableHead>
@@ -115,12 +114,12 @@ export function MembersTable({
                   <Checkbox
                     checked={selectedMembers.includes(member.id)}
                     onCheckedChange={(checked) => onSelectMember(member.id, checked as boolean)}
-                    aria-label={`${member.name}を選択`}
+                    aria-label={`${member.email}を選択`}
                   />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{member.name}</span>
+                    <span className="font-medium">{member.email}</span>
                     {member.isSelf && (
                       <Badge variant="outline" className="text-xs">
                         自分
@@ -128,7 +127,6 @@ export function MembersTable({
                     )}
                   </div>
                 </TableCell>
-                <TableCell>{member.email}</TableCell>
                 <TableCell>
                   <RoleBadge role={member.role} />
                 </TableCell>

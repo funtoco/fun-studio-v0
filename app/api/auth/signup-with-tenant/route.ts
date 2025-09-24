@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/client"
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, tenantName } = await request.json()
+    const { userId, tenantName, email } = await request.json()
 
-    if (!userId || !tenantName) {
+    if (!userId || !tenantName || !email) {
       return NextResponse.json(
-        { error: "User ID and tenant name are required" },
+        { error: "User ID, tenant name, and email are required" },
         { status: 400 }
       )
     }
 
-    const supabase = await createClient()
+    // Create Supabase client with service role key for admin operations
+    const supabase = createAdminClient()
 
     // Generate slug from tenant name
     const slug = tenantName
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         tenant_id: tenant.id,
+        email: email,
         role: 'owner',
         status: 'active'
       })
@@ -60,21 +62,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update user metadata with tenant info
+    // Update user metadata with tenant_id for RLS
     const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
       user_metadata: {
-        tenant_name: tenantName,
-        tenant_id: tenant.id,
-        role: 'owner'
+        tenant_id: tenant.id
       }
     })
 
     if (updateError) {
       console.error('Error updating user metadata:', updateError)
-      return NextResponse.json(
-        { error: "Failed to update user metadata" },
-        { status: 500 }
-      )
+      // Don't fail the entire process if metadata update fails
     }
 
     return NextResponse.json({ 
