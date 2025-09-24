@@ -15,7 +15,7 @@ import { appMappings } from "@/data/mappings-apps"
 import { fieldMappings } from "@/data/mappings-fields"
 import { GitBranch, Settings, ExternalLink, Database } from "lucide-react"
 import Link from "next/link"
-import { getConnector } from "@/lib/db/connectors"
+import { getConnector, getConnectionStatus } from "@/lib/db/connectors-v2"
 import { ConnectorActions } from "../../connector-actions"
 
 interface ConnectorMappingsPageProps {
@@ -41,8 +41,11 @@ export default async function ConnectorMappingsPage({
     notFound()
   }
   
+  // Get connection status
+  const connectionStatus = await getConnectionStatus(connectorId)
+  
   // Connection gating
-  if (connector.status !== 'connected') {
+  if (connectionStatus?.status !== 'connected') {
     return (
       <div className="space-y-6 p-6">
         <PageHeader
@@ -61,7 +64,7 @@ export default async function ConnectorMappingsPage({
           title="まず接続してください"
           description="マッピング設定を表示するには、まずコネクターを接続してください"
           action={
-            <ConnectorActions connector={connector} tenantId={tenantId} showLabel />
+            <ConnectorActions connector={connector} connectionStatus={connectionStatus} tenantId={tenantId} showLabel />
           }
         />
       </div>
@@ -71,7 +74,7 @@ export default async function ConnectorMappingsPage({
   // Filter mappings by connector
   const filteredAppMappings = appMappings.filter(mapping => 
     mapping.connectorId === connectorId ||
-    mapping.subdomain === connector.provider_config.subdomain
+    mapping.subdomain === 'funtoco' // Hardcoded for now since we don't have provider_config in new system
   )
   
   const filteredFieldMappings = fieldMappings.filter(mapping => 

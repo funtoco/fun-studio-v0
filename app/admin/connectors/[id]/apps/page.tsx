@@ -14,8 +14,10 @@ import { kintoneApps } from "@/data/kintone-apps"
 import { appMappings } from "@/data/mappings-apps"
 import { Database, Settings, ExternalLink, Zap } from "lucide-react"
 import Link from "next/link"
-import { getConnector } from "@/lib/db/connectors"
+import { getConnector, getConnectionStatus } from "@/lib/db/connectors-v2"
+import { getKintoneAppsWithFieldCounts } from "@/lib/db/kintone-data"
 import { ConnectorActions } from "../../connector-actions"
+import { SyncAppsButtonWrapper } from "@/components/connectors/sync-apps-button-wrapper"
 
 interface KintoneAppsPageProps {
   params: {
@@ -70,8 +72,11 @@ export default async function KintoneAppsPage({
     )
   }
   
+  // Get connection status
+  const connectionStatus = await getConnectionStatus(connectorId)
+  
   // Connection gating
-  if (connector.status !== 'connected') {
+  if (connectionStatus?.status !== 'connected') {
     return (
       <div className="space-y-6 p-6">
         <PageHeader
@@ -90,23 +95,25 @@ export default async function KintoneAppsPage({
           title="まず接続してください"
           description="Kintone アプリを表示するには、まずコネクターを接続してください"
           action={
-            <ConnectorActions connector={connector} tenantId={tenantId} showLabel />
+            <ConnectorActions connector={connector} connectionStatus={connectionStatus} tenantId={tenantId} showLabel />
           }
         />
       </div>
     )
   }
   
-  // Connected state - show apps filtered by connectorId
-  const filteredApps = kintoneApps.filter(app => 
-    app.connectorId === connectorId || 
-    app.subdomain === connector.provider_config.subdomain
-  )
+  // Get real Kintone apps from database
+  let kintoneAppsData: any[] = []
+  try {
+    kintoneAppsData = await getKintoneAppsWithFieldCounts(connectorId)
+  } catch (error) {
+    console.error('Failed to load Kintone apps:', error)
+  }
   
   const getAppMappingStatus = (appCode: string) => {
     const mapping = appMappings.find(m => 
       m.appCode === appCode && 
-      (m.connectorId === connectorId || m.subdomain === connector.provider_config.subdomain)
+      (m.connectorId === connectorId || m.subdomain === 'funtoco') // Hardcoded for now since we don't have provider_config in new system
     )
     return mapping?.status || 'unmapped'
   }
@@ -137,6 +144,9 @@ export default async function KintoneAppsPage({
         ]}
         actions={
           <div className="flex items-center space-x-2">
+            <SyncAppsButtonWrapper 
+              connectorId={connectorId}
+            />
             <Button variant="outline" disabled title="参照専用（現在は編集不可）">
               <Settings className="h-4 w-4 mr-2" />
               設定
@@ -145,16 +155,16 @@ export default async function KintoneAppsPage({
         }
       />
 
-      {filteredApps.length === 0 ? (
+      {kintoneAppsData.length === 0 ? (
         <EmptyState
           icon={<Database className="h-12 w-12" />}
           title="まだアプリがありません"
           description="このコネクターに関連付けられた Kintone アプリがありません"
           action={
-            <Button disabled>
-              <Database className="h-4 w-4 mr-2" />
-              アプリを同期（準備中）
-            </Button>
+            <SyncAppsButtonWrapper 
+              connectorId={connectorId}
+              size="lg"
+            />
           }
         />
       ) : (
@@ -163,7 +173,7 @@ export default async function KintoneAppsPage({
             <CardTitle className="flex items-center space-x-2">
               <Database className="h-5 w-5" />
               <span>アプリ一覧</span>
-              <Badge variant="outline">{filteredApps.length} 件</Badge>
+              <Badge variant="outline">{kintoneAppsData.length} 件</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -179,28 +189,28 @@ export default async function KintoneAppsPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredApps.map((app) => {
-                  const mappingStatus = getAppMappingStatus(app.appCode)
+                {kintoneAppsData.map((app) => {
+                  const mappingStatus = getAppMappingStatus(app.code)
                   return (
-                    <TableRow key={app.appCode}>
+                    <TableRow key={app.app_id}>
                       <TableCell className="font-medium">{app.name}</TableCell>
                       <TableCell>
                         <code className="text-sm bg-muted px-1 py-0.5 rounded">
-                          {app.appCode}
+                          {app.code}
                         </code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{app.fieldCount}</Badge>
+                        <Badge variant="outline">{app.field_count}</Badge>
                       </TableCell>
                       <TableCell>
                         {getMappingBadge(mappingStatus)}
                       </TableCell>
                       <TableCell>
-                        {new Date(app.updatedAt).toLocaleDateString("ja-JP")}
+                        {new Date(app.updated_at).toLocaleDateString("ja-JP")}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
-                          <Link href={`/admin/connectors/${connectorId}/apps/${app.appCode}?tenantId=${tenantId}`}>
+                          <Link href={`/admin/connectors/${connectorId}/apps/${app.code}?tenantId=${tenantId}`}>
                             <Button variant="ghost" size="sm">
                               <ExternalLink className="h-4 w-4" />
                             </Button>

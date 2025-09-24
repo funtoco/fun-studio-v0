@@ -17,14 +17,14 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Shield, Database, GitBranch, Zap, AlertCircle, Settings, Activity } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { getConnector, getConnectorLogs, getConnectorStats } from "@/lib/db/connectors"
-import { maskClientId } from "@/lib/security/mask"
+import { getConnector, getConnectionStatus } from "@/lib/db/connectors-v2"
+import { redactClientId, redactDomain } from "@/lib/ui/redact"
+import { getConfigAndToken, computeRedirectUri } from "@/lib/connectors/kintoneClient"
 import { ConnectorActions } from "../connector-actions"
+import { SyncAppsButtonWrapper } from "@/components/connectors/sync-apps-button-wrapper"
 import { ConnectorAppsTab } from "./connector-apps-tab"
 import { ConnectorMappingsTab } from "./connector-mappings-tab"
 import { OAuthSetupInfo } from "@/components/connectors/oauth-setup-info"
-import { SyncButton } from "@/components/connectors/sync-button"
-import { ConnectorRefreshHandler } from "@/components/connectors/connector-refresh-handler"
 
 interface ConnectorDetailPageProps {
   params: {
@@ -44,28 +44,71 @@ export default async function ConnectorDetailPage({
   const connectorId = params.id
   const tenantId = searchParams.tenantId || "550e8400-e29b-41d4-a716-446655440001"
   
-  // Get connector data
+  // Get connector data from new system
   const connector = await getConnector(connectorId)
   
   if (!connector || connector.tenant_id !== tenantId) {
     notFound()
   }
   
-  // Get additional data based on connection status
+  // Get connection status
+  const connectionStatus = await getConnectionStatus(connectorId)
+  
+  // Get real data from database
   let logs: any[] = []
   let stats = { connectedApps: 0, activeMappings: 0, fieldMappings: 0 }
+  let kintoneConfig: any = null
+  let redirectUri = ''
   
   try {
-    if (connector.status === 'connected') {
-      [logs, stats] = await Promise.all([
-        getConnectorLogs(connectorId, 10),
-        getConnectorStats(connectorId)
-      ])
-    } else {
-      logs = await getConnectorLogs(connectorId, 5) // Fewer logs for disconnected
+    if (connectionStatus?.status === 'connected') {
+      // Get real app count from database
+      const { getKintoneAppsWithFieldCounts } = await import('@/lib/db/kintone-data')
+      const apps = await getKintoneAppsWithFieldCounts(connectorId)
+      stats.connectedApps = apps.length
+      stats.fieldMappings = apps.reduce((total, app) => total + app.field_count, 0)
+      
+      // Load Kintone config for display
+      try {
+        // Create admin client inline
+        const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+        const supabase = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { autoRefreshToken: false, persistSession: false } }
+        )
+        
+        // Load config and token from credentials
+        const { data: rows } = await supabase
+          .from("credentials")
+          .select("type,payload")
+          .eq("connector_id", connectorId)
+
+        const configRow = rows?.find(r => r.type === "kintone_config")
+        const tokenRow = rows?.find(r => r.type === "kintone_token")
+        
+        if (configRow?.payload) {
+          kintoneConfig = JSON.parse(configRow.payload)
+          // Create a mock request to compute redirect URI
+          const mockRequest = new Request('https://localhost:3000', {
+            headers: {
+              'x-forwarded-proto': 'https',
+              'x-forwarded-host': 'localhost:3000'
+            }
+          })
+          redirectUri = computeRedirectUri(mockRequest)
+        } else {
+          kintoneConfig = null
+          redirectUri = 'https://localhost:3000/api/integrations/kintone/callback'
+        }
+      } catch (configError) {
+        console.error('Failed to load Kintone config:', configError)
+        kintoneConfig = null
+        redirectUri = 'https://localhost:3000/api/integrations/kintone/callback'
+      }
     }
-  } catch (err) {
-    console.error('Failed to load connector details:', err)
+  } catch (error) {
+    console.error('Failed to load real stats:', error)
   }
   
   const getProviderIcon = (provider: string) => {
@@ -112,23 +155,19 @@ export default async function ConnectorDetailPage({
 
   return (
     <div className="space-y-6 p-6">
-      <ConnectorRefreshHandler connectorId={connectorId} tenantId={tenantId} />
       <PageHeader
-        title={connector.name}
+        title={connector.display_name}
         description={`${connector.provider.charAt(0).toUpperCase() + connector.provider.slice(1)} コネクターの詳細設定と状態`}
         breadcrumbs={[
           { label: "概要", href: "/admin/connectors/dashboard" },
           { label: "コネクター", href: `/admin/connectors?tenantId=${tenantId}` },
-          { label: connector.name }
+          { label: connector.display_name }
         ]}
         actions={
           <div className="flex items-center space-x-2">
-            <StatusDot status={connector.status} />
-            {getStatusBadge(connector.status)}
-            {connector.status === 'connected' && connector.provider === 'kintone' && (
-              <SyncButton connectorId={connector.id} tenantId={tenantId} />
-            )}
-            <ConnectorActions connector={connector} tenantId={tenantId} />
+            <StatusDot status={connectionStatus?.status || 'disconnected'} />
+            {getStatusBadge(connectionStatus?.status || 'disconnected')}
+            <ConnectorActions connector={connector} connectionStatus={connectionStatus} tenantId={tenantId} />
           </div>
         }
       />
@@ -153,24 +192,24 @@ export default async function ConnectorDetailPage({
       )}
 
       {/* Connection Status Gate */}
-      {connector.status === 'disconnected' ? (
+      {connectionStatus?.status === 'disconnected' ? (
         <div className="space-y-6">
           <EmptyState
             icon={getProviderIcon(connector.provider)}
             title="コネクターが未接続です"
             description="OAuth認証を完了してサービス連携を開始してください"
             action={
-              <ConnectorActions connector={connector} tenantId={tenantId} showLabel />
+              <ConnectorActions connector={connector} connectionStatus={connectionStatus} tenantId={tenantId} showLabel />
             }
           />
           
           {/* OAuth Setup Information */}
           <OAuthSetupInfo 
             provider={connector.provider}
-            subdomain={connector.provider_config.subdomain}
+            subdomain="funtoco"
           />
         </div>
-      ) : connector.status === 'error' ? (
+      ) : connectionStatus?.status === 'error' ? (
         <div className="space-y-4">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -185,7 +224,7 @@ export default async function ConnectorDetailPage({
           </Alert>
           
           <div className="flex space-x-2">
-            <ConnectorActions connector={connector} tenantId={tenantId} showLabel />
+            <ConnectorActions connector={connector} connectionStatus={connectionStatus} tenantId={tenantId} showLabel />
             <Link href={`/admin/connectors/${connectorId}/logs?tenantId=${tenantId}`}>
               <Button variant="outline">
                 <Activity className="h-4 w-4 mr-2" />
@@ -234,18 +273,23 @@ export default async function ConnectorDetailPage({
                   items={[
                     {
                       key: "クライアント ID",
-                      value: maskClientId("dummy-for-display"),
+                      value: kintoneConfig?.clientId ? redactClientId(kintoneConfig.clientId) : "未設定",
                       icon: <Settings className="h-4 w-4" />
                     },
                     {
                       key: "リダイレクト URI",
-                      value: `${process.env.NEXT_PUBLIC_APP_URL || 'https://yourdomain.com'}/api/connect/${connector.provider}/callback-v2`,
+                      value: redirectUri || "未設定",
                       icon: <Zap className="h-4 w-4" />
                     },
                     {
                       key: "スコープ",
-                      value: connector.scopes.join(", "),
+                      value: kintoneConfig?.scope ? kintoneConfig.scope.join(" ") : "未設定",
                       icon: <Shield className="h-4 w-4" />
+                    },
+                    {
+                      key: "ドメイン",
+                      value: kintoneConfig?.domain ? redactDomain(kintoneConfig.domain) : "未設定",
+                      icon: <Database className="h-4 w-4" />
                     }
                   ]}
                 />
@@ -265,11 +309,23 @@ export default async function ConnectorDetailPage({
               </CardHeader>
               <CardContent>
                 <KeyValueList
-                  items={Object.entries(connector.provider_config).map(([key, value]) => ({
-                    key: key === 'subdomain' ? 'サブドメイン' : key,
-                    value: key === 'subdomain' ? `${value}.cybozu.com` : String(value),
-                    icon: <Database className="h-4 w-4" />
-                  }))}
+                  items={[
+                    {
+                      key: 'プロバイダー',
+                      value: connector.provider,
+                      icon: <Database className="h-4 w-4" />
+                    },
+                    {
+                      key: '表示名',
+                      value: connector.display_name,
+                      icon: <Database className="h-4 w-4" />
+                    },
+                    {
+                      key: '作成日',
+                      value: new Date(connector.created_at).toLocaleDateString('ja-JP'),
+                      icon: <Database className="h-4 w-4" />
+                    }
+                  ]}
                 />
               </CardContent>
             </Card>
@@ -310,6 +366,30 @@ export default async function ConnectorDetailPage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Sync Actions */}
+            {connectionStatus?.status === 'connected' && connector.provider === 'kintone' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Zap className="h-5 w-5" />
+                    <span>データ同期</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <SyncAppsButtonWrapper 
+                      connectorId={connectorId}
+                      variant="outline"
+                      size="sm"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Kintone からアプリとフィールドを同期します
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recent Logs */}
             <Card>

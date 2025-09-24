@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Plus, Zap, Unplug } from "lucide-react"
 import { AddConnectorDialog } from "@/components/connectors/add-connector-dialog"
-import { type Connector } from "@/lib/db/connectors"
+import { type Connector } from "@/lib/db/connectors-v2"
 
 interface ConnectorActionsProps {
   tenantId: string
   connector?: Connector
+  connectionStatus?: { status: 'connected' | 'disconnected' | 'error' }
   showLabel?: boolean
 }
 
-export function ConnectorActions({ tenantId, connector, showLabel }: ConnectorActionsProps) {
+export function ConnectorActions({ tenantId, connector, connectionStatus, showLabel }: ConnectorActionsProps) {
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -92,7 +93,7 @@ export function ConnectorActions({ tenantId, connector, showLabel }: ConnectorAc
   // Show Connect/Disconnect based on status
   return (
     <>
-      {connector.status === 'connected' ? (
+      {connectionStatus?.status === 'connected' ? (
         <Button
           variant="outline"
           size="sm"
@@ -106,7 +107,7 @@ export function ConnectorActions({ tenantId, connector, showLabel }: ConnectorAc
         <Button
           size="sm"
           onClick={handleConnect}
-          disabled={isLoading || connector.status === 'error'}
+          disabled={isLoading || connectionStatus?.status === 'error'}
         >
           <Zap className="h-4 w-4 mr-1" />
           {isLoading ? '接続中...' : '接続'}

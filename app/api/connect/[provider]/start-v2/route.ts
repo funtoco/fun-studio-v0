@@ -4,27 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createClient } from '@supabase/supabase-js'
-import { generatePKCEPair } from '@/lib/security/pkce'
-import { signStateJWT } from '@/lib/security/state'
-import { decryptJson } from '@/lib/security/crypto'
-import { getManifest } from '@/lib/connectors/manifests'
-import { type ProviderId } from '@/lib/connectors/types'
+import { getConnector } from '@/lib/db/connectors-v2'
+import { getConfigAndToken, computeRedirectUri, buildAuthorizeUrl } from '@/lib/connectors/kintoneClient'
 
-// Use Node.js runtime for crypto operations
+// Force Node.js runtime and disable static caching
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
-// Server-side Supabase client
-function getServerClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
-  if (!supabaseUrl || !serviceKey) {
-    throw new Error('Missing Supabase configuration')
-  }
-  
-  return createClient(supabaseUrl, serviceKey)
+// Sign state JWT (simplified for now)
+async function signStateJWT(payload: any): Promise<string> {
+  // For now, just return a simple state string
+  return Buffer.from(JSON.stringify(payload)).toString('base64')
 }
 
 export async function GET(
@@ -44,173 +34,88 @@ export async function GET(
       )
     }
     
-    const providerId = params.provider as ProviderId
-    const manifest = getManifest(providerId)
-    const supabase = getServerClient()
+    const providerId = params.provider
     
-    // Get connector with secrets
-    const { data: connectorData, error: connectorError } = await supabase
-      .from('connectors')
-      .select(`
-        *,
-        connector_secrets (
-          oauth_client_id_enc,
-          oauth_client_secret_enc
-        )
-      `)
-      .eq('id', connectorId)
-      .eq('tenant_id', tenantId)
-      .eq('provider', providerId)
-      .single()
-    
-    if (connectorError || !connectorData) {
+    // Get connector using new system
+    const connector = await getConnector(connectorId)
+    if (!connector || connector.tenant_id !== tenantId) {
       return NextResponse.json(
         { error: 'Connector not found' },
         { status: 404 }
       )
     }
     
-    if (!connectorData.connector_secrets) {
+    if (connector.provider !== providerId) {
       return NextResponse.json(
-        { error: 'Connector credentials not found' },
+        { error: 'Invalid provider' },
         { status: 400 }
       )
     }
     
-    // Decrypt client credentials (handle both real and mock encryption)
-    let clientId: string
-    let clientSecret: string
-    
+    // Load Kintone configuration from database - NO FALLBACK
+    let config
     try {
-      const clientIdEnc = connectorData.connector_secrets.oauth_client_id_enc
-      const clientSecretEnc = connectorData.connector_secrets.oauth_client_secret_enc
+      // Create admin client inline
+      const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+      const supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
       
-      // Check if it's mock encrypted (for development)
-      if (clientIdEnc.startsWith('mock_encrypted_') && clientSecretEnc.startsWith('mock_encrypted_')) {
-        console.log('🧪 Using mock encrypted credentials')
-        clientId = clientIdEnc.replace('mock_encrypted_', '')
-        clientSecret = clientSecretEnc.replace('mock_encrypted_', '')
-      } else {
-        // Real decryption
-        const decryptedClientId = decryptJson(clientIdEnc)
-        const decryptedClientSecret = decryptJson(clientSecretEnc)
-        
-        clientId = decryptedClientId.value
-        clientSecret = decryptedClientSecret.value
+      // Load config only (token not needed for OAuth start)
+      const { data: configRow, error: configError } = await supabase
+        .from('credentials')
+        .select('payload')
+        .eq('connector_id', connectorId)
+        .eq('type', 'kintone_config')
+        .single()
+      
+      if (configError || !configRow?.payload) {
+        throw new Error(`Failed to load Kintone config: ${configError?.message || 'Not found'}`)
       }
-    } catch (decryptionError) {
-      console.error('Failed to decrypt credentials:', decryptionError)
+      
+      config = JSON.parse(configRow.payload)
+      console.log(`[kintone-auth] DEBUG - Config loaded:`, {
+        domain: config?.domain,
+        clientId: config?.clientId,
+        hasScope: !!config?.scope
+      })
+    } catch (error) {
+      console.error(`[kintone-auth] ERROR missing credentials for connectorId=${connectorId}:`, error.message)
       return NextResponse.json(
-        { error: 'Failed to decrypt credentials' },
-        { status: 500 }
+        { error: `Failed to load Kintone configuration: ${error.message}` },
+        { status: 400 }
       )
     }
     
-    // Generate PKCE pair
-    const { codeVerifier, codeChallenge } = generatePKCEPair()
+    // Compute redirect URI dynamically
+    const redirectUri = computeRedirectUri(request)
     
-    // Generate state JWT
-    const stateJwt = await signStateJWT({
+    // Generate state parameter
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'
+    const state = await signStateJWT({
       tenantId,
       provider: providerId,
       connectorId,
-      returnTo: returnTo || `/admin/connectors/${providerId}?tenantId=${tenantId}`
+      returnTo: returnTo || `${baseUrl}/admin/connectors/${connectorId}?tenantId=${tenantId}`
     })
     
-    // Build redirect URI
-    const redirectUri = new URL(`/api/connect/${providerId}/callback-v2`, request.url).toString()
+    // Build authorization URL using config from database
+    const authUrl = buildAuthorizeUrl(config, redirectUri, state)
     
-    // Debug logging
-    console.log(`🔗 OAuth Start (v2) - Provider: ${providerId}`)
-    console.log(`🔗 Connector ID: ${connectorId}`)
-    console.log(`🔗 Redirect URI: ${redirectUri}`)
-    console.log(`🔗 Provider Config:`, connectorData.provider_config)
-    console.log(`🔗 Scopes:`, connectorData.scopes)
+    console.log(`[kintone-auth] OAuth Start - Provider: ${providerId}`)
+    console.log(`[kintone-auth] Connector ID: ${connectorId}`)
+    console.log(`[kintone-auth] Client ID: ${config.clientId}`)
+    console.log(`[kintone-auth] Domain: ${config.domain}`)
+    console.log(`[kintone-auth] Auth URL: ${authUrl}`)
     
-    // Check for Mock OAuth
-    if (process.env.MOCK_OAUTH === '1') {
-      console.log(`🧪 Mock OAuth enabled - bypassing real authorization`)
-      
-      // Store code verifier in cookie for callback
-      const cookieStore = cookies()
-      cookieStore.set('connect_pkce_verifier', codeVerifier, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 600,
-        path: '/'
-      })
-      
-      // Log mock authorization start
-      await supabase
-        .from('connector_logs')
-        .insert({
-          connector_id: connectorId,
-          level: 'info',
-          event: 'authorize_start',
-          detail: {
-            mock: true,
-            redirect_uri: redirectUri,
-            scopes: connectorData.scopes,
-            provider_config: connectorData.provider_config
-          }
-        })
-      
-      // Redirect directly to callback with mock code
-      const mockCallbackUrl = new URL(redirectUri)
-      mockCallbackUrl.searchParams.set('code', `mock_auth_code_${Date.now()}`)
-      mockCallbackUrl.searchParams.set('state', stateJwt)
-      
-      console.log(`🚀 Mock OAuth - Redirecting to callback: ${mockCallbackUrl.toString()}`)
-      return NextResponse.redirect(mockCallbackUrl.toString())
-    }
-    
-    // Real OAuth flow - build authorization URL
-    const baseAuthUrl = manifest.authorizeUrl(connectorData.provider_config)
-    const authUrl = new URL(baseAuthUrl)
-    
-    // Add OAuth parameters
-    authUrl.searchParams.set('client_id', clientId)
-    authUrl.searchParams.set('response_type', 'code')
-    authUrl.searchParams.set('redirect_uri', redirectUri)
-    authUrl.searchParams.set('scope', connectorData.scopes.join(' '))
-    authUrl.searchParams.set('state', stateJwt)
-    authUrl.searchParams.set('code_challenge', codeChallenge)
-    authUrl.searchParams.set('code_challenge_method', 'S256')
-    
-    // Store code verifier in secure cookie
-    const cookieStore = cookies()
-    cookieStore.set('connect_pkce_verifier', codeVerifier, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 600, // 10 minutes
-      path: '/'
-    })
-    
-    // Log authorization start
-    await supabase
-      .from('connector_logs')
-      .insert({
-        connector_id: connectorId,
-        level: 'info',
-        event: 'authorize_start',
-        detail: {
-          redirect_uri: redirectUri,
-          scopes: connectorData.scopes,
-          provider_config: connectorData.provider_config
-        }
-      })
-    
-    console.log(`🚀 Redirecting to: ${authUrl.toString()}`)
-    
-    // Redirect to provider
-    return NextResponse.redirect(authUrl.toString())
+    return NextResponse.redirect(authUrl)
     
   } catch (error) {
     console.error('OAuth start error:', error)
     return NextResponse.json(
-      { error: 'Failed to start OAuth flow' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

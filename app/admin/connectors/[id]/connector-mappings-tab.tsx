@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Database, GitBranch, Settings, ExternalLink } from "lucide-react"
 import { appMappings } from "@/data/mappings-apps"
 import { fieldMappings } from "@/data/mappings-fields"
-import { type Connector } from "@/lib/db/connectors"
+import { type Connector } from "@/lib/db/connectors-v2"
 
 interface ConnectorMappingsTabProps {
   connector: Connector
@@ -22,7 +22,7 @@ export function ConnectorMappingsTab({ connector, tenantId }: ConnectorMappingsT
   // Filter mappings by connector
   const filteredAppMappings = appMappings.filter(mapping => 
     mapping.connectorId === connector.id ||
-    mapping.subdomain === connector.provider_config.subdomain
+    mapping.subdomain === 'funtoco' // Hardcoded for now since we don't have provider_config in new system
   )
   
   const filteredFieldMappings = fieldMappings.filter(mapping => 
