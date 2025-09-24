@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Bell, Settings, User, LogOut, Building2, Eye, RefreshCw, Cable } from "lucide-react"
+import { Search, Bell, Settings, User, LogOut, Building2, Eye, RefreshCw, Cable, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -119,6 +119,10 @@ export function Header() {
               <DropdownMenuItem onClick={() => router.push('/admin/connectors/dashboard')}>
                 <Cable className="mr-2 h-4 w-4" />
                 コネクター管理
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/admin/tenants')}>
+                <Users className="mr-2 h-4 w-4" />
+                テナント管理
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

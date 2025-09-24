@@ -9,6 +9,7 @@ import { CompanyProvider } from "@/contexts/company-context"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ConditionalLayout } from "@/components/layout/conditional-layout"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
             <ConditionalLayout>
               <Suspense fallback={null}>{children}</Suspense>
             </ConditionalLayout>
+            <Toaster />
           </CompanyProvider>
         </AuthProvider>
         <Analytics />
