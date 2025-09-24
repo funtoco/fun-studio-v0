@@ -1,0 +1,147 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+interface InviteMemberDialogProps {
+  tenantId: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onInviteSent: (memberData: { name: string; email: string; role: 'admin' | 'member' | 'guest' }) => void
+}
+
+export function InviteMemberDialog({ 
+  tenantId, 
+  open, 
+  onOpenChange, 
+  onInviteSent 
+}: InviteMemberDialogProps) {
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [role, setRole] = useState<'admin' | 'member' | 'guest'>('member')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(false)
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!name.trim()) {
+      newErrors.name = "名前を入力してください"
+    }
+
+    if (!email.trim()) {
+      newErrors.email = "メールアドレスを入力してください"
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "有効なメールアドレスを入力してください"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      await onInviteSent({
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
+        role,
+      })
+
+      // Reset form
+      setName("")
+      setEmail("")
+      setRole('member')
+      setErrors({})
+      onOpenChange(false)
+    } catch (error) {
+      console.error('Error sending invitation:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setName("")
+    setEmail("")
+    setRole('member')
+    setErrors({})
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>メンバーを招待</DialogTitle>
+          <DialogDescription>
+            新しいメンバーをテナントに招待します。招待メールが送信されます。
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">名前</Label>
+              <Input 
+                id="name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="田中太郎" 
+              />
+              {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">メールアドレス</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tanaka@example.com"
+              />
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="role">ロール</Label>
+              <Select value={role} onValueChange={(value: 'admin' | 'member' | 'guest') => setRole(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="guest">Guest - 閲覧のみ</SelectItem>
+                  <SelectItem value="member">Member - 一般権限</SelectItem>
+                  <SelectItem value="admin">Admin - 管理権限</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={loading}>
+              キャンセル
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? '送信中...' : '招待を送信'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}

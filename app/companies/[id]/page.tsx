@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { ArrowLeft, Building2, Users, Phone, Mail, Globe, MapPin, Calendar, DollarSign } from "lucide-react"
+import { ArrowLeft, Building2, Users, Phone, Mail, Globe, MapPin, Calendar, DollarSign, Settings, UserCog } from "lucide-react"
 import { getCompanyById, getPeopleByCompanyId } from "@/lib/supabase/companies"
 import { getVisas } from "@/lib/supabase/visas"
 import { useAuth } from "@/contexts/auth-context"
@@ -291,8 +291,30 @@ export default function CompanyDetailPage() {
           )}
         </div>
 
-        {/* People List */}
+        {/* People List and Settings */}
         <div className="space-y-6">
+          {/* Company Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                会社設定
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => router.push(`/companies/${params.id}/tenants`)}
+                >
+                  <UserCog className="h-4 w-4 mr-2" />
+                  テナント管理
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

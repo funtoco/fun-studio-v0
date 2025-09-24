@@ -16,6 +16,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [tenantName, setTenantName] = useState("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -39,7 +40,13 @@ export default function SignupPage() {
       return
     }
 
-    const { error } = await signUp(email, password)
+    if (!tenantName.trim()) {
+      setError("会社名を入力してください。")
+      setLoading(false)
+      return
+    }
+
+    const { error } = await signUp(email, password, tenantName.trim())
 
     if (error) {
       setError("アカウント作成に失敗しました。メールアドレスを確認してください。")
@@ -102,6 +109,19 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tenantName">会社名</Label>
+              <Input
+                id="tenantName"
+                type="text"
+                value={tenantName}
+                onChange={(e) => setTenantName(e.target.value)}
+                placeholder="例: FunStudio株式会社"
                 required
                 disabled={loading}
               />

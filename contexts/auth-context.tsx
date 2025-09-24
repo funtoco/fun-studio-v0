@@ -11,7 +11,7 @@ interface AuthContextType {
   loading: boolean
   role: string | null
   signIn: (email: string, password: string) => Promise<{ error: any }>
-  signUp: (email: string, password: string) => Promise<{ error: any }>
+  signUp: (email: string, password: string, tenantName?: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -90,21 +90,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, tenantName?: string) => {
     if (!isAuthEnabled) {
       console.log("認証機能が無効化されているため、サインアップをスキップします")
       return { error: new Error("認証機能が無効化されています") }
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
+          data: {
+            tenant_name: tenantName,
+          },
         },
       })
-      return { error }
+
+      if (error) {
+        return { error }
+      }
+
+      // If tenant name is provided, create tenant and user_tenants record
+      if (tenantName && data.user) {
+        try {
+          const response = await fetch('/api/auth/signup-with-tenant', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: data.user.id,
+              tenantName: tenantName,
+              email: email,
+            }),
+          })
+
+          if (!response.ok) {
+            console.error('Failed to create tenant during signup')
+          }
+        } catch (tenantError) {
+          console.error('Error creating tenant during signup:', tenantError)
+        }
+      }
+
+      return { error: null }
     } catch (error) {
       console.error("サインアップエラー:", error)
       return { error }
