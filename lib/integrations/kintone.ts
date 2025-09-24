@@ -2,7 +2,7 @@
  * Kintone OAuth 2.0 integration
  */
 
-import { getCredential, updateCredential, updateConnectionStatus } from '@/lib/db/connectors-v2'
+import { getCredential, updateCredential, updateConnectionStatus } from '@/lib/db/connectors'
 
 export interface KintoneConfig {
   clientId: string
@@ -48,14 +48,14 @@ export async function exchangeCodeForToken(
   config: KintoneConfig, 
   code: string
 ): Promise<KintoneTokenResponse> {
-  const tokenUrl = `https://${config.subdomain}.cybozu.com/oauth2/token`
+  const tokenUrl = `https://${config.domain}.cybozu.com/oauth2/token`
   
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
-    client_id: config.client_id,
-    client_secret: config.client_secret,
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
     code,
-    redirect_uri: config.redirect_uri
+    redirect_uri: config.redirectUri
   })
   
   const response = await fetch(tokenUrl, {

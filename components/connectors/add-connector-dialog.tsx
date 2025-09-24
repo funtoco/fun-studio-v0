@@ -105,9 +105,9 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
 
       const { connectorId } = await response.json()
 
-      // Start OAuth flow with new v2 endpoint
+      // Start OAuth flow with unified auth endpoint
       const returnTo = encodeURIComponent(`/admin/connectors/${connectorId}?tenantId=${config.tenantId}&connected=true`)
-      const startUrl = `/api/connect/${selectedProvider}/start-v2?tenantId=${config.tenantId}&connectorId=${connectorId}&returnTo=${returnTo}`
+      const startUrl = `/api/auth/connectors/${selectedProvider}/start?tenantId=${config.tenantId}&connectorId=${connectorId}&returnTo=${returnTo}`
       
       // Redirect to OAuth in same tab (no alert/popup)
       window.location.assign(startUrl)

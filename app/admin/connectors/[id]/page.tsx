@@ -17,7 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Shield, Database, GitBranch, Zap, AlertCircle, Settings, Activity } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { getConnector, getConnectionStatus } from "@/lib/db/connectors-v2"
+import { getConnector, getConnectionStatus } from "@/lib/db/connectors"
 import { redactClientId, redactDomain } from "@/lib/ui/redact"
 import { getConfigAndToken, computeRedirectUri } from "@/lib/connectors/kintoneClient"
 import { ConnectorActions } from "../connector-actions"
@@ -99,12 +99,12 @@ export default async function ConnectorDetailPage({
           redirectUri = computeRedirectUri(mockRequest)
         } else {
           kintoneConfig = null
-          redirectUri = 'https://localhost:3000/api/integrations/kintone/callback'
+          redirectUri = 'https://localhost:3000/api/auth/connectors/kintone/callback'
         }
       } catch (configError) {
         console.error('Failed to load Kintone config:', configError)
         kintoneConfig = null
-        redirectUri = 'https://localhost:3000/api/integrations/kintone/callback'
+        redirectUri = 'https://localhost:3000/api/connect/kintone/callback'
       }
     }
   } catch (error) {

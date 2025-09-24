@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getConnector } from '@/lib/db/connectors-v2'
+import { getConnector } from '@/lib/db/connectors'
 import { getServerClient } from '@/lib/supabase/server'
 
 // Force Node.js runtime and disable static caching

@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Database, GitBranch, Settings, ExternalLink } from "lucide-react"
 import { appMappings } from "@/data/mappings-apps"
 import { fieldMappings } from "@/data/mappings-fields"
-import { type Connector } from "@/lib/db/connectors-v2"
+import { type Connector } from "@/lib/db/connectors"
 
 interface ConnectorMappingsTabProps {
   connector: Connector

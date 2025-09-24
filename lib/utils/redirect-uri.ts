@@ -19,7 +19,7 @@ export function computeBaseUrl(req: Request): string {
   throw new Error("Base URL unavailable; set NEXT_PUBLIC_BASE_URL in dev")
 }
 
-export function computeRedirectUri(req: Request, path: string = '/api/integrations/kintone/callback'): string {
+export function computeRedirectUri(req: Request, path: string = '/api/auth/connectors/kintone/callback'): string {
   const baseUrl = computeBaseUrl(req)
   return `${baseUrl}${path}`
 }

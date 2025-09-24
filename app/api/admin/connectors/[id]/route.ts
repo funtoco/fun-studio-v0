@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateConnector } from '@/lib/supabase/connectors-v2'
+import { updateConnector } from '@/lib/db/connectors'
 import { createClient } from '@supabase/supabase-js'
 import { encryptJson } from '@/lib/security/crypto'
 import { z } from 'zod'

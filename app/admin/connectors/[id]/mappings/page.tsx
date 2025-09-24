@@ -15,7 +15,7 @@ import { appMappings } from "@/data/mappings-apps"
 import { fieldMappings } from "@/data/mappings-fields"
 import { GitBranch, Settings, ExternalLink, Database } from "lucide-react"
 import Link from "next/link"
-import { getConnector, getConnectionStatus } from "@/lib/db/connectors-v2"
+import { getConnector, getConnectionStatus } from "@/lib/db/connectors"
 import { ConnectorActions } from "../../connector-actions"
 
 interface ConnectorMappingsPageProps {

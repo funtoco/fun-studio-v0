@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getConnector, getConnectionStatus } from '@/lib/db/connectors-v2'
+import { getConnector, getConnectionStatus } from '@/lib/db/connectors'
 import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
 import { createClient } from '@supabase/supabase-js'
 

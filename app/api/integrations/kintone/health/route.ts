@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getConnector, getCredential } from '@/lib/db/connectors-v2'
+import { getConnector, getCredential } from '@/lib/db/connectors'
 import { getConnectorToken, testConnection } from '@/lib/integrations/kintone'
 
 // Force Node.js runtime and disable static caching

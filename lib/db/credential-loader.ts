@@ -80,7 +80,8 @@ export async function loadKintoneClientConfig(connectorId: string): Promise<{
     clientId: config.clientId,
     clientSecret: config.clientSecret,
     domain: subdomain,
-    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/api/integrations/kintone/callback`
+    subdomain: subdomain,
+    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/api/auth/connectors/kintone/callback`
   }
 }
 

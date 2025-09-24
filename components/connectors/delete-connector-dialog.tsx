@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Trash2, AlertTriangle } from "lucide-react"
-import { deleteConnector } from '@/lib/supabase/connectors-v2'
+import { deleteConnector } from '@/lib/db/connectors'
 
 interface DeleteConnectorDialogProps {
   open: boolean

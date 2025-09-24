@@ -23,7 +23,7 @@ export function OAuthSetupInfo({ provider, subdomain }: OAuthSetupInfoProps) {
     }
   }, [])
 
-  const redirectUri = `${currentUrl}/api/connect/${provider}/callback-v2`
+  const redirectUri = `${currentUrl}/api/auth/connectors/${provider}/callback`
   const setupUrl = provider === 'kintone' && subdomain 
     ? `https://${subdomain}.cybozu.com/k/admin/system/oauth/`
     : '#'

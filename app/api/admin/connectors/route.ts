@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { listConnectors, createConnector, getCredential, getConnectionStatus } from '@/lib/db/connectors-v2'
+import { listConnectors, createConnector, getCredential, getConnectionStatus } from '@/lib/db/connectors'
 import { computeRedirectUri } from '@/lib/utils/redirect-uri'
 
 // Use Node.js runtime for crypto operations

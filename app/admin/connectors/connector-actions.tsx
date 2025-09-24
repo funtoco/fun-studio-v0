@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Plus, Zap, Unplug } from "lucide-react"
 import { AddConnectorDialog } from "@/components/connectors/add-connector-dialog"
-import { type Connector } from "@/lib/db/connectors-v2"
+import { type Connector } from "@/lib/db/connectors"
 
 interface ConnectorActionsProps {
   tenantId: string
@@ -29,7 +29,8 @@ export function ConnectorActions({ tenantId, connector, connectionStatus, showLa
     
     setIsLoading(true)
     try {
-      const startUrl = `/api/connect/${connector.provider}/start-v2?tenantId=${tenantId}&connectorId=${connector.id}`
+      const returnTo = encodeURIComponent(`/admin/connectors/${connector.id}?tenantId=${tenantId}&connected=true`)
+      const startUrl = `/api/auth/connectors/${connector.provider}/start?tenantId=${tenantId}&connectorId=${connector.id}&returnTo=${returnTo}`
       window.location.href = startUrl
     } catch (err) {
       console.error('Connection failed:', err)
@@ -46,7 +47,7 @@ export function ConnectorActions({ tenantId, connector, connectionStatus, showLa
     
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/connect/${connector.provider}/disconnect-v2`, {
+      const response = await fetch(`/api/connectors/${connector.id}/disconnect`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
