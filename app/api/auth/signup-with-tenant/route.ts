@@ -42,6 +42,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Create user_tenants record with owner role
+    const { error: userTenantError } = await supabase
+      .from('user_tenants')
+      .insert({
+        user_id: userId,
+        tenant_id: tenant.id,
+        role: 'owner',
+        status: 'active'
+      })
+
+    if (userTenantError) {
+      console.error('Error creating user_tenants record:', userTenantError)
+      return NextResponse.json(
+        { error: "Failed to create user_tenants record" },
+        { status: 500 }
+      )
+    }
+
     // Update user metadata with tenant info
     const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
       user_metadata: {
