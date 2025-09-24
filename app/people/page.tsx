@@ -7,6 +7,7 @@ import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getPeople } from "@/lib/supabase/people"
 import { getVisas } from "@/lib/supabase/visas"
+import { PeopleDataSource } from "@/components/kintone/people-data-source"
 import type { Person } from "@/lib/models"
 
 interface PersonWithVisa extends Person {
@@ -21,26 +22,19 @@ export default function PeoplePage() {
   const [visas, setVisas] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dataSource, setDataSource] = useState<'sample' | 'kintone'>('sample')
 
+  // Load visa data (always from sample for now)
   useEffect(() => {
-    async function fetchData() {
+    async function fetchVisaData() {
       try {
-        setLoading(true)
-        const [peopleData, visaData] = await Promise.all([
-          getPeople(),
-          getVisas()
-        ])
-        setPeople(peopleData)
+        const visaData = await getVisas()
         setVisas(visaData)
       } catch (err) {
-        console.error('Error fetching data:', err)
-        setError('データの取得に失敗しました')
-      } finally {
-        setLoading(false)
+        console.error('Error fetching visa data:', err)
       }
     }
-
-    fetchData()
+    fetchVisaData()
   }, [])
 
   // Combine people with their visa information
@@ -196,6 +190,16 @@ export default function PeoplePage() {
           <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
         </div>
       </div>
+
+      {/* Data Source Configuration */}
+      <PeopleDataSource
+        onDataChange={(peopleData, source) => {
+          setPeople(peopleData)
+          setDataSource(source)
+        }}
+        onLoadingChange={setLoading}
+        onErrorChange={setError}
+      />
 
       {/* Data Table */}
       <DataTable
