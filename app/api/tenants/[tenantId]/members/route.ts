@@ -62,16 +62,6 @@ export async function POST(
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'}/auth/set-password`
       })
       
-      console.log('Invitation result:', {
-        email,
-        tenantId: params.tenantId,
-        role,
-        hasData: !!data,
-        hasError: !!error,
-        errorMessage: error?.message,
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'}/auth/set-password`
-      })
-      
       if (error) {
         console.error('Error sending invitation:', error)
         return NextResponse.json(
@@ -84,7 +74,7 @@ export async function POST(
       const { error: userTenantError } = await supabase
         .from('user_tenants')
         .insert({
-          user_id: null, // Will be null until user accepts
+          user_id: data.user.id,
           tenant_id: params.tenantId,
           email: email,
           role: role,
