@@ -4,8 +4,11 @@ export type MemberStatus = "Active" | "Pending" | "Disabled"
 export interface Tenant {
   id: string
   name: string
-  createdAt: string // ISO
-  ownerEmail: string
+  slug: string
+  description?: string
+  max_members: number
+  created_at: string
+  updated_at: string
 }
 
 export interface TenantInviteLink {
