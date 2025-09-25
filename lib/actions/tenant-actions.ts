@@ -83,7 +83,7 @@ export async function getTenantsAction(): Promise<Tenant[]> {
   // Find tenant by name
   const { data: tenant, error } = await supabase
     .from('tenants')
-    .select('*')
+    .select()
 
   if (error) {
     console.error('Get tenant error:', error)
@@ -125,7 +125,7 @@ export async function getTenantMembersAction(tenantId: string) {
   // Get members from user_tenants table
   const { data: members, error } = await supabase
     .from('user_tenants')
-    .select('*')
+    .select()
     .eq('tenant_id', tenantId)
     .eq('status', 'active')
     .order('created_at', { ascending: false })

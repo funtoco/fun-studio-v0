@@ -66,7 +66,7 @@ export async function getTenants(): Promise<Tenant[]> {
   const supabase = getServerClient()
   const { data, error } = await supabase
     .from('tenants')
-    .select('*')
+    .select()
     .order('name')
   
   if (error) throw error
@@ -77,7 +77,7 @@ export async function getTenantById(id: string): Promise<Tenant | null> {
   const supabase = getServerClient()
   const { data, error } = await supabase
     .from('tenants')
-    .select('*')
+    .select()
     .eq('id', id)
     .single()
   
@@ -90,7 +90,7 @@ export async function getConnectors(): Promise<Connector[]> {
   const supabase = getServerClient()
   const { data, error } = await supabase
     .from('connectors')
-    .select('*')
+    .select()
     .order('created_at', { ascending: false })
   
   if (error) throw error
@@ -101,7 +101,7 @@ export async function getConnectorById(id: string): Promise<Connector | null> {
   const supabase = getServerClient()
   const { data, error } = await supabase
     .from('connectors')
-    .select('*')
+    .select()
     .eq('id', id)
     .single()
   
@@ -116,7 +116,7 @@ export async function getConnectorByTenantAndProvider(
   const supabase = getServerClient()
   const { data, error } = await supabase
     .from('connectors')
-    .select('*')
+    .select()
     .eq('tenant_id', tenantId)
     .eq('provider', provider)
     .single()
@@ -198,7 +198,7 @@ export async function getOAuthCredentials(connectorId: string): Promise<{
   const supabase = getServerClient()
   const { data, error } = await supabase
     .from('oauth_credentials')
-    .select('*')
+    .select()
     .eq('connector_id', connectorId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -259,7 +259,7 @@ export async function getConnectorLogs(
   const supabase = getServerClient()
   const { data, error } = await supabase
     .from('connector_logs')
-    .select('*')
+    .select()
     .eq('connector_id', connectorId)
     .order('created_at', { ascending: false })
     .limit(limit)

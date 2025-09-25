@@ -67,7 +67,7 @@ export async function GET(
     // Get stored apps from database
     const { data: storedApps, error: appsError } = await supabase
       .from('kintone_apps')
-      .select('*')
+      .select()
       .eq('connector_id', connectorId)
       .order('name')
 
