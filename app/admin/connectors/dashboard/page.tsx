@@ -4,15 +4,28 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/ui/status-dot"
 import { KeyValueList } from "@/components/ui/key-value-list"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ConnectorList } from "@/components/connectors/connector-list"
 import { connectors } from "@/data/connectors"
 import { kintoneApps } from "@/data/kintone-apps"
 import { appMappings } from "@/data/mappings-apps"
 import { fieldMappings } from "@/data/mappings-fields"
 import { connectorLogs } from "@/data/connector-logs"
-import { Cable, Database, GitBranch, Activity, ExternalLink, AlertCircle, CheckCircle, Clock } from "lucide-react"
+import { Cable, Database, GitBranch, Activity, ExternalLink, AlertCircle, CheckCircle, Clock, Plus } from "lucide-react"
 import Link from "next/link"
 
-export default function ConnectorDashboardPage() {
+interface ConnectorDashboardPageProps {
+  searchParams: {
+    tenantId?: string
+    q?: string
+  }
+}
+
+export default function ConnectorDashboardPage({ searchParams }: ConnectorDashboardPageProps) {
+  // For development, use default tenant
+  const tenantId = searchParams.tenantId || "550e8400-e29b-41d4-a716-446655440001" // Funtoco
+  const searchQuery = searchParams.q
+
   // Calculate statistics
   const connectedConnectors = connectors.filter((c) => c.status === "connected").length
   const totalConnectors = connectors.length
@@ -54,98 +67,22 @@ export default function ConnectorDashboardPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <PageHeader title="コネクター概要" description="Kintone 接続の状態とマッピング設定の概要" />
+      <PageHeader 
+        title="コネクター管理" 
+        description="Kintone 接続の状態とマッピング設定の管理"
+        breadcrumbs={[{ label: "コネクター管理" }]}
+      />
 
-      {/* Status Overview Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">接続状態</CardTitle>
-            <Cable className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-2">
-              <StatusDot status={connectedConnectors > 0 ? "connected" : "disconnected"} />
-              <div className="text-2xl font-bold">
-                {connectedConnectors}/{totalConnectors}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {connectedConnectors > 0 ? "正常に接続中" : "接続されていません"}
-            </p>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">設定済みアプリ</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalApps}</div>
-            <p className="text-xs text-muted-foreground mt-1">Kintone アプリ</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">アプリマッピング</CardTitle>
-            <GitBranch className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeMappings}</div>
-            <p className="text-xs text-muted-foreground mt-1">アクティブなマッピング</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">フィールドマッピング</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalFieldMappings}</div>
-            <p className="text-xs text-muted-foreground mt-1">設定済みフィールド</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Connector List */}
+      <ConnectorList 
+        tenantId={tenantId} 
+        searchQuery={searchQuery}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Connection Status Detail */}
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Cable className="h-5 w-5" />
-                <span>接続状態詳細</span>
-              </CardTitle>
-              <CardDescription>各コネクターの現在の状態</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {connectors.map((connector) => (
-                <div
-                  key={connector.id}
-                  className="flex items-center justify-between p-3 border border-border rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <StatusDot status={connector.status} />
-                    <div>
-                      <p className="font-medium text-sm">{connector.name}</p>
-                      <p className="text-xs text-muted-foreground">{connector.subdomain}.cybozu.com</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {getStatusBadge(connector.status)}
-                    <Link href={`/admin/connectors/${connector.type}`}>
-                      <Button variant="ghost" size="sm">
-                        詳細
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
 
           {/* Recent Activity */}
           <Card>
@@ -255,18 +192,15 @@ export default function ConnectorDashboardPage() {
             <CardHeader>
               <CardTitle className="text-base">クイックアクション</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Link href="/admin/connectors" className="block">
-                <Button variant="outline" className="w-full bg-transparent">
-                  コネクター一覧
-                </Button>
-              </Link>
+            <CardContent className="space-y-3">
               <Link href="/admin/connectors/kintone/apps" className="block">
-                <Button variant="outline" className="w-full bg-transparent">
+                <Button variant="outline" className="w-full">
+                  <Database className="h-4 w-4 mr-2" />
                   アプリ一覧
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full bg-transparent" disabled title="参照専用（現在は編集不可）">
+              <Button variant="outline" className="w-full" disabled title="参照専用（現在は編集不可）">
+                <GitBranch className="h-4 w-4 mr-2" />
                 設定変更
               </Button>
             </CardContent>

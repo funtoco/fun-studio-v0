@@ -1,5 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header"
-import { ConnectorList } from "@/components/connectors/connector-list"
+import { redirect } from "next/navigation"
 
 interface ConnectorsPageProps {
   searchParams: {
@@ -9,22 +8,13 @@ interface ConnectorsPageProps {
 }
 
 export default function ConnectorsPage({ searchParams }: ConnectorsPageProps) {
-  // For development, use default tenant
-  const tenantId = searchParams.tenantId || "550e8400-e29b-41d4-a716-446655440001" // Funtoco
-  const searchQuery = searchParams.q
-
-  return (
-    <div className="space-y-6 p-6">
-      <PageHeader
-        title="コネクター"
-        description="Kintone 接続の設定と状態を管理"
-        breadcrumbs={[{ label: "概要", href: "/admin/connectors/dashboard" }, { label: "コネクター" }]}
-      />
-
-      <ConnectorList 
-        tenantId={tenantId} 
-        searchQuery={searchQuery}
-      />
-    </div>
-  )
+  // Redirect to dashboard with search params
+  const params = new URLSearchParams()
+  if (searchParams.tenantId) params.set('tenantId', searchParams.tenantId)
+  if (searchParams.q) params.set('q', searchParams.q)
+  
+  const queryString = params.toString()
+  const redirectUrl = `/admin/connectors/dashboard${queryString ? `?${queryString}` : ''}`
+  
+  redirect(redirectUrl)
 }
