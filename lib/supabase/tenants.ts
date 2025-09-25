@@ -15,7 +15,7 @@ export interface UserTenant {
   id: string
   user_id: string
   tenant_id: string
-  email: string
+  email?: string
   role: 'owner' | 'admin' | 'member' | 'guest'
   status: 'active' | 'pending' | 'suspended'
   invited_by?: string
@@ -26,24 +26,6 @@ export interface UserTenant {
   tenant?: Tenant
 }
 
-export interface TenantInvitation {
-  id: string
-  tenant_id: string
-  email: string
-  role: 'admin' | 'member' | 'guest'
-  token: string
-  invited_by: string
-  expires_at: string
-  accepted_at?: string
-  created_at: string
-  invited_by_user?: {
-    id: string
-    email: string
-    user_metadata?: {
-      name?: string
-    }
-  }
-}
 
 export async function getTenants(): Promise<Tenant[]> {
   const supabase = createClient()
@@ -121,12 +103,11 @@ export async function getCurrentUserTenants(): Promise<UserTenant[]> {
 export async function getTenantMembers(tenantId: string): Promise<UserTenant[]> {
   const supabase = createClient()
   
-  // Get members from user_tenants table
+  // Get all members from user_tenants table (active, pending, suspended)
   const { data: members, error } = await supabase
     .from('user_tenants')
     .select('*')
     .eq('tenant_id', tenantId)
-    .eq('status', 'active')
     .order('created_at', { ascending: false })
   
   if (error) {
@@ -141,15 +122,15 @@ export async function getTenantMembers(tenantId: string): Promise<UserTenant[]> 
   return members
 }
 
-export async function getTenantInvitations(tenantId: string): Promise<TenantInvitation[]> {
+export async function getTenantInvitations(tenantId: string): Promise<UserTenant[]> {
   const supabase = createClient()
   
   const { data, error } = await supabase
-    .from('tenant_invitations')
+    .from('user_tenants')
     .select('*')
     .eq('tenant_id', tenantId)
-    .is('accepted_at', null)
-    .gt('expires_at', new Date().toISOString())
+    .eq('status', 'pending')
+    .is('user_id', null) // Only get invitations where user_id is null (not yet accepted)
     .order('created_at', { ascending: false })
   
   if (error) {
@@ -164,60 +145,80 @@ export async function createTenantInvitation(
   tenantId: string,
   email: string,
   role: 'admin' | 'member' | 'guest'
-): Promise<TenantInvitation> {
-  const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
-  
-  // Generate a secure token
-  const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-  
-  const { data, error } = await supabase
-    .from('tenant_invitations')
-    .insert({
-      tenant_id: tenantId,
-      email,
-      role,
-      token,
-      invited_by: user.id,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-    })
-    .select(`
-      *,
-      invited_by_user:invited_by (
-        id,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Call the API route instead of using admin client directly
+    const response = await fetch(`/api/tenants/${tenantId}/members`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         email,
-        user_metadata
-      )
-    `)
-    .single()
-  
-  if (error) {
-    console.error('Error creating tenant invitation:', error)
-    throw error
+        role
+      })
+    })
+
+    const result = await response.json()
+    
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to send invitation' }
+    }
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error in createTenantInvitation:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
-  
-  return data
 }
 
-export async function acceptTenantInvitation(token: string): Promise<{ success: boolean; tenant_id?: string; error?: string }> {
+
+export async function activateUserTenantMembership(
+  userId: string,
+  email: string
+): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
   
-  const { data, error } = await supabase.rpc('accept_tenant_invitation', {
-    invitation_token: token
-  })
-  
-  if (error) {
-    console.error('Error accepting invitation:', error)
-    return { success: false, error: error.message }
+  try {
+    // Find pending user_tenants records for this email
+    const { data: pendingMemberships, error: fetchError } = await supabase
+      .from('user_tenants')
+      .select('*')
+      .eq('email', email)
+      .eq('status', 'pending')
+      .is('user_id', null)
+    
+    if (fetchError) {
+      console.error('Error fetching pending memberships:', fetchError)
+      return { success: false, error: fetchError.message }
+    }
+    
+    if (!pendingMemberships || pendingMemberships.length === 0) {
+      return { success: true } // No pending memberships to activate
+    }
+    
+    // Update each pending membership with the user ID and activate
+    for (const membership of pendingMemberships) {
+      const { error: updateError } = await supabase
+        .from('user_tenants')
+        .update({
+          user_id: userId,
+          status: 'active',
+          joined_at: new Date().toISOString()
+        })
+        .eq('id', membership.id)
+      
+      if (updateError) {
+        console.error('Error updating user tenant membership:', updateError)
+        return { success: false, error: updateError.message }
+      }
+    }
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error in activateUserTenantMembership:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
-  
-  return data
 }
 
 export async function updateUserTenantRole(
@@ -255,9 +256,10 @@ export async function cancelTenantInvitation(invitationId: string): Promise<void
   const supabase = createClient()
   
   const { error } = await supabase
-    .from('tenant_invitations')
+    .from('user_tenants')
     .delete()
     .eq('id', invitationId)
+    .eq('status', 'pending')
   
   if (error) {
     console.error('Error canceling invitation:', error)
@@ -310,4 +312,26 @@ export async function createTenant(tenantData: {
   }
   
   return data
+}
+
+export async function deleteTenant(tenantId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`/api/tenants/${tenantId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const result = await response.json()
+    
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to delete tenant' }
+    }
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Error in deleteTenant:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
 }

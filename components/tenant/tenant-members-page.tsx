@@ -18,8 +18,7 @@ import {
   updateUserTenantRole,
   removeUserFromTenant,
   cancelTenantInvitation,
-  type UserTenant,
-  type TenantInvitation 
+  type UserTenant
 } from "@/lib/supabase/tenants"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -30,7 +29,7 @@ interface TenantMembersPageProps {
 export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
   const { user } = useAuth()
   const [members, setMembers] = useState<UserTenant[]>([])
-  const [invitations, setInvitations] = useState<TenantInvitation[]>([])
+  const [invitations, setInvitations] = useState<UserTenant[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [activeTab, setActiveTab] = useState("all")
@@ -85,8 +84,7 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
     if (searchQuery) {
       filtered = filtered.filter(
         (member) =>
-          (member.user?.user_metadata?.name || member.user?.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (member.user?.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+          (member.email || '').toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
@@ -152,8 +150,14 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
   // Handle member invitation
   const handleAddMember = async (memberData: { name: string; email: string; role: 'admin' | 'member' | 'guest' }) => {
     try {
-      await createTenantInvitation(tenantId, memberData.email, memberData.role)
-      await fetchData()
+      const result = await createTenantInvitation(tenantId, memberData.email, memberData.role)
+      if (result.success) {
+        await fetchData()
+        // Show success message or toast here if needed
+      } else {
+        console.error('Error creating invitation:', result.error)
+        // Show error message or toast here if needed
+      }
     } catch (error) {
       console.error('Error creating invitation:', error)
     }
@@ -167,7 +171,7 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
     setConfirmDialog({
       open: true,
       title: "メンバーを削除",
-      description: `${member.user?.user_metadata?.name || member.user?.email}さんをテナントから削除しますか？この操作は取り消せません。`,
+      description: `${member.email || 'このメンバー'}さんをテナントから削除しますか？この操作は取り消せません。`,
       onConfirm: () => handleDeleteMember(memberId),
       variant: "destructive",
     })

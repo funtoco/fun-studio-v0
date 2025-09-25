@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Building2, Users, Plus, MoreHorizontal } from "lucide-react"
+import { ArrowLeft, Building2, Users, Plus, MoreHorizontal, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { TenantMembersPage } from "@/components/tenant/tenant-members-page"
 import { CreateTenantDialog } from "@/components/tenant/create-tenant-dialog"
 import { createTenantAction, getTenantsAction, type CreateTenantData } from "@/lib/actions/tenant-actions"
+import { deleteTenant } from "@/lib/supabase/tenants"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/lib/hooks/use-toast"
 
@@ -71,6 +72,37 @@ export default function AdminTenantsPage() {
       toast({
         title: "エラー",
         description: error instanceof Error ? error.message : "テナントの作成に失敗しました",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteTenant = async (tenantId: string, tenantName: string) => {
+    if (!confirm(`「${tenantName}」を削除しますか？この操作は取り消せません。`)) {
+      return
+    }
+
+    try {
+      const result = await deleteTenant(tenantId)
+      
+      if (result.success) {
+        await fetchData() // Refresh the list
+        toast({
+          title: "成功",
+          description: "テナントが削除されました",
+        })
+      } else {
+        toast({
+          title: "エラー",
+          description: result.error || "テナントの削除に失敗しました",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error deleting tenant:', error)
+      toast({
+        title: "エラー",
+        description: "テナントの削除に失敗しました",
         variant: "destructive",
       })
     }
@@ -184,6 +216,13 @@ export default function AdminTenantsPage() {
                       <DropdownMenuItem>
                         <Building2 className="h-4 w-4 mr-2" />
                         設定
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        削除
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

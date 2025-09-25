@@ -15,8 +15,7 @@ ALTER TABLE user_tenants DISABLE ROW LEVEL SECURITY;
 -- Also disable RLS on tenants table to avoid any issues
 ALTER TABLE tenants DISABLE ROW LEVEL SECURITY;
 
--- Disable RLS on tenant_invitations as well
-ALTER TABLE tenant_invitations DISABLE ROW LEVEL SECURITY;
+-- tenant_invitations table has been removed, so no need to disable RLS on it
 
 -- This will allow all operations without any RLS restrictions
 -- In production, you'd want to implement proper RLS policies
