@@ -77,7 +77,7 @@ export async function getConnector(connectorId: string): Promise<Connector | nul
   
   const { data, error } = await supabase
     .from('connectors')
-    .select('*')
+    .select()
     .eq('id', connectorId)
     .single()
   
@@ -93,7 +93,7 @@ export async function listConnectors(tenantId: string): Promise<Connector[]> {
   
   const { data, error } = await supabase
     .from('connectors')
-    .select('*')
+    .select()
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
   
@@ -233,7 +233,7 @@ export async function getConnectionStatus(connectorId: string): Promise<Connecti
   
   const { data, error } = await supabase
     .from('connection_status')
-    .select('*')
+    .select()
     .eq('connector_id', connectorId)
     .single()
   

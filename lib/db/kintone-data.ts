@@ -49,7 +49,7 @@ export async function getKintoneApps(connectorId: string): Promise<KintoneApp[]>
   
   const { data, error } = await supabase
     .from('kintone_apps')
-    .select('*')
+    .select()
     .eq('connector_id', connectorId)
     .order('name', { ascending: true })
   
@@ -66,7 +66,7 @@ export async function getKintoneFields(kintoneAppId: string): Promise<KintoneFie
   
   const { data, error } = await supabase
     .from('kintone_fields')
-    .select('*')
+    .select()
     .eq('kintone_app_id', kintoneAppId)
     .order('field_label', { ascending: true })
   

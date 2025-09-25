@@ -35,7 +35,7 @@ export async function GET(
     // Get connector info
     const { data: connector, error: connectorError } = await supabase
       .from('connectors')
-      .select('*')
+      .select()
       .eq('id', connectorId)
       .single()
 
@@ -149,7 +149,7 @@ export async function POST(
     // Get the kintone_app record
     const { data: kintoneApp, error: appError } = await supabase
       .from('kintone_apps')
-      .select('*')
+      .select()
       .eq('connector_id', connectorId)
       .eq('app_id', appId)
       .single()

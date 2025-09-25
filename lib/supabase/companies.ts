@@ -6,7 +6,7 @@ export async function getCompanies(): Promise<Company[]> {
   
   const { data, error } = await supabase
     .from('companies')
-    .select('*')
+    .select()
     .order('created_at', { ascending: false })
   
   if (error) {
@@ -39,7 +39,7 @@ export async function getCompanyById(id: string): Promise<Company | null> {
   
   const { data, error } = await supabase
     .from('companies')
-    .select('*')
+    .select()
     .eq('id', id)
     .single()
   
@@ -74,7 +74,7 @@ export async function getPeopleByCompanyId(companyId: string) {
   
   const { data, error } = await supabase
     .from('people')
-    .select('*')
+    .select()
     .eq('company_id', companyId)
     .order('created_at', { ascending: false })
   

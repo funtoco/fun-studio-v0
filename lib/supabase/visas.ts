@@ -17,7 +17,7 @@ export async function getVisas(): Promise<Visa[]> {
   
   const { data, error } = await supabase
     .from('visas')
-    .select('*')
+    .select()
     .order('updated_at', { ascending: false })
   
   if (error) {
@@ -44,7 +44,7 @@ export async function getVisaById(id: string): Promise<Visa | null> {
   
   const { data, error } = await supabase
     .from('visas')
-    .select('*')
+    .select()
     .eq('id', id)
     .single()
   
@@ -71,7 +71,7 @@ export async function getVisasByPersonId(personId: string): Promise<Visa[]> {
   
   const { data, error } = await supabase
     .from('visas')
-    .select('*')
+    .select()
     .eq('person_id', personId)
     .order('updated_at', { ascending: false })
   

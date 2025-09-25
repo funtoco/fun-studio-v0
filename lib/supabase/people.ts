@@ -8,7 +8,7 @@ export async function getPeople(): Promise<Person[]> {
   
   const { data, error } = await supabase
     .from('people')
-    .select('*')
+    .select()
     .order('created_at', { ascending: false })
   
   console.log('getPeople: Query result:', { data, error, count: data?.length })
@@ -54,7 +54,7 @@ export async function getPersonById(id: string): Promise<Person | null> {
   
   const { data, error } = await supabase
     .from('people')
-    .select('*')
+    .select()
     .eq('id', id)
     .single()
   

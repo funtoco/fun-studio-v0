@@ -6,7 +6,7 @@ export async function getSupportActions(): Promise<SupportAction[]> {
   
   const { data, error } = await supabase
     .from('support_actions')
-    .select('*')
+    .select()
     .order('created_at', { ascending: false })
   
   if (error) {
@@ -34,7 +34,7 @@ export async function getSupportActionById(id: string): Promise<SupportAction | 
   
   const { data, error } = await supabase
     .from('support_actions')
-    .select('*')
+    .select()
     .eq('id', id)
     .single()
   
@@ -62,7 +62,7 @@ export async function getSupportActionsByPersonId(personId: string): Promise<Sup
   
   const { data, error } = await supabase
     .from('support_actions')
-    .select('*')
+    .select()
     .eq('person_id', personId)
     .order('created_at', { ascending: false })
   
@@ -90,7 +90,7 @@ export async function getSupportActionsByCategory(category: string): Promise<Sup
   
   const { data, error } = await supabase
     .from('support_actions')
-    .select('*')
+    .select()
     .eq('category', category)
     .order('created_at', { ascending: false })
   
@@ -118,7 +118,7 @@ export async function getSupportActionsByStatus(status: 'open' | 'in_progress' |
   
   const { data, error } = await supabase
     .from('support_actions')
-    .select('*')
+    .select()
     .eq('status', status)
     .order('created_at', { ascending: false })
   

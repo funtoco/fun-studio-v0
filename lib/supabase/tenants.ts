@@ -32,7 +32,7 @@ export async function getTenants(): Promise<Tenant[]> {
   
   const { data, error } = await supabase
     .from('tenants')
-    .select('*')
+    .select()
     .order('created_at', { ascending: false })
   
   if (error) {
@@ -48,7 +48,7 @@ export async function getTenantById(id: string): Promise<Tenant | null> {
   
   const { data, error } = await supabase
     .from('tenants')
-    .select('*')
+    .select()
     .eq('id', id)
     .single()
   
@@ -106,7 +106,7 @@ export async function getTenantMembers(tenantId: string): Promise<UserTenant[]> 
   // Get all members from user_tenants table (active, pending, suspended)
   const { data: members, error } = await supabase
     .from('user_tenants')
-    .select('*')
+    .select()
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
   
@@ -127,10 +127,9 @@ export async function getTenantInvitations(tenantId: string): Promise<UserTenant
   
   const { data, error } = await supabase
     .from('user_tenants')
-    .select('*')
+    .select()
     .eq('tenant_id', tenantId)
     .eq('status', 'pending')
-    .is('user_id', null) // Only get invitations where user_id is null (not yet accepted)
     .order('created_at', { ascending: false })
   
   if (error) {
@@ -178,21 +177,20 @@ export async function activateUserTenantMembership(
   email: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
-  
+  console.log('userId', userId)
   try {
     // Find pending user_tenants records for this email
     const { data: pendingMemberships, error: fetchError } = await supabase
       .from('user_tenants')
-      .select('*')
-      .eq('email', email)
-      .eq('status', 'pending')
-      .is('user_id', null)
+      .select()
+      .eq('user_id', userId)
+      // .eq('status', 'pending')
     
     if (fetchError) {
       console.error('Error fetching pending memberships:', fetchError)
       return { success: false, error: fetchError.message }
     }
-    
+    console.log('pendingMemberships', pendingMemberships)
     if (!pendingMemberships || pendingMemberships.length === 0) {
       return { success: true } // No pending memberships to activate
     }
