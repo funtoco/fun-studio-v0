@@ -15,16 +15,7 @@ import { createTenantAction, getTenantsAction, type CreateTenantData } from "@/l
 import { deleteTenant } from "@/lib/supabase/tenants"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/lib/hooks/use-toast"
-
-interface Tenant {
-  id: string
-  name: string
-  slug: string
-  description?: string
-  max_members: number
-  created_at: string
-  updated_at: string
-}
+import { Tenant } from "@/tenant-management/types/tenant"
 
 export default function AdminTenantsPage() {
   const router = useRouter()
@@ -45,7 +36,7 @@ export default function AdminTenantsPage() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const tenantsData = await getTenantsAction()
+      const tenantsData: Tenant[] = await getTenantsAction()
       setTenants(tenantsData)
     } catch (error) {
       console.error('Error fetching data:', error)

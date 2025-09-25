@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/client"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { Tenant } from "@/tenant-management/types/tenant"
 
 export interface CreateTenantData {
   name: string
@@ -77,33 +78,19 @@ export async function createTenantAction(data: CreateTenantData) {
 }
 
 // Get tenants for current user
-export async function getTenantsAction() {
+export async function getTenantsAction(): Promise<Tenant[]> {
   const supabase = await createClient()
-  
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return []
-  }
-
-  // Get tenant name from user metadata
-  const tenantName = user.user_metadata?.tenant_name
-  if (!tenantName) {
-    return []
-  }
-
   // Find tenant by name
   const { data: tenant, error } = await supabase
     .from('tenants')
     .select('*')
-    .eq('name', tenantName)
-    .single()
 
   if (error) {
     console.error('Get tenant error:', error)
     return []
   }
 
-  return tenant ? [tenant] : []
+  return tenant ? tenant : []
 }
 
 // Get tenant members
