@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/client"
+import { activateUserTenantMembership } from "@/lib/supabase/tenants"
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,6 +73,14 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Error updating user metadata:', updateError)
       // Don't fail the entire process if metadata update fails
+    }
+
+    // Activate any pending tenant memberships for this user
+    try {
+      await activateUserTenantMembership(userId, email)
+    } catch (membershipError) {
+      console.error('Error activating pending memberships:', membershipError)
+      // Don't fail the entire process if membership activation fails
     }
 
     return NextResponse.json({ 

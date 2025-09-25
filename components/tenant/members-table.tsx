@@ -60,6 +60,14 @@ export function MembersTable({
   }
 
   const canDeleteMember = (targetMember: UserTenant) => {
+    console.log('canDeleteMember check:', {
+      currentUserRole,
+      targetMemberRole: targetMember.role,
+      targetMemberUserId: targetMember.user_id,
+      currentUserId,
+      isSelf: targetMember.user_id === currentUserId
+    })
+    
     if (currentUserRole === 'guest' || currentUserRole === 'member') return false
     if (targetMember.user_id === currentUserId) return false // Can't delete self
     if (targetMember.role === 'owner') return false // Can't delete owner
@@ -209,6 +217,20 @@ export function MembersTable({
                           >
                             <Trash2 className="size-4 mr-2" />
                             削除
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      
+                      {/* Debug: Always show delete option for pending members */}
+                      {member.status === 'pending' && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteMember(member)} 
+                            className="text-destructive"
+                          >
+                            <Trash2 className="size-4 mr-2" />
+                            招待をキャンセル
                           </DropdownMenuItem>
                         </>
                       )}

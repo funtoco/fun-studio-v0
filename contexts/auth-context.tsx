@@ -73,12 +73,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
       
-      if (!error) {
+      if (!error && data.user) {
+        // Activate any pending tenant memberships for this user
+        try {
+          const response = await fetch('/api/auth/activate-membership', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            console.error('Failed to activate pending memberships during sign in')
+          }
+        } catch (membershipError) {
+          console.error('Error activating pending memberships during sign in:', membershipError)
+        }
+
         // ログイン成功時はミドルウェアがリダイレクトを処理
         window.location.href = "/dashboard"
       }
