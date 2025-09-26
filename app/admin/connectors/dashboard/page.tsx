@@ -30,8 +30,8 @@ export default function ConnectorDashboardPage({ searchParams }: ConnectorDashbo
   const connectedConnectors = connectors.filter((c) => c.status === "connected").length
   const totalConnectors = connectors.length
   const totalApps = kintoneApps.length
-  const activeMappings = appMappings.filter((m) => m.status === "active").length
-  const totalFieldMappings = fieldMappings.filter((m) => m.status === "mapped").length
+  const activeMappings = appMappings.length // Use total count if no status property
+  const totalFieldMappings = fieldMappings.length // Use total count if no status property
   const recentLogs = connectorLogs.slice(0, 5)
   const lastSync = connectors.find((c) => c.lastSync)?.lastSync
 
@@ -193,12 +193,10 @@ export default function ConnectorDashboardPage({ searchParams }: ConnectorDashbo
               <CardTitle className="text-base">クイックアクション</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Link href="/admin/connectors/kintone/apps" className="block">
-                <Button variant="outline" className="w-full">
-                  <Database className="h-4 w-4 mr-2" />
-                  アプリ一覧
-                </Button>
-              </Link>
+              <Button variant="outline" className="w-full" disabled title="アプリ管理は各コネクターの詳細ページで行います">
+                <Database className="h-4 w-4 mr-2" />
+                アプリ一覧
+              </Button>
               <Button variant="outline" className="w-full" disabled title="参照専用（現在は編集不可）">
                 <GitBranch className="h-4 w-4 mr-2" />
                 設定変更

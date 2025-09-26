@@ -53,28 +53,31 @@ export async function GET(
       )
     }
 
-    // Get stored fields from database
-    const { data: storedFields, error: fieldsError } = await supabase
-      .from('kintone_fields')
-      .select(`
-        *,
-        kintone_apps!inner(app_id)
-      `)
-      .eq('kintone_apps.connector_id', connectorId)
-      .eq('kintone_apps.app_id', appId)
-      .order('field_label')
-
-    if (fieldsError) {
-      console.error('Error fetching stored fields:', fieldsError)
+    // Get OAuth credentials to fetch fields from Kintone
+    const oauthCreds = connector.oauth_credentials?.[0]
+    if (!oauthCreds) {
       return NextResponse.json(
-        { error: 'Failed to fetch stored fields' },
-        { status: 500 }
+        { error: 'No OAuth credentials found' },
+        { status: 400 }
       )
     }
 
+    // Decrypt access token
+    const accessTokenData = decryptJson(oauthCreds.access_token_enc)
+    const accessToken = accessTokenData.token || accessTokenData.value
+
+    // Create Kintone API client
+    const kintoneClient = new KintoneApiClient({
+      subdomain: connector.provider_config.subdomain,
+      accessToken
+    })
+
+    // Fetch fields from Kintone API
+    const kintoneFields = await kintoneClient.getAppFields(parseInt(appId))
+
     return NextResponse.json({
-      fields: storedFields || [],
-      total: storedFields?.length || 0,
+      fields: kintoneFields || [],
+      total: kintoneFields?.length || 0,
       appId
     })
 
@@ -95,14 +98,10 @@ export async function POST(
     const { id: connectorId, appId } = params
     const supabase = getServerClient()
 
-    // Get connector and its credentials
+    // Get connector
     const { data: connector, error: connectorError } = await supabase
       .from('connectors')
-      .select(`
-        *,
-        connector_secrets(*),
-        oauth_credentials(*)
-      `)
+      .select('*')
       .eq('id', connectorId)
       .single()
 
@@ -127,22 +126,80 @@ export async function POST(
       )
     }
 
-    // Get OAuth credentials
-    const oauthCreds = connector.oauth_credentials?.[0]
-    if (!oauthCreds) {
+    // Get OAuth credentials from credentials table
+    const { data: oauthCreds, error: credsError } = await supabase
+      .from('credentials')
+      .select('*')
+      .eq('connector_id', connectorId)
+      .eq('type', 'kintone_token')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (credsError || !oauthCreds) {
       return NextResponse.json(
         { error: 'No OAuth credentials found' },
         { status: 400 }
       )
     }
 
-    // Decrypt access token
-    const accessTokenData = decryptJson(oauthCreds.access_token_enc)
-    const accessToken = accessTokenData.token || accessTokenData.value
+    // Decrypt access token from credentials table
+    let accessToken
+    if (oauthCreds.payload) {
+      // Plain text payload
+      const tokenData = JSON.parse(oauthCreds.payload)
+      accessToken = tokenData.token || tokenData.access_token
+    } else if (oauthCreds.payload_encrypted) {
+      // Encrypted payload
+      const accessTokenData = decryptJson(oauthCreds.payload_encrypted)
+      accessToken = accessTokenData.token || accessTokenData.value || accessTokenData.access_token
+    } else {
+      throw new Error('No valid token payload found')
+    }
 
-    // Create Kintone API client
+    // Get Kintone config from credentials table
+    const { data: configCreds, error: configError } = await supabase
+      .from('credentials')
+      .select('*')
+      .eq('connector_id', connectorId)
+      .eq('type', 'kintone_config')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (configError || !configCreds) {
+      return NextResponse.json(
+        { error: 'Kintone configuration not found' },
+        { status: 400 }
+      )
+    }
+
+    // Parse config
+    let kintoneConfig
+    if (configCreds.payload) {
+      kintoneConfig = JSON.parse(configCreds.payload)
+    } else if (configCreds.payload_encrypted) {
+      kintoneConfig = decryptJson(configCreds.payload_encrypted)
+    } else {
+      return NextResponse.json(
+        { error: 'Invalid Kintone configuration' },
+        { status: 400 }
+      )
+    }
+
+    // Use full domain from config
+    const domain = kintoneConfig.domain
+
+    if (!domain) {
+      return NextResponse.json(
+        { error: 'Kintone domain not found' },
+        { status: 400 }
+      )
+    }
+
+    // Create Kintone API client with full domain
     const kintoneClient = new KintoneApiClient({
-      subdomain: connector.provider_config.subdomain,
+      domain,
       accessToken
     })
 

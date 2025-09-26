@@ -61,7 +61,6 @@ export async function DELETE(
     // Delete connector-related data
     await supabase.from('connector_logs').delete().eq('connector_id', id)
     await supabase.from('oauth_credentials').delete().eq('connector_id', id)
-    await supabase.from('connector_secrets').delete().eq('connector_id', id)
     
     // Finally delete the connector
     const { error } = await supabase.from('connectors').delete().eq('id', id)
@@ -116,21 +115,9 @@ export async function PUT(
       }
       const supabase = createClient(supabaseUrl, serviceKey)
 
-      const clientIdEnc = encryptJson({ value: clientId })
-      const clientSecretEnc = encryptJson({ value: clientSecret })
-
-      const { error: upsertErr } = await supabase
-        .from('connector_secrets')
-        .upsert({
-          connector_id: id,
-          oauth_client_id_enc: clientIdEnc,
-          oauth_client_secret_enc: clientSecretEnc,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'connector_id' })
-
-      if (upsertErr) {
-        return NextResponse.json({ error: 'Failed to update credentials' }, { status: 500 })
-      }
+      // Note: connector_secrets table is no longer used
+      // OAuth credentials are stored in oauth_credentials table
+      // Client credentials are now stored in provider_config
     }
 
     return NextResponse.json({ 

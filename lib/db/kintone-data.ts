@@ -43,59 +43,84 @@ export interface KintoneField {
   updated_at: string
 }
 
-// Get Kintone apps for a connector
+// Get Kintone apps for a connector (updated to use app_mappings)
 export async function getKintoneApps(connectorId: string): Promise<KintoneApp[]> {
   const supabase = getServerClient()
   
   const { data, error } = await supabase
-    .from('kintone_apps')
+    .from('app_mappings')
     .select()
     .eq('connector_id', connectorId)
-    .order('name', { ascending: true })
+    .order('kintone_app_name', { ascending: true })
   
   if (error) {
     throw new Error(`Failed to get Kintone apps: ${error.message}`)
   }
   
-  return data || []
+  return (data || []).map(app => ({
+    id: app.id,
+    connector_id: app.connector_id,
+    app_id: app.kintone_app_id,
+    code: app.kintone_app_code,
+    name: app.kintone_app_name,
+    description: app.description,
+    created_at: app.created_at,
+    updated_at: app.updated_at
+  }))
 }
 
-// Get Kintone fields for an app
+// Get Kintone fields for an app (updated to use field_mappings)
 export async function getKintoneFields(kintoneAppId: string): Promise<KintoneField[]> {
   const supabase = getServerClient()
   
   const { data, error } = await supabase
-    .from('kintone_fields')
+    .from('field_mappings')
     .select()
-    .eq('kintone_app_id', kintoneAppId)
-    .order('field_label', { ascending: true })
+    .eq('mapping_app_id', kintoneAppId)
+    .order('kintone_field_label', { ascending: true })
   
   if (error) {
     throw new Error(`Failed to get Kintone fields: ${error.message}`)
   }
   
-  return data || []
+  return (data || []).map(field => ({
+    id: field.id,
+    kintone_app_id: field.mapping_app_id,
+    field_code: field.kintone_field_code,
+    field_label: field.kintone_field_label,
+    field_type: field.kintone_field_type,
+    required: false, // Default value since it's not in field_mappings
+    created_at: field.created_at,
+    updated_at: field.updated_at
+  }))
 }
 
-// Get Kintone apps with field counts
+// Get Kintone apps with field counts (updated to use app_mappings)
 export async function getKintoneAppsWithFieldCounts(connectorId: string): Promise<(KintoneApp & { field_count: number })[]> {
   const supabase = getServerClient()
   
   const { data, error } = await supabase
-    .from('kintone_apps')
+    .from('app_mappings')
     .select(`
       *,
-      kintone_fields(count)
+      field_mappings(count)
     `)
     .eq('connector_id', connectorId)
-    .order('name', { ascending: true })
+    .order('kintone_app_name', { ascending: true })
   
   if (error) {
     throw new Error(`Failed to get Kintone apps with field counts: ${error.message}`)
   }
   
   return (data || []).map(app => ({
-    ...app,
-    field_count: app.kintone_fields?.[0]?.count || 0
+    id: app.id,
+    connector_id: app.connector_id,
+    app_id: app.kintone_app_id,
+    code: app.kintone_app_code,
+    name: app.kintone_app_name,
+    description: app.description,
+    created_at: app.created_at,
+    updated_at: app.updated_at,
+    field_count: app.field_mappings?.[0]?.count || 0
   }))
 }
