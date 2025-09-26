@@ -54,7 +54,6 @@ export class KintoneApiClient {
       ...options,
       headers: {
         'Authorization': `Bearer ${this.accessToken}`,
-        'Content-Type': 'application/json',
         ...options.headers
       }
     })
@@ -103,21 +102,40 @@ export class KintoneApiClient {
   }
 
   /**
-   * Get records from an app
+   * Get records from an app with pagination support
    */
   async getRecords(appId: string, query?: string, fields?: string[]): Promise<KintoneRecord[]> {
-    let endpoint = `/k/v1/records.json?app=${appId}`
-    
-    if (query) {
-      endpoint += `&query=${encodeURIComponent(query)}`
+    const limit = 500
+    let offset = 0
+    let allRecords: KintoneRecord[] = []
+
+    while (true) {
+      let endpoint = `/k/v1/records.json?app=${appId}&query=order by $id asc limit ${limit} offset ${offset}`
+      
+      // Override query if provided
+      if (query) {
+        endpoint = `/k/v1/records.json?app=${appId}&query=${encodeURIComponent(query + ' order by $id asc')} limit ${limit} offset ${offset}`
+      }
+      
+      if (fields && fields.length > 0) {
+        const fieldsParam = fields.map(field => `fields[]=${encodeURIComponent(field)}`).join('&')
+        endpoint += `&${fieldsParam}`
+      }
+      
+      const response = await this.request<{ records: KintoneRecord[] }>(endpoint)
+      const records = response.records
+      
+      allRecords = allRecords.concat(records)
+      
+      // If we got fewer records than the limit, we've reached the end
+      if (records.length < limit) {
+        break
+      }
+      
+      offset += limit
     }
-    
-    if (fields && fields.length > 0) {
-      endpoint += `&fields[0]=${fields.join('&fields[]=')}`
-    }
-    
-    const response = await this.request<{ records: KintoneRecord[] }>(endpoint)
-    return response.records
+
+    return allRecords
   }
 
   /**
