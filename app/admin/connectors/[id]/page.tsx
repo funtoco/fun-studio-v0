@@ -4,7 +4,7 @@
  */
 
 import { Suspense } from 'react'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { PageHeader } from "@/components/ui/page-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,11 +19,43 @@ import Image from "next/image"
 import Link from "next/link"
 import { getConnector, getConnectionStatus } from "@/lib/db/connectors"
 import { redactClientId, redactDomain } from "@/lib/ui/redact"
+
+// New function to get connection status from oauth_credentials
+async function getConnectionStatusFromCredentials(connectorId: string) {
+  const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+  
+  // Check if there's a valid credentials entry with kintone_token type
+  const { data: credentials, error } = await supabase
+    .from('credentials')
+    .select('*')
+    .eq('connector_id', connectorId)
+    .eq('type', 'kintone_token')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+  
+  if (error || !credentials) {
+    return { status: 'disconnected' }
+  }
+  
+  // Check if token is expired
+  const now = new Date()
+  const expiresAt = credentials.expires_at ? new Date(credentials.expires_at) : null
+  
+  if (expiresAt && expiresAt <= now) {
+    return { status: 'disconnected' }
+  }
+  
+  return { status: 'connected' }
+}
 import { getConfigAndToken, computeRedirectUri } from "@/lib/connectors/kintoneClient"
 import { ConnectorActions } from "../connector-actions"
-import { SyncAppsButtonWrapper } from "@/components/connectors/sync-apps-button-wrapper"
-import { ConnectorAppsTab } from "./connector-apps-tab"
-import { ConnectorMappingsTab } from "./connector-mappings-tab"
+import { ConnectorAppMappingTab } from "./connector-app-mapping-tab"
 import { OAuthSetupInfo } from "@/components/connectors/oauth-setup-info"
 
 interface ConnectorDetailPageProps {
@@ -34,6 +66,7 @@ interface ConnectorDetailPageProps {
     tenantId?: string
     connected?: string
     error?: string
+    tab?: string
   }
 }
 
@@ -44,6 +77,14 @@ export default async function ConnectorDetailPage({
   const connectorId = params.id
   const tenantId = searchParams.tenantId || "550e8400-e29b-41d4-a716-446655440001"
   
+  // Handle redirects from old tab URLs
+  const tab = searchParams.tab
+  if (tab === 'apps' || tab === 'mappings') {
+    // Redirect to the new unified tab
+    const redirectUrl = `/admin/connectors/${connectorId}?tenantId=${tenantId}`
+    redirect(redirectUrl)
+  }
+  
   // Get connector data from new system
   const connector = await getConnector(connectorId)
   
@@ -51,8 +92,8 @@ export default async function ConnectorDetailPage({
     notFound()
   }
   
-  // Get connection status
-  const connectionStatus = await getConnectionStatus(connectorId)
+  // Get connection status using oauth_credentials
+  const connectionStatus = await getConnectionStatusFromCredentials(connectorId)
   
   // Get real data from database
   let logs: any[] = []
@@ -62,33 +103,64 @@ export default async function ConnectorDetailPage({
   
   try {
     if (connectionStatus?.status === 'connected') {
-      // Get real app count from database
-      const { getKintoneAppsWithFieldCounts } = await import('@/lib/db/kintone-data')
-      const apps = await getKintoneAppsWithFieldCounts(connectorId)
-      stats.connectedApps = apps.length
-      stats.fieldMappings = apps.reduce((total, app) => total + app.field_count, 0)
+      // Create admin client inline
+      const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+      const supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+      
+      // Get app mappings count
+      const { data: appMappings } = await supabase
+        .from('app_mappings')
+        .select('id')
+        .eq('connector_id', connectorId)
+        .eq('status', 'active')
+      
+      stats.connectedApps = appMappings?.length || 0
+      stats.activeMappings = appMappings?.length || 0
+      
+      // Get field mappings count
+      if (appMappings && appMappings.length > 0) {
+        const { data: fieldMappings } = await supabase
+          .from('field_mappings')
+          .select('id')
+          .in('mapping_app_id', appMappings.map(m => m.id))
+        
+        stats.fieldMappings = fieldMappings?.length || 0
+      }
       
       // Load Kintone config for display
       try {
-        // Create admin client inline
-        const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
-        const supabase = createSupabaseClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY!,
-          { auth: { autoRefreshToken: false, persistSession: false } }
-        )
         
-        // Load config and token from credentials
-        const { data: rows } = await supabase
+        // Load config from credentials table
+        const { data: configCreds } = await supabase
           .from("credentials")
-          .select("type,payload")
+          .select("*")
           .eq("connector_id", connectorId)
+          .eq("type", "kintone_config")
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
 
-        const configRow = rows?.find(r => r.type === "kintone_config")
-        const tokenRow = rows?.find(r => r.type === "kintone_token")
+        // Use config from credentials or fallback to provider_config
+        if (configCreds?.payload) {
+          kintoneConfig = JSON.parse(configCreds.payload)
+        } else if (configCreds?.payload_encrypted) {
+          // Try to decrypt if encrypted
+          try {
+            const { decryptJson } = require('@/lib/security/crypto')
+            kintoneConfig = decryptJson(configCreds.payload_encrypted)
+          } catch (decryptError) {
+            console.error('Failed to decrypt config:', decryptError)
+            kintoneConfig = connector.provider_config
+          }
+        } else {
+          kintoneConfig = connector.provider_config
+        }
         
-        if (configRow?.payload) {
-          kintoneConfig = JSON.parse(configRow.payload)
+        if (kintoneConfig && kintoneConfig.domain) {
           // Create a mock request to compute redirect URI
           const mockRequest = new Request('https://localhost:3000', {
             headers: {
@@ -191,8 +263,8 @@ export default async function ConnectorDetailPage({
         </Alert>
       )}
 
-      {/* Connection Status Gate */}
-      {connectionStatus?.status === 'disconnected' ? (
+      {/* Connection Status Gate - Check both connection status and connector status */}
+      {connectionStatus?.status !== 'connected' && connector.status !== 'connected' && connector.status !== undefined ? (
         <div className="space-y-6">
           <EmptyState
             icon={getProviderIcon(connector.provider)}
@@ -235,21 +307,16 @@ export default async function ConnectorDetailPage({
         </div>
       ) : (
         /* Connected State - Show Full Details with Tabs */
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue={tab === 'app-mapping' ? 'app-mapping' : 'overview'} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <Shield className="h-4 w-4" />
               <span>概要</span>
             </TabsTrigger>
-            <TabsTrigger value="apps" className="flex items-center space-x-2">
+            <TabsTrigger value="app-mapping" className="flex items-center space-x-2">
               <Database className="h-4 w-4" />
-              <span>アプリ</span>
-              <Badge variant="outline">{stats.connectedApps}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="mappings" className="flex items-center space-x-2">
-              <GitBranch className="h-4 w-4" />
-              <span>マッピング</span>
-              <Badge variant="outline">{stats.activeMappings}</Badge>
+              <span>アプリ＆マッピング</span>
+              <Badge variant="outline">{stats.connectedApps + stats.fieldMappings}</Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -367,29 +434,6 @@ export default async function ConnectorDetailPage({
               </CardContent>
             </Card>
 
-            {/* Sync Actions */}
-            {connectionStatus?.status === 'connected' && connector.provider === 'kintone' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Zap className="h-5 w-5" />
-                    <span>データ同期</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <SyncAppsButtonWrapper 
-                      connectorId={connectorId}
-                      variant="outline"
-                      size="sm"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Kintone からアプリとフィールドを同期します
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Recent Logs */}
             <Card>
@@ -436,12 +480,14 @@ export default async function ConnectorDetailPage({
             </div>
           </TabsContent>
 
-          <TabsContent value="apps">
-            <ConnectorAppsTab connector={connector} tenantId={tenantId} />
-          </TabsContent>
-
-          <TabsContent value="mappings">
-            <ConnectorMappingsTab connector={connector} tenantId={tenantId} />
+          <TabsContent value="app-mapping">
+            <ConnectorAppMappingTab 
+              connector={connector} 
+              tenantId={tenantId} 
+              connectionStatus={{ 
+                status: connectionStatus?.status === 'connected' || connector.status === 'connected' ? 'connected' : 'disconnected' 
+              }} 
+            />
           </TabsContent>
         </Tabs>
       )}

@@ -1,51 +1,64 @@
-export interface AppMapping {
-  id: string
-  kintoneAppId: string
-  serviceFunctionName: string
-  serviceFunctionCode: string
-  status: "active" | "inactive" | "error"
-  createdAt: string
-}
+import type { MappingApp } from '@/lib/types/mappings'
 
-export const appMappings: AppMapping[] = [
+export const appMappings: MappingApp[] = [
   {
     id: "mapping-1",
-    kintoneAppId: "app-1",
-    serviceFunctionName: "Customer Management",
-    serviceFunctionCode: "CUSTOMER_MGMT",
-    status: "active",
-    createdAt: "2024-02-15T10:00:00Z",
+    connector_id: "connector-1",
+    kintone_app_id: "1",
+    kintone_app_code: "CUSTOMER_MGMT",
+    kintone_app_name: "Customer Management",
+    internal_app_type: "customer",
+    internal_app_name: "Customer Management",
+    is_active: true,
+    created_at: "2024-02-15T10:00:00Z",
+    updated_at: "2024-02-15T10:00:00Z",
   },
   {
     id: "mapping-2",
-    kintoneAppId: "app-2",
-    serviceFunctionName: "Project Tracking",
-    serviceFunctionCode: "PROJECT_TRACK",
-    status: "active",
-    createdAt: "2024-02-20T14:30:00Z",
+    connector_id: "connector-1",
+    kintone_app_id: "2",
+    kintone_app_code: "PROJECT_TRACK",
+    kintone_app_name: "Project Tracking",
+    internal_app_type: "project",
+    internal_app_name: "Project Tracking",
+    is_active: true,
+    created_at: "2024-02-20T14:30:00Z",
+    updated_at: "2024-02-20T14:30:00Z",
   },
   {
     id: "mapping-3",
-    kintoneAppId: "app-3",
-    serviceFunctionName: "Task Management",
-    serviceFunctionCode: "TASK_MGMT",
-    status: "inactive",
-    createdAt: "2024-03-01T09:15:00Z",
+    connector_id: "connector-1",
+    kintone_app_id: "3",
+    kintone_app_code: "TASK_MGMT",
+    kintone_app_name: "Task Management",
+    internal_app_type: "task",
+    internal_app_name: "Task Management",
+    is_active: false,
+    created_at: "2024-03-01T09:15:00Z",
+    updated_at: "2024-03-01T09:15:00Z",
   },
   {
     id: "mapping-4",
-    kintoneAppId: "app-4",
-    serviceFunctionName: "People Management",
-    serviceFunctionCode: "PEOPLE_MGMT",
-    status: "active",
-    createdAt: "2024-02-25T11:00:00Z",
+    connector_id: "connector-1",
+    kintone_app_id: "4",
+    kintone_app_code: "PEOPLE_MGMT",
+    kintone_app_name: "People Management",
+    internal_app_type: "people",
+    internal_app_name: "People Management",
+    is_active: true,
+    created_at: "2024-02-25T11:00:00Z",
+    updated_at: "2024-02-25T11:00:00Z",
   },
   {
     id: "mapping-5",
-    kintoneAppId: "app-5",
-    serviceFunctionName: "Visa Management",
-    serviceFunctionCode: "VISA_MGMT",
-    status: "active",
-    createdAt: "2024-02-28T14:15:00Z",
+    connector_id: "connector-1",
+    kintone_app_id: "5",
+    kintone_app_code: "VISA_MGMT",
+    kintone_app_name: "Visa Management",
+    internal_app_type: "visa",
+    internal_app_name: "Visa Management",
+    is_active: true,
+    created_at: "2024-02-28T14:15:00Z",
+    updated_at: "2024-02-28T14:15:00Z",
   },
 ]

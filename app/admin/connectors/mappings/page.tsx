@@ -160,11 +160,9 @@ export default function MappingsPage() {
                           <TableCell>{getStatusBadge(mapping.status)}</TableCell>
                           <TableCell>{new Date(mapping.createdAt).toLocaleDateString("ja-JP")}</TableCell>
                           <TableCell className="text-right">
-                            <Link href={`/admin/connectors/kintone/apps/${app?.appCode}`}>
-                              <Button variant="ghost" size="sm">
-                                詳細
-                              </Button>
-                            </Link>
+                            <Button variant="ghost" size="sm" disabled title="アプリ管理は各コネクターの詳細ページで行います">
+                              詳細
+                            </Button>
                           </TableCell>
                         </TableRow>
                       )
