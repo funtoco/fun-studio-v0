@@ -5,8 +5,57 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { KintoneApiClient, type KintoneRecord } from '@/lib/kintone/api-client'
-import { getConnectorSecrets, addLog } from '@/lib/db/connectors'
+import { getConnector, addLog } from '@/lib/db/connectors'
+import { getCredential } from '@/lib/db/connectors'
 import { decryptJson } from '@/lib/security/crypto'
+// import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
+import { SyncLogger, createSyncLogger } from './sync-logger'
+// import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
+
+/**
+ * Refresh Kintone access token using refresh token
+ * Based on https://cybozu.dev/ja/common/docs/oauth-client/add-client/
+ */
+async function refreshKintoneToken(
+  subdomain: string, 
+  refreshToken: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{
+  access_token: string
+  refresh_token?: string
+  expires_in?: number
+  token_type?: string
+}> {
+  // Create Basic Auth header with client credentials
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+  
+  const response = await fetch(`https://${subdomain}.cybozu.com/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${credentials}`,
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Failed to refresh token: ${response.status} ${errorText}`)
+  }
+
+  const data = await response.json()
+  
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_in: data.expires_in,
+    token_type: data.token_type,
+  }
+}
 
 // Server-side Supabase client
 function getServerClient() {
@@ -23,33 +72,35 @@ function getServerClient() {
 // Mapping configuration for Kintone fields to our database
 const FIELD_MAPPINGS = {
   people: {
-    kintoneApp: 'PEOPLE', // Kintone app code
+    kintoneAppId: '13', // Kintone app ID
+    coid: '2787', // COID for filtering
     fields: {
-      'name': '氏名',
-      'kana': 'フリガナ',
-      'nationality': '国籍',
-      'dob': '生年月日',
-      'phone': '電話番号',
-      'email': 'メールアドレス',
-      'address': '住所',
-      'employee_number': '従業員番号',
-      'working_status': '就労ステータス',
-      'specific_skill_field': '特定技能分野',
-      'residence_card_no': '在留カード番号',
-      'residence_card_expiry_date': '在留カード有効期限',
-      'residence_card_issued_date': '在留カード交付日'
+      'name': 'name',
+      'kana': '文字列__1行_',
+      'nationality': 'country',
+      'dob': 'dateOfBirth',
+      'phone': 'phoneNumber', // 仮のマッピング
+      // 'email': 'メールアドレス',
+      'address': 'address',
+      // 'employee_number': 'HRID',
+      'working_status': 'salesStatus',
+      'specific_skill_field': 'field',
+      'residence_card_no': 'latestResidenceCardNo',
+      'residence_card_expiry_date': 'latestResidenceCardExpirationDate',
+      'residence_card_issued_date': 'latestResidenceCardPermitDate'
     }
   },
   visas: {
-    kintoneApp: 'VISAS', // Kintone app code
+    kintoneAppId: '50', // Kintone app ID
+    coid: '2787', // COID for filtering
     fields: {
-      'person_id': '人材ID',
-      'type': 'ビザ種類',
+      'person_id': 'WOID',
+      'type': 'requestType',
       'status': 'ステータス',
-      'expiry_date': '有効期限',
-      'submitted_at': '申請日',
-      'result_at': '結果日',
-      'manager': '担当者'
+      'expiry_date': 'latestResidenceCardExpirationDate',
+      'submitted_at': '入社日___支援開始日',
+      'result_at': '更新ビザ許可になった日',
+      'manager': 'operationStaffCompany'
     }
   }
 }
@@ -62,17 +113,32 @@ export interface SyncResult {
   }
   errors: string[]
   duration: number
+  sessionId?: string
 }
 
 export class KintoneDataSync {
   private connectorId: string
   private kintoneClient: KintoneApiClient
   private supabase: ReturnType<typeof getServerClient>
+  private syncLogger: SyncLogger
+  private tenantId: string
+  private syncType: 'manual' | 'scheduled'
+  private runBy?: string
 
-  constructor(connectorId: string, kintoneClient: KintoneApiClient) {
+  constructor(
+    connectorId: string, 
+    kintoneClient: KintoneApiClient,
+    tenantId: string,
+    syncType: 'manual' | 'scheduled' = 'manual',
+    runBy?: string
+  ) {
     this.connectorId = connectorId
     this.kintoneClient = kintoneClient
     this.supabase = getServerClient()
+    this.syncLogger = createSyncLogger()
+    this.tenantId = tenantId
+    this.syncType = syncType
+    this.runBy = runBy
   }
 
   /**
@@ -83,67 +149,103 @@ export class KintoneDataSync {
     let syncedPeople = 0
     let syncedVisas = 0
     const errors: string[] = []
+    let sessionId: string | undefined
 
     try {
-      await addLog(this.connectorId, 'info', 'sync_started', {
-        timestamp: new Date().toISOString()
-      })
+      // Start sync session
+      sessionId = await this.syncLogger.startSession(
+        this.tenantId,
+        this.connectorId,
+        this.syncType,
+        this.runBy
+      )
+
+      // Temporarily disable logging for testing
+      // await addLog(this.connectorId, 'info', 'sync_started', {
+      //   timestamp: new Date().toISOString(),
+      //   sessionId
+      // })
 
       // Sync people data
       try {
         syncedPeople = await this.syncPeople()
-        await addLog(this.connectorId, 'info', 'people_synced', {
-          count: syncedPeople
-        })
+        // await addLog(this.connectorId, 'info', 'people_synced', {
+        //   count: syncedPeople,
+        //   sessionId
+        // })
       } catch (err) {
         const error = `People sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
         errors.push(error)
-        await addLog(this.connectorId, 'error', 'people_sync_failed', { error })
+        // await addLog(this.connectorId, 'error', 'people_sync_failed', { error, sessionId })
       }
 
-      // Sync visa data
-      try {
-        syncedVisas = await this.syncVisas()
-        await addLog(this.connectorId, 'info', 'visas_synced', {
-          count: syncedVisas
-        })
+        // Sync visa data
+        try {
+          syncedVisas = await this.syncVisas()
+        // await addLog(this.connectorId, 'info', 'visas_synced', {
+        //   count: syncedVisas,
+        //   sessionId
+        // })
       } catch (err) {
         const error = `Visa sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
         errors.push(error)
-        await addLog(this.connectorId, 'error', 'visa_sync_failed', { error })
+        // await addLog(this.connectorId, 'error', 'visa_sync_failed', { error, sessionId })
       }
 
       const duration = Date.now() - startTime
       const success = errors.length === 0
+      const totalCount = syncedPeople + syncedVisas
 
-      await addLog(this.connectorId, success ? 'info' : 'warn', 'sync_completed', {
-        success,
-        synced: { people: syncedPeople, visas: syncedVisas },
-        errors: errors.length,
-        duration
-      })
+      // Complete sync session
+      await this.syncLogger.completeSession(
+        success ? 'success' : 'failed',
+        totalCount,
+        syncedPeople + syncedVisas,
+        0, // failedCount - individual failures are logged separately
+        success ? undefined : errors.join('; ')
+      )
+
+      // await addLog(this.connectorId, success ? 'info' : 'warn', 'sync_completed', {
+      //   success,
+      //   synced: { people: syncedPeople, visas: syncedVisas },
+      //   errors: errors.length,
+      //   duration,
+      //   sessionId
+      // })
 
       return {
         success,
         synced: { people: syncedPeople, visas: syncedVisas },
         errors,
-        duration
+        duration,
+        sessionId
       }
 
     } catch (err) {
       const duration = Date.now() - startTime
       const error = err instanceof Error ? err.message : 'Unknown sync error'
       
-      await addLog(this.connectorId, 'error', 'sync_failed', {
-        error,
-        duration
-      })
+      // Complete session with error if session was started
+      if (sessionId) {
+        try {
+          await this.syncLogger.completeSession('failed', 0, 0, 0, error)
+        } catch (logError) {
+          console.error('Failed to complete sync session:', logError)
+        }
+      }
+      
+      // await addLog(this.connectorId, 'error', 'sync_failed', {
+      //   error,
+      //   duration,
+      //   sessionId
+      // })
 
       return {
         success: false,
         synced: { people: syncedPeople, visas: syncedVisas },
         errors: [error],
-        duration
+        duration,
+        sessionId
       }
     }
   }
@@ -152,18 +254,28 @@ export class KintoneDataSync {
    * Sync people data from Kintone
    */
   private async syncPeople(): Promise<number> {
-    const mapping = FIELD_MAPPINGS.people
-    
-    // Get records from Kintone
-    const records = await this.kintoneClient.getRecords(mapping.kintoneApp)
+    try {
+      // Use hardcoded configuration
+      const mapping = FIELD_MAPPINGS.people
+      
+      // Build query
+      let query = ''
+      if (mapping.coid) {
+        query = `COID = "${mapping.coid}"`
+      }
+      
+      // Get records from Kintone
+      const records = await this.kintoneClient.getRecords(mapping.kintoneAppId, query, [])
     
     let syncedCount = 0
     
     for (const record of records) {
+      const itemId = `k_${record.$id.value}`
+      
       try {
-        // Transform Kintone record to our format
+        // Transform Kintone record to our format using hardcoded field mappings
         const person = {
-          id: `k_${record.$id.value}`, // Prefix with 'k_' for Kintone origin
+          id: itemId, // Prefix with 'k_' for Kintone origin
           name: record[mapping.fields.name]?.value || '',
           kana: record[mapping.fields.kana]?.value || null,
           nationality: record[mapping.fields.nationality]?.value || null,
@@ -190,39 +302,119 @@ export class KintoneDataSync {
           throw error
         }
 
+        // Log successful item sync (for manual syncs only)
+        if (this.syncType === 'manual') {
+          await this.syncLogger.logItem('people', itemId, 'success')
+        }
+
         syncedCount++
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         console.error(`Failed to sync person ${record.$id.value}:`, err)
+        
+        // Log failed item sync (for manual syncs only)
+        if (this.syncType === 'manual') {
+          await this.syncLogger.logItem('people', itemId, 'failed', errorMessage)
+        }
+        
         // Continue with other records
       }
     }
 
     return syncedCount
+    } catch (error) {
+      throw error
+    }
   }
 
   /**
    * Sync visa data from Kintone
    */
   private async syncVisas(): Promise<number> {
-    const mapping = FIELD_MAPPINGS.visas
-    
-    // Get records from Kintone
-    const records = await this.kintoneClient.getRecords(mapping.kintoneApp)
+    try {
+      // Use hardcoded configuration
+      const mapping = FIELD_MAPPINGS.visas
+      
+      // Build query
+      let query = ''
+      if (mapping.coid) {
+        query = `COID = "${mapping.coid}"`
+      }
+      
+      // Get records from Kintone
+      const records = await this.kintoneClient.getRecords(mapping.kintoneAppId, query, [])
     
     let syncedCount = 0
     
     for (const record of records) {
+      const itemId = `k_${record.$id.value}`
+      
       try {
-        // Transform Kintone record to our format
+        // Transform Kintone record to our format using hardcoded field mappings
+        const personIdValue = record[mapping.fields.person_id]?.value
+        const personId = personIdValue ? `k_${personIdValue}` : null
+        
+        // Map status field to valid database values using the provided mapping
+        const fullStatus = record[mapping.fields.status]?.value || '書類準備中'
+        let mappedStatus = '書類準備中' // default
+        
+        // Status mapping from Kintone to database
+        const statusMapping = {
+          書類準備中: [
+            '営業_企業情報待ち', //過去のステータス
+            '新規_企業情報待ち', 
+            '既存_企業情報待ち', 
+            '支援_更新案内・人材情報更新待ち'
+          ],
+          書類作成中: ['OP_企業書類作成中'],
+          書類確認中: [
+            '営業_企業に確認してください', //過去のステータス
+            '新規_企業に確認してください',
+            '既存_企業に確認してください',
+            'OP_企業に確認してください', //過去のステータス
+            '新規_企業_書類確認待ち',
+            '既存_企業_書類確認待ち',
+            '企業_書類確認待ち（新規）',
+            '企業_書類確認待ち（更新）',
+            'OP_書類修正中',
+          ],
+          申請準備中: [
+            'OP_押印書類送付準備中',
+            'OP_押印書類受取待ち',
+            'OP_申請人サイン書類準備中',
+            '支援_申請人サイン待ち',
+            'OP_申請人サイン書類受取待ち',
+          ],
+          ビザ申請準備中: ['ビザ申請準備中','ビザ申請待ち'],
+          申請中: ['申請中'],
+          '(追加書類)': ['追加修正対応中'],
+          ビザ取得済み: ['許可'],
+        }
+        
+        // Find matching status
+        for (const [dbStatus, kintoneStatuses] of Object.entries(statusMapping)) {
+          if (kintoneStatuses.includes(fullStatus)) {
+            mappedStatus = dbStatus
+            break
+          }
+        }
+        
+        
+        // Handle manager field (USER_SELECT type)
+        const managerValue = record[mapping.fields.manager]?.value
+        const managerName = Array.isArray(managerValue) && managerValue.length > 0 
+          ? managerValue[0].name 
+          : null
+        
         const visa = {
-          id: `k_${record.$id.value}`, // Prefix with 'k_' for Kintone origin
-          person_id: record[mapping.fields.person_id]?.value || null,
+          id: itemId, // Prefix with 'k_' for Kintone origin
+          person_id: personId,
           type: record[mapping.fields.type]?.value || '認定申請',
-          status: record[mapping.fields.status]?.value || '書類準備中',
+          status: mappedStatus,
           expiry_date: record[mapping.fields.expiry_date]?.value || null,
           submitted_at: record[mapping.fields.submitted_at]?.value || null,
           result_at: record[mapping.fields.result_at]?.value || null,
-          manager: record[mapping.fields.manager]?.value || null,
+          manager: managerName,
           updated_at: new Date().toISOString()
         }
 
@@ -235,59 +427,91 @@ export class KintoneDataSync {
           throw error
         }
 
+        // Log successful item sync (for manual syncs only)
+        if (this.syncType === 'manual') {
+          await this.syncLogger.logItem('visa', itemId, 'success')
+        }
+
         syncedCount++
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         console.error(`Failed to sync visa ${record.$id.value}:`, err)
+        
+        // Log failed item sync (for manual syncs only)
+        if (this.syncType === 'manual') {
+          await this.syncLogger.logItem('visa', itemId, 'failed', errorMessage)
+        }
+        
         // Continue with other records
       }
     }
 
     return syncedCount
+    } catch (error) {
+      console.error('Error in syncVisas:', error)
+      throw error
+    }
   }
 }
 
 /**
  * Create sync service for a connector
  */
-export async function createSyncService(connectorId: string): Promise<KintoneDataSync> {
-  // Get connector with decrypted credentials
-  const connectorWithSecrets = await getConnectorSecrets(connectorId)
-  
-  if (!connectorWithSecrets || !connectorWithSecrets.secrets) {
-    throw new Error('Connector credentials not found')
+export async function createSyncService(
+  connectorId: string,
+  tenantId: string,
+  syncType: 'manual' | 'scheduled' = 'manual',
+  runBy?: string
+): Promise<KintoneDataSync> {
+  try {
+    // Get connector
+    const connector = await getConnector(connectorId)
+    
+    if (!connector) {
+      throw new Error('Connector not found')
+    }
+    
+    if (connector.provider !== 'kintone') {
+      throw new Error('Only Kintone connectors support data sync')
+    }
+  } catch (error) {
+    console.error('❌ Error in createSyncService:', error)
+    throw error
   }
   
-  if (connectorWithSecrets.provider !== 'kintone') {
-    throw new Error('Only Kintone connectors support data sync')
-  }
-  
-  const subdomain = connectorWithSecrets.provider_config.subdomain
-  if (!subdomain) {
-    throw new Error('Kintone subdomain not configured')
-  }
-  
-  // Get OAuth credentials
-  const supabase = getServerClient()
-  const { data: credentials } = await supabase
-    .from('oauth_credentials')
-    .select('access_token_enc')
-    .eq('connector_id', connectorId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-  
+  let credentials = await getCredential(connectorId, 'kintone_token')
   if (!credentials) {
-    throw new Error('OAuth credentials not found')
+    throw new Error('OAuth credentials not found in credentials table')
   }
+
+  // Get subdomain from connector config (hardcoded for now)
+  const subdomain = 'funtoco'
   
-  // Decrypt access token
-  let accessToken: string
-  
-  if (credentials.access_token_enc.startsWith('mock_encrypted_')) {
-    accessToken = 'mock_access_token_for_testing'
-  } else {
-    const decryptedToken = decryptJson(credentials.access_token_enc)
-    accessToken = decryptedToken.token
+  // Check if access token is expired and refresh if needed
+  // Clean access token by removing full-width spaces and other invalid characters
+  let accessToken = credentials.access_token.replace(/[\u3000\u00A0]/g, ' ').trim()
+  const refreshToken = credentials.refresh_token?.replace(/[\u3000\u00A0]/g, ' ').trim()
+  if (refreshToken) {
+    try {
+      // Get client credentials from credentials table
+      const clientCredentials = await getCredential(connectorId, 'kintone_config')
+      
+      if (!clientCredentials) {
+        throw new Error('OAuth client credentials not found')
+      }
+
+      const refreshedCredentials = await refreshKintoneToken(
+        subdomain, 
+        refreshToken,
+        clientCredentials.clientId,
+        clientCredentials.clientSecret
+      )
+      
+      accessToken = refreshedCredentials.access_token
+    } catch (error) {
+      console.error('Failed to refresh access token:', error)
+      // Continue with existing token if refresh fails
+    }
   }
   
   // Create Kintone client
@@ -296,5 +520,5 @@ export async function createSyncService(connectorId: string): Promise<KintoneDat
     accessToken
   })
   
-  return new KintoneDataSync(connectorId, kintoneClient)
+  return new KintoneDataSync(connectorId, kintoneClient, tenantId, syncType, runBy)
 }

@@ -128,7 +128,7 @@ export async function getCredential(connectorId: string, type: string): Promise<
   
   const { data, error } = await supabase
     .from('credentials')
-    .select('payload_encrypted')
+    .select('payload, payload_encrypted, format')
     .eq('connector_id', connectorId)
     .eq('type', type)
     .single()
@@ -137,20 +137,36 @@ export async function getCredential(connectorId: string, type: string): Promise<
     throw new Error(`Failed to get credential: ${error.message}`)
   }
   
-  if (!data) return null
+  if (!data) {
+    return null
+  }
   
-  try {
-    // Try to decrypt first
-    return decryptJson(data.payload_encrypted)
-  } catch (error) {
-    // If decryption fails, try to parse as plain text (base64 encoded JSON)
+  // Try payload first (plain text JSON)
+  if (data.payload) {
     try {
-      const plainText = Buffer.from(data.payload_encrypted, 'base64').toString('utf8')
-      return JSON.parse(plainText)
-    } catch (parseError) {
-      throw new Error(`Failed to decrypt or parse credential: ${error.message}`)
+      return JSON.parse(data.payload)
+    } catch (error) {
+      console.error('Failed to parse payload as JSON:', error)
     }
   }
+  
+  // Fallback to payload_encrypted
+  if (data.payload_encrypted) {
+    try {
+      // Try to decrypt first
+      return decryptJson(data.payload_encrypted)
+    } catch (error) {
+      // If decryption fails, try to parse as plain text (base64 encoded JSON)
+      try {
+        const plainText = Buffer.from(data.payload_encrypted, 'base64').toString('utf8')
+        return JSON.parse(plainText)
+      } catch (parseError) {
+        throw new Error(`Failed to decrypt or parse credential: ${error.message}`)
+      }
+    }
+  }
+  
+  return null
 }
 
 export async function updateCredential(connectorId: string, type: string, data: any): Promise<void> {
