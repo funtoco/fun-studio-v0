@@ -53,7 +53,7 @@ export async function GET(
 
     // Verify the mapping belongs to this connector
     const { data: appMapping, error: mappingError } = await supabase
-      .from('app_mappings')
+      .from('connector_app_mappings')
       .select()
       .eq('id', mappingId)
       .eq('connector_id', connectorId)
@@ -68,10 +68,11 @@ export async function GET(
 
     // Get field mappings for this app mapping
     const { data: fieldMappings, error: fieldsError } = await supabase
-      .from('field_mappings')
+      .from('connector_field_mappings')
       .select()
-      .eq('mapping_app_id', mappingId)
-      .order('internal_field_name')
+      .eq('app_mapping_id', mappingId)
+      .order('sort_order', { ascending: true })
+      .order('source_field_name', { ascending: true })
 
     if (fieldsError) {
       console.error('Error fetching field mappings:', fieldsError)
@@ -137,7 +138,7 @@ export async function POST(
 
     // Verify the mapping belongs to this connector
     const { data: appMapping, error: mappingError } = await supabase
-      .from('app_mappings')
+      .from('connector_app_mappings')
       .select()
       .eq('id', mappingId)
       .eq('connector_id', connectorId)
@@ -152,9 +153,9 @@ export async function POST(
 
     // Clear existing field mappings for this app mapping
     const { error: deleteError } = await supabase
-      .from('field_mappings')
+      .from('connector_field_mappings')
       .delete()
-      .eq('mapping_app_id', mappingId)
+      .eq('app_mapping_id', mappingId)
 
     if (deleteError) {
       console.error('Error deleting existing field mappings:', deleteError)
@@ -166,16 +167,21 @@ export async function POST(
 
     // Insert new field mappings
     const fieldsToInsert = fieldMappings
-      .filter(field => field.kintone_field_code && field.internal_field_name) // Only include fields with both values
-      .map(field => ({
-        mapping_app_id: mappingId,
-        kintone_field_code: field.kintone_field_code,
-        kintone_field_label: field.kintone_field_label || '',
-        kintone_field_type: field.kintone_field_type || '',
-        internal_field_name: field.internal_field_name,
-        internal_field_type: field.internal_field_type || 'string',
+      .filter(field => field.source_field_id && field.target_field_id) // Only include fields with both values
+      .map((field, index) => ({
+        connector_id: connectorId,
+        app_mapping_id: mappingId,
+        source_field_id: field.source_field_id,
+        source_field_code: field.source_field_code || '',
+        source_field_name: field.source_field_name || '',
+        source_field_type: field.source_field_type || '',
+        target_field_id: field.target_field_id,
+        target_field_code: field.target_field_code || '',
+        target_field_name: field.target_field_name || '',
+        target_field_type: field.target_field_type || 'string',
         is_required: field.is_required || false,
-        transformation_rule: field.transformation_rule || null
+        is_active: true,
+        sort_order: index
       }))
 
     if (fieldsToInsert.length === 0) {
@@ -188,7 +194,7 @@ export async function POST(
     }
 
     const { data: insertedFields, error: insertError } = await supabase
-      .from('field_mappings')
+      .from('connector_field_mappings')
       .insert(fieldsToInsert)
       .select()
 
@@ -209,7 +215,7 @@ export async function POST(
         event: 'field_mappings_updated',
         detail: {
           mapping_id: mappingId,
-          app_name: appMapping.kintone_app_name,
+          app_name: appMapping.source_app_name,
           fields_count: insertedFields.length
         }
       })

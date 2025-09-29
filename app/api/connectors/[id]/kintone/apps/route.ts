@@ -444,10 +444,10 @@ export async function GET(
 
     // Default: Get stored apps from database (for Apps tab display)
     const { data: storedApps, error: appsError } = await supabase
-      .from('app_mappings')
+      .from('connector_app_mappings')
       .select()
       .eq('connector_id', connectorId)
-      .eq('service_feature', 'default')
+      .eq('target_app_type', 'default')
       .order('created_at', { ascending: false })
 
     if (appsError) {
@@ -550,10 +550,10 @@ export async function POST(
 
       // Check if mapping already exists
       const { data: existingMapping, error: findError } = await supabase
-        .from('app_mappings')
+        .from('connector_app_mappings')
         .select('id')
         .eq('connector_id', connectorId)
-        .eq('service_feature', serviceFeature)
+        .eq('target_app_type', serviceFeature)
         .single()
 
       let mapping
@@ -568,14 +568,11 @@ export async function POST(
       if (existingMapping) {
         // Update existing mapping
         const { data: updatedMapping, error: updateError } = await supabase
-          .from('app_mappings')
+          .from('connector_app_mappings')
           .update({
-            kintone_app_id: String(appId),
-            kintone_app_code: appCode || '',
-            kintone_app_name: appName,
-            description: `Kintone app: ${appName}`,
-            status: 'active',
-            updated_at: new Date().toISOString()
+            source_app_id: String(appId),
+            source_app_name: appName,
+            is_active: true
           })
           .eq('id', existingMapping.id)
           .select()
@@ -592,15 +589,13 @@ export async function POST(
       } else {
         // Insert new mapping
         const { data: newMapping, error: insertError } = await supabase
-          .from('app_mappings')
+          .from('connector_app_mappings')
           .insert({
             connector_id: connectorId,
-            service_feature: serviceFeature,
-            kintone_app_id: String(appId),
-            kintone_app_code: appCode || '',
-            kintone_app_name: appName,
-            description: `Kintone app: ${appName}`,
-            status: 'active'
+            target_app_type: serviceFeature,
+            source_app_id: String(appId),
+            source_app_name: appName,
+            is_active: true
           })
           .select()
           .single()
@@ -692,23 +687,21 @@ export async function POST(
 
     // Clear existing apps for this connector
     await supabase
-      .from('app_mappings')
+      .from('connector_app_mappings')
       .delete()
       .eq('connector_id', connectorId)
 
     // Insert new apps
     const appsToInsert = kintoneApps.map(app => ({
       connector_id: connectorId,
-      kintone_app_id: String(app.appId),
-      kintone_app_code: app.code,
-      kintone_app_name: app.name,
-      description: app.description || '',
-      app_type: 'kintone',
-      status: 'active'
+      source_app_id: String(app.appId),
+      source_app_name: app.name,
+      target_app_type: 'kintone',
+      is_active: true
     }))
 
     const { data: insertedApps, error: insertError } = await supabase
-      .from('app_mappings')
+      .from('connector_app_mappings')
       .insert(appsToInsert)
       .select()
 
@@ -781,12 +774,12 @@ export async function DELETE(
       )
     }
 
-    // Delete mapping from app_mappings table
+    // Delete mapping from connector_app_mappings table
     const { error: deleteError } = await supabase
-      .from('app_mappings')
+      .from('connector_app_mappings')
       .delete()
       .eq('connector_id', connectorId)
-      .eq('service_feature', serviceFeature)
+      .eq('target_app_type', serviceFeature)
 
     if (deleteError) {
       console.error('Error deleting app mapping:', deleteError)
