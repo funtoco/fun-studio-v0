@@ -43,5 +43,27 @@ export function createAdminClient() {
     throw new Error("Admin client requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables")
   }
 
-  return createSupabaseClient(supabaseUrl, serviceRoleKey)
+  // Detect if this is a new API key format (sb_secret_...)
+  const isNewApiKeyFormat = serviceRoleKey.startsWith('sb_secret_')
+  
+  if (isNewApiKeyFormat) {
+    // New API key format - configure for server-side use only
+    // Note: Secret keys cannot be used in browsers per Supabase docs
+    return createSupabaseClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`
+        }
+      }
+    })
+  } else {
+    // JWT format - use standard configuration (recommended for local development)
+    return createSupabaseClient(supabaseUrl, serviceRoleKey)
+  }
 }
