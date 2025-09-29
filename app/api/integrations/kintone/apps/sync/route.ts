@@ -52,14 +52,16 @@ export async function POST(request: NextRequest) {
 
       const upserts = apps.map((a: any) => ({
         connector_id: connectorId,
-        app_id: Number(a.appId),
-        name: a.name,
-        code: a.code ?? null,
-        space_id: a.spaceId ? Number(a.spaceId) : null
+        kintone_app_id: String(a.appId),
+        kintone_app_code: a.code ?? null,
+        kintone_app_name: a.name,
+        description: `Kintone app: ${a.name}`,
+        app_type: 'kintone',
+        status: 'active'
       }))
 
-      const { error } = await supabase.from("kintone_apps").upsert(upserts, {
-        onConflict: "connector_id,app_id"
+      const { error } = await supabase.from("app_mappings").upsert(upserts, {
+        onConflict: "connector_id,kintone_app_id"
       })
       if (error) throw error
       upserted += upserts.length

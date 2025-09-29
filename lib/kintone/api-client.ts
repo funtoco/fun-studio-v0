@@ -29,19 +29,19 @@ export interface KintoneRecord {
 }
 
 export interface KintoneApiConfig {
-  subdomain: string
+  domain: string  // Full domain like https://funtoco.cybozu.com
   accessToken: string
 }
 
 export class KintoneApiClient {
-  private subdomain: string
+  private domain: string
   private accessToken: string
   private baseUrl: string
 
   constructor(config: KintoneApiConfig) {
-    this.subdomain = config.subdomain
+    this.domain = config.domain
     this.accessToken = config.accessToken
-    this.baseUrl = `https://${this.subdomain}.cybozu.com`
+    this.baseUrl = this.domain
   }
 
   /**
@@ -50,16 +50,41 @@ export class KintoneApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`
     
+    // Build headers - don't set Content-Type for GET requests
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.accessToken}`,
+      'Accept': 'application/json'
+    }
+    
+    // Only set Content-Type for requests with body (POST, PUT, etc.)
+    if (options.body && (options.method === 'POST' || options.method === 'PUT' || options.method === 'PATCH')) {
+      headers['Content-Type'] = 'application/json'
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[kintone-api] Request: ${options.method || 'GET'} ${url}`)
+      console.log(`[kintone-api] Headers:`, { ...headers, Authorization: `Bearer ${this.accessToken.substring(0, 20)}...` })
+    }
+    
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        ...headers,
         ...options.headers
       }
     })
 
     if (!response.ok) {
       const errorText = await response.text()
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[kintone-api] Error response: ${response.status} ${errorText}`)
+      }
+      
+      // Preserve specific error codes for 401 handling
+      if (response.status === 401) {
+        throw new Error(`Kintone API error: 401 ${errorText}`)
+      }
+      
       throw new Error(`Kintone API error: ${response.status} ${errorText}`)
     }
 
@@ -69,8 +94,44 @@ export class KintoneApiClient {
   /**
    * Get all apps accessible to the current user
    */
-  async getApps(): Promise<KintoneApp[]> {
-    const response = await this.request<{ apps: any[] }>('/k/v1/apps.json')
+  async getApps(options: {
+    ids?: string[]
+    codes?: string[]
+    name?: string
+    spaceIds?: string[]
+    guestSpaceId?: string
+    limit?: number
+    offset?: number
+  } = {}): Promise<KintoneApp[]> {
+    // Build query parameters - only use allowed keys
+    const queryParams = new URLSearchParams()
+    
+    if (options.ids && options.ids.length > 0) {
+      options.ids.forEach(id => queryParams.append('ids[]', id))
+    }
+    if (options.codes && options.codes.length > 0) {
+      options.codes.forEach(code => queryParams.append('codes[]', code))
+    }
+    if (options.name) {
+      queryParams.append('name', options.name)
+    }
+    if (options.spaceIds && options.spaceIds.length > 0) {
+      options.spaceIds.forEach(spaceId => queryParams.append('spaceIds[]', spaceId))
+    }
+    if (options.guestSpaceId) {
+      queryParams.append('guestSpaceId', options.guestSpaceId)
+    }
+    if (options.limit) {
+      queryParams.append('limit', options.limit.toString())
+    }
+    if (options.offset) {
+      queryParams.append('offset', options.offset.toString())
+    }
+    
+    const queryString = queryParams.toString()
+    const endpoint = `/k/v1/apps.json${queryString ? `?${queryString}` : ''}`
+    
+    const response = await this.request<{ apps: any[] }>(endpoint)
     
     return response.apps.map(app => ({
       appId: app.appId,
@@ -249,9 +310,9 @@ export async function createKintoneClient(connectorId: string): Promise<KintoneA
  * Test Kintone connection with given credentials
  */
 export async function testKintoneConnection(
-  subdomain: string, 
+  domain: string, 
   accessToken: string
 ): Promise<{ success: boolean; userInfo?: any; error?: string }> {
-  const client = new KintoneApiClient({ subdomain, accessToken })
+  const client = new KintoneApiClient({ domain, accessToken })
   return client.testConnection()
 }

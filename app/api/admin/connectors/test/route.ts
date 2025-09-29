@@ -93,31 +93,8 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Connector created:', connector.id)
     
-    // For Mock OAuth, store credentials as plain text (DEV ONLY)
-    const { error: secretsError } = await supabase
-      .from('connector_secrets')
-      .insert({
-        connector_id: connector.id,
-        oauth_client_id_enc: `mock_encrypted_${clientId}`, // Mock encryption
-        oauth_client_secret_enc: `mock_encrypted_${clientSecret}` // Mock encryption
-      })
-    
-    if (secretsError) {
-      console.error('Failed to store mock credentials:', secretsError)
-      
-      // Clean up connector if secrets fail
-      await supabase
-        .from('connectors')
-        .delete()
-        .eq('id', connector.id)
-      
-      return NextResponse.json(
-        { error: 'Failed to store credentials' },
-        { status: 500 }
-      )
-    }
-    
-    console.log('✅ Mock credentials stored')
+    // Note: connector_secrets table is no longer used
+    // OAuth credentials are stored in oauth_credentials table
     
     // Log connector creation
     await supabase

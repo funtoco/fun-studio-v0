@@ -145,6 +145,19 @@ export class KintoneDataSync {
    * Sync all data from Kintone to Supabase
    */
   async syncAll(): Promise<SyncResult> {
+    if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
+      // Check active mapping exists for this connector
+      const { data: activeMappings } = await this.supabase
+        .from('app_mappings')
+        .select('id')
+        .eq('connector_id', this.connectorId)
+        .eq('status', 'active')
+
+      if (!activeMappings || activeMappings.length === 0) {
+        console.log('[GUARD] reject write: no active mapping')
+        return { success: false, synced: { people: 0, visas: 0 }, errors: ['no active mapping'], duration: 0 }
+      }
+    }
     const startTime = Date.now()
     let syncedPeople = 0
     let syncedVisas = 0
@@ -254,6 +267,17 @@ export class KintoneDataSync {
    * Sync people data from Kintone
    */
   private async syncPeople(): Promise<number> {
+    if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
+      const { data: active } = await this.supabase
+        .from('app_mappings')
+        .select('id')
+        .eq('connector_id', this.connectorId)
+        .eq('status', 'active')
+      if (!active || active.length === 0) {
+        console.log('[GUARD] reject write: no active mapping')
+        return 0
+      }
+    }
     try {
       // Use hardcoded configuration
       const mapping = FIELD_MAPPINGS.people
@@ -331,6 +355,17 @@ export class KintoneDataSync {
    * Sync visa data from Kintone
    */
   private async syncVisas(): Promise<number> {
+    if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
+      const { data: active } = await this.supabase
+        .from('app_mappings')
+        .select('id')
+        .eq('connector_id', this.connectorId)
+        .eq('status', 'active')
+      if (!active || active.length === 0) {
+        console.log('[GUARD] reject write: no active mapping')
+        return 0
+      }
+    }
     try {
       // Use hardcoded configuration
       const mapping = FIELD_MAPPINGS.visas

@@ -1310,5 +1310,3 @@ CREATE TRIGGER update_tenants_updated_at BEFORE UPDATE ON public.tenants FOR EAC
 CREATE TRIGGER update_user_tenants_updated_at BEFORE UPDATE ON public.user_tenants FOR EACH ROW EXECUTE FUNCTION update_tenant_updated_at();
 
 CREATE TRIGGER update_visas_updated_at BEFORE UPDATE ON public.visas FOR EACH ROW EXECUTE FUNCTION update_visas_updated_at();
-
-
