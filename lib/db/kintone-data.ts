@@ -43,15 +43,15 @@ export interface KintoneField {
   updated_at: string
 }
 
-// Get Kintone apps for a connector (updated to use app_mappings)
+// Get Kintone apps for a connector (updated to use connector_app_mappings)
 export async function getKintoneApps(connectorId: string): Promise<KintoneApp[]> {
   const supabase = getServerClient()
   
   const { data, error } = await supabase
-    .from('app_mappings')
+    .from('connector_app_mappings')
     .select()
     .eq('connector_id', connectorId)
-    .order('kintone_app_name', { ascending: true })
+    .order('source_app_name', { ascending: true })
   
   if (error) {
     throw new Error(`Failed to get Kintone apps: ${error.message}`)
@@ -60,10 +60,10 @@ export async function getKintoneApps(connectorId: string): Promise<KintoneApp[]>
   return (data || []).map(app => ({
     id: app.id,
     connector_id: app.connector_id,
-    app_id: app.kintone_app_id,
-    code: app.kintone_app_code,
-    name: app.kintone_app_name,
-    description: app.description,
+    app_id: app.source_app_id,
+    code: app.source_app_code,
+    name: app.source_app_name,
+    description: app.target_app_name,
     created_at: app.created_at,
     updated_at: app.updated_at
   }))
@@ -95,18 +95,18 @@ export async function getKintoneFields(kintoneAppId: string): Promise<KintoneFie
   }))
 }
 
-// Get Kintone apps with field counts (updated to use app_mappings)
+// Get Kintone apps with field counts (updated to use connector_app_mappings)
 export async function getKintoneAppsWithFieldCounts(connectorId: string): Promise<(KintoneApp & { field_count: number })[]> {
   const supabase = getServerClient()
   
   const { data, error } = await supabase
-    .from('app_mappings')
+    .from('connector_app_mappings')
     .select(`
       *,
-      field_mappings(count)
+      connector_field_mappings(count)
     `)
     .eq('connector_id', connectorId)
-    .order('kintone_app_name', { ascending: true })
+    .order('source_app_name', { ascending: true })
   
   if (error) {
     throw new Error(`Failed to get Kintone apps with field counts: ${error.message}`)
@@ -115,12 +115,12 @@ export async function getKintoneAppsWithFieldCounts(connectorId: string): Promis
   return (data || []).map(app => ({
     id: app.id,
     connector_id: app.connector_id,
-    app_id: app.kintone_app_id,
-    code: app.kintone_app_code,
-    name: app.kintone_app_name,
-    description: app.description,
+    app_id: app.source_app_id,
+    code: app.source_app_code,
+    name: app.source_app_name,
+    description: app.target_app_name,
     created_at: app.created_at,
     updated_at: app.updated_at,
-    field_count: app.field_mappings?.[0]?.count || 0
+    field_count: app.connector_field_mappings?.[0]?.count || 0
   }))
 }

@@ -16,8 +16,8 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
 
     // Get mapping
     const { data: mapping, error: mappingError } = await supabase
-      .from('app_mappings')
-      .select('id, connector_id, service_feature, kintone_app_id')
+      .from('connector_app_mappings')
+      .select('id, connector_id, target_app_type, source_app_id')
       .eq('id', mappingId)
       .single()
 
@@ -27,18 +27,18 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
 
     // Deactivate existing active mapping that conflicts (same connector + source app)
     await supabase
-      .from('app_mappings')
-      .update({ status: 'disabled' })
+      .from('connector_app_mappings')
+      .update({ is_active: false })
       .eq('connector_id', mapping.connector_id)
-      .eq('kintone_app_id', mapping.kintone_app_id)
-      .eq('status', 'active')
+      .eq('source_app_id', mapping.source_app_id)
+      .eq('is_active', true)
 
     // Activate this mapping
     const { data: updated, error: activateError } = await supabase
-      .from('app_mappings')
-      .update({ status: 'active', updated_at: new Date().toISOString() })
+      .from('connector_app_mappings')
+      .update({ is_active: true })
       .eq('id', mappingId)
-      .select('id, connector_id, service_feature, kintone_app_id, status')
+      .select('id, connector_id, target_app_type, source_app_id, is_active')
       .single()
 
     if (activateError) {

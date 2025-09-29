@@ -6,11 +6,9 @@
 export interface MappingApp {
   id: string
   connector_id: string
-  kintone_app_id: string // Kintone app ID (numeric string)
-  kintone_app_code: string // Kintone app code for API calls
-  kintone_app_name: string // Display name of the Kintone app
-  internal_app_type: string // 'people', 'visa', etc.
-  internal_app_name: string // Display name for internal app
+  source_app_id: string // Kintone app ID (e.g., "13")
+  source_app_name: string // Kintone app name (e.g., "就労_就労管理")
+  target_app_type: string // Target app type (people, visas, meetings, etc.)
   is_active: boolean
   created_at: string
   updated_at: string
@@ -18,14 +16,19 @@ export interface MappingApp {
 
 export interface MappingField {
   id: string
-  mapping_app_id: string
-  kintone_field_code: string // Kintone field code for API calls
-  kintone_field_label: string // Display name of the Kintone field
-  kintone_field_type: string // Kintone field type (SINGLE_LINE_TEXT, etc.)
-  internal_field_name: string // Field name in our system
-  internal_field_type: string // Field type in our system
+  connector_id: string
+  app_mapping_id: string // Reference to connector_app_mappings
+  source_field_id: string // Kintone field code for API calls
+  source_field_code?: string // Kintone field code
+  source_field_name?: string // Display name of the Kintone field
+  source_field_type?: string // Kintone field type (SINGLE_LINE_TEXT, etc.)
+  target_field_id: string // Field name in our system
+  target_field_code?: string // Field code in our system
+  target_field_name?: string // Field display name in our system
+  target_field_type?: string // Field type in our system
   is_required: boolean
-  transformation_rule?: Record<string, any> // Any data transformation rules
+  is_active: boolean
+  sort_order?: number
   created_at: string
   updated_at: string
 }

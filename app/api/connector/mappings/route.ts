@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
     }
     // Manual upsert one draft mapping per (connector, destination)
     const { data: existing, error: findErr } = await supabase
-      .from('app_mappings')
+      .from('connector_app_mappings')
       .select('id')
       .eq('connector_id', connector_id)
-      .eq('service_feature', destination_app_key)
+      .eq('target_app_type', destination_app_key)
       .maybeSingle()
 
     let upserted: any
@@ -62,15 +62,11 @@ export async function POST(request: NextRequest) {
     }
     if (existing?.id) {
       const { data: updated, error: updErr } = await supabase
-        .from('app_mappings')
+        .from('connector_app_mappings')
         .update({
-          app_id: appIdNum,
-          kintone_app_id: String(source_app_id),
-          kintone_app_code: '',
-          kintone_app_name: '',
-          description: `Kintone app ${source_app_id} → ${destination_app_key}`,
-          status: 'draft',
-          updated_at: new Date().toISOString(),
+          source_app_id: String(source_app_id),
+          source_app_name: `Kintone app ${source_app_id}`,
+          is_active: false, // draft status
         })
         .eq('id', existing.id)
         .select()
@@ -82,16 +78,13 @@ export async function POST(request: NextRequest) {
       upserted = updated
     } else {
       const { data: inserted, error: insErr } = await supabase
-        .from('app_mappings')
+        .from('connector_app_mappings')
         .insert({
           connector_id,
-          service_feature: destination_app_key,
-          app_id: appIdNum,
-          kintone_app_id: String(source_app_id),
-          kintone_app_code: '',
-          kintone_app_name: '',
-          description: `Kintone app ${source_app_id} → ${destination_app_key}`,
-          status: 'draft',
+          target_app_type: destination_app_key,
+          source_app_id: String(source_app_id),
+          source_app_name: `Kintone app ${source_app_id}`,
+          is_active: false, // draft status
         })
         .select()
         .single()
@@ -105,19 +98,24 @@ export async function POST(request: NextRequest) {
     // Save draft field mappings if provided
     if (Array.isArray(field_mappings) && field_mappings.length > 0) {
       // replace existing field mappings for this mapping
-      await supabase.from('field_mappings').delete().eq('mapping_app_id', upserted.id)
+      await supabase.from('connector_field_mappings').delete().eq('app_mapping_id', upserted.id)
 
       const toInsert = field_mappings
         .filter((f: any) => f.source_field_code && f.destination_field_key)
-        .map((f: any) => ({
-          mapping_app_id: upserted.id,
-          kintone_field_code: f.source_field_code,
-          internal_field_name: f.destination_field_key,
-          transformation_rule: f.transform ?? null,
+        .map((f: any, index: number) => ({
+          connector_id,
+          app_mapping_id: upserted.id,
+          source_field_id: f.source_field_code,
+          source_field_code: f.source_field_code,
+          target_field_id: f.destination_field_key,
+          target_field_code: f.destination_field_key,
+          is_required: false,
+          is_active: true,
+          sort_order: index,
         }))
 
       if (toInsert.length > 0) {
-        await supabase.from('field_mappings').insert(toInsert)
+        await supabase.from('connector_field_mappings').insert(toInsert)
       }
     }
 
