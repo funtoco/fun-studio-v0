@@ -14,7 +14,28 @@ function getServerClient() {
     throw new Error('Missing Supabase configuration')
   }
   
-  return createClient(supabaseUrl, serviceKey)
+  // Detect if this is a new API key format (sb_secret_...)
+  const isNewApiKeyFormat = serviceKey.startsWith('sb_secret_')
+  
+  if (isNewApiKeyFormat) {
+    // New API key format - configure for new format
+    return createClient(supabaseUrl, serviceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`
+        }
+      }
+    })
+  } else {
+    // Legacy JWT format - use standard configuration
+    return createClient(supabaseUrl, serviceKey)
+  }
 }
 
 // Types
