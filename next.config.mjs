@@ -9,6 +9,10 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  env: {
+    ALLOW_LEGACY_IMPORTS: 'false',
+    IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE: 'true',
+  },
 }
 
 export default nextConfig

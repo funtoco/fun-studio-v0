@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { KintoneWizardModal } from "@/components/connectors/wizard/kintone-wizard-modal"
+import { useKintoneWizardStore, type WizardState } from "@/components/connectors/wizard/kintone-wizard-store"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -115,6 +117,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAppPicker, setShowAppPicker] = useState(false)
+  const openWizard = useKintoneWizardStore((s: WizardState) => s.open)
   
   // App picker modal state
   const [kintoneApps, setKintoneApps] = useState<KintoneApp[]>([])
@@ -508,6 +511,15 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
     }
   }, [connector.id, isConnected])
 
+  // Refresh mapping when wizard activates
+  useEffect(() => {
+    function onActivated() {
+      loadAppMapping()
+    }
+    window.addEventListener('mapping:activated', onActivated as any)
+    return () => window.removeEventListener('mapping:activated', onActivated as any)
+  }, [])
+
   useEffect(() => {
     if (showAppPicker) {
       setCurrentOffset(0)
@@ -518,38 +530,47 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
 
   if (connector.provider !== 'kintone') {
     return (
-      <EmptyState
-        icon={<Database className="h-12 w-12" />}
-        title="Kintone プロバイダーではありません"
-        description={`このコネクターは ${connector.provider} プロバイダーです`}
-      />
+      <>
+        <EmptyState
+          icon={<Database className="h-12 w-12" />}
+          title="Kintone プロバイダーではありません"
+          description={`このコネクターは ${connector.provider} プロバイダーです`}
+        />
+        <KintoneWizardModal />
+      </>
     )
   }
 
   if (!isConnected) {
     return (
-      <EmptyState
-        icon={<Database className="h-12 w-12" />}
-        title="コネクターが未接続です"
-        description="Kintone に接続してからアプリを追加してください"
-        action={
-          <Button disabled title="先に接続してください">
-            <Plus className="h-4 w-4 mr-2" />
-            ＋ Kintone から追加
-          </Button>
-        }
-      />
+      <>
+        <EmptyState
+          icon={<Database className="h-12 w-12" />}
+          title="コネクターが未接続です"
+          description="Kintone に接続してからアプリを追加してください"
+          action={
+            <Button disabled title="先に接続してください">
+              <Plus className="h-4 w-4 mr-2" />
+              ＋ Kintone から追加
+            </Button>
+          }
+        />
+        <KintoneWizardModal />
+      </>
     )
   }
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          <span>マッピングを読み込み中...</span>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span>マッピングを読み込み中...</span>
+          </CardContent>
+        </Card>
+        <KintoneWizardModal />
+      </>
     )
   }
 
@@ -562,7 +583,9 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
             <Database className="h-5 w-5" />
             <span className="text-lg font-semibold">アプリ＆マッピング</span>
           </div>
-          <Button onClick={() => setShowAppPicker(true)}>
+          <Button onClick={() => {
+            openWizard({ connectorId: connector.id, tenantId })
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             ＋ Kintone から追加
           </Button>
@@ -767,7 +790,9 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
             <Database className="h-5 w-5" />
             <span className="text-lg font-semibold">アプリ＆マッピング</span>
           </div>
-          <Button onClick={() => setShowAppPicker(true)}>
+          <Button onClick={() => {
+            openWizard({ connectorId: connector.id, tenantId })
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             ＋ Kintone から追加
           </Button>
@@ -778,7 +803,9 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
           title="アプリマッピングがありません"
           description="Kintone からアプリを選択してマッピングを作成します"
           action={
-            <Button onClick={() => setShowAppPicker(true)}>
+            <Button onClick={() => {
+              openWizard({ connectorId: connector.id, tenantId })
+            }}>
               <Plus className="h-4 w-4 mr-2" />
               ＋ Kintone から追加
             </Button>
@@ -786,7 +813,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
         />
         
         {/* App Picker Modal */}
-        <Dialog open={showAppPicker} onOpenChange={setShowAppPicker}>
+      <Dialog open={showAppPicker} onOpenChange={setShowAppPicker}>
           <DialogContent className="max-w-xl max-h-[70vh]">
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
@@ -882,6 +909,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
             </div>
           </DialogContent>
         </Dialog>
+        <KintoneWizardModal />
       </div>
     )
   }
@@ -1046,7 +1074,8 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
                         </SelectTrigger>
                         <SelectContent>
                           {kintoneFields.map((field) => {
-                            const isCompatible = getFieldTypeCompatibility(serviceField.type, field.type)
+                            const serviceFieldType = (serviceField as any).type || 'string'
+                            const isCompatible = getFieldTypeCompatibility(serviceFieldType, field.type)
                             return (
                               <SelectItem 
                                 key={field.code} 
@@ -1162,6 +1191,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
           </div>
         </DialogContent>
       </Dialog>
+      <KintoneWizardModal />
     </div>
   )
 }
