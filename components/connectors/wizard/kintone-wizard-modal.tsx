@@ -439,7 +439,8 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
           if (syncRes.ok) {
             const syncResult = await syncRes.json()
             console.log(`[FLOW] Sync started after update for connectorId=${connectorId}`, syncResult)
-            window.dispatchEvent(new CustomEvent('mapping:updated'))
+            // 新規登録と同様のイベントを送信
+            window.dispatchEvent(new CustomEvent('mapping:activated'))
             close()
           } else {
             console.error('[FLOW] Sync failed after update:', await syncRes.json())
@@ -486,7 +487,7 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
       onClick={onActivate} 
       disabled={!mappingId || !connectorId || !tenantId}
     >
-      {editMode ? '更新' : '有効化'}
+      有効化
     </Button>
   )
 }

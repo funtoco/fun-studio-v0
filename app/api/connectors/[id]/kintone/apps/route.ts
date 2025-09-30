@@ -258,10 +258,17 @@ export async function GET(
     
     const supabase = getServerClient()
 
-    // Get connector
+    // Get connector with connection status
     const { data: connector, error: connectorError } = await supabase
       .from('connectors')
-      .select('*')
+      .select(`
+        *,
+        connection_status (
+          status,
+          last_error,
+          updated_at
+        )
+      `)
       .eq('id', connectorId)
       .single()
 
@@ -282,8 +289,6 @@ export async function GET(
       )
     }
 
-
-
     if (connector.provider !== 'kintone') {
       console.log(`[apps-api] Provider mismatch: expected 'kintone', got '${connector.provider}'`)
       return NextResponse.json(
@@ -292,11 +297,12 @@ export async function GET(
       )
     }
 
-    // Temporarily allow non-connected status for debugging
-    if (connector.status !== 'connected') {
-      console.log(`[apps-api] Connector status is '${connector.status}', not 'connected' - allowing for debugging`)
+    // Check connection status
+    const connectionStatus = connector.connection_status?.[0]
+    if (!connectionStatus || connectionStatus.status !== 'connected') {
+      console.log(`[apps-api] Connection status is '${connectionStatus?.status || 'not found'}', not 'connected' - allowing for debugging`)
       // return NextResponse.json(
-      //   { error: `Connector is not connected (status: ${connector.status})` },
+      //   { error: `Connector is not connected (status: ${connectionStatus?.status || 'not found'})` },
       //   { status: 400 }
       // )
     }
@@ -517,10 +523,17 @@ export async function POST(
     
     const supabase = getServerClient()
 
-    // Get connector
+    // Get connector with connection status
     const { data: connector, error: connectorError } = await supabase
       .from('connectors')
-      .select('*')
+      .select(`
+        *,
+        connection_status (
+          status,
+          last_error,
+          updated_at
+        )
+      `)
       .eq('id', connectorId)
       .single()
 
@@ -538,11 +551,12 @@ export async function POST(
       )
     }
 
-    // Temporarily allow non-connected status for debugging
-    if (connector.status !== 'connected') {
-      console.log(`[apps-api] Connector status is '${connector.status}', not 'connected' - allowing for debugging`)
+    // Check connection status
+    const connectionStatus = connector.connection_status?.[0]
+    if (!connectionStatus || connectionStatus.status !== 'connected') {
+      console.log(`[apps-api] Connection status is '${connectionStatus?.status || 'not found'}', not 'connected' - allowing for debugging`)
       // return NextResponse.json(
-      //   { error: 'Connector is not connected' },
+      //   { error: `Connector is not connected (status: ${connectionStatus?.status || 'not found'})` },
       //   { status: 400 }
       // )
     }
