@@ -447,7 +447,6 @@ export async function GET(
       .from('connector_app_mappings')
       .select()
       .eq('connector_id', connectorId)
-      .eq('target_app_type', 'default')
       .order('created_at', { ascending: false })
 
     if (appsError) {
@@ -459,6 +458,15 @@ export async function GET(
     }
 
     console.log(`[apps-api] Found ${storedApps?.length || 0} app mappings for connector ${connectorId}`)
+    
+    if (storedApps && storedApps.length > 0) {
+      console.log('[apps-api] Mapping details:', storedApps.map(app => ({
+        id: app.id,
+        source_app_name: app.source_app_name,
+        target_app_type: app.target_app_type,
+        is_active: app.is_active
+      })))
+    }
 
     return NextResponse.json({
       apps: storedApps || [],
@@ -749,7 +757,7 @@ export async function DELETE(
   try {
     const { id: connectorId } = params
     const { searchParams } = new URL(request.url)
-    const serviceFeature = searchParams.get('serviceFeature') || 'default'
+    const targetAppType = searchParams.get('targetAppType') || searchParams.get('serviceFeature') || 'default'
     
     const supabase = getServerClient()
 
@@ -779,7 +787,7 @@ export async function DELETE(
       .from('connector_app_mappings')
       .delete()
       .eq('connector_id', connectorId)
-      .eq('target_app_type', serviceFeature)
+      .eq('target_app_type', targetAppType)
 
     if (deleteError) {
       console.error('Error deleting app mapping:', deleteError)

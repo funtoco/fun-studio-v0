@@ -26,15 +26,20 @@ import { toast } from "sonner"
 interface AppMapping {
   id: string
   connector_id: string
-  service_feature: string
-  kintone_app_id: string
-  kintone_app_code: string
-  kintone_app_name: string
+  source_app_id: string
+  source_app_name: string
+  target_app_type: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  // Legacy fields for backward compatibility
+  service_feature?: string
+  kintone_app_id?: string
+  kintone_app_code?: string
+  kintone_app_name?: string
   description?: string
   app_type?: string
   status?: string
-  created_at: string
-  updated_at: string
 }
 
 interface FieldMapping {
@@ -111,7 +116,8 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   if (process.env.NODE_ENV === 'development') {
     console.debug('[apps-mapping] mount', { connectorId: connector.id, isConnected: connectionStatus?.status === 'connected' })
   }
-  const [appMapping, setAppMapping] = useState<AppMapping | null>(null)
+  const [appMappings, setAppMappings] = useState<AppMapping[]>([])
+  const [selectedMapping, setSelectedMapping] = useState<AppMapping | null>(null)
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([])
   const [kintoneFields, setKintoneFields] = useState<KintoneField[]>([])
   const [loading, setLoading] = useState(true)
@@ -216,15 +222,23 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       
       if (process.env.NODE_ENV === 'development') {
         console.debug('[apps-mapping] loaded mappings:', mappings.length, mappings)
+        console.debug('[apps-mapping] mapping details:', mappings.map(m => ({
+          id: m.id,
+          service_feature: m.service_feature,
+          target_app_type: m.target_app_type,
+          kintone_app_name: m.kintone_app_name
+        })))
       }
       
-      // Get the first mapping (we only support one mapping per connector for now)
-      const mapping = mappings.find((m: AppMapping) => m.service_feature === 'default') || null
-      setAppMapping(mapping)
+      // Set all mappings and select the first one
+      setAppMappings(mappings)
+      const firstMapping = mappings.length > 0 ? mappings[0] : null
+      setSelectedMapping(firstMapping)
       
-      if (mapping) {
-        await loadFieldMappings(mapping.id)
-        await loadKintoneFields(mapping.kintone_app_id)
+      if (firstMapping) {
+        await loadFieldMappings(firstMapping.id)
+        // Use source_app_id for Kintone fields
+        await loadKintoneFields(firstMapping.source_app_id)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load app mapping'
@@ -452,11 +466,9 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
     }
   }
 
-  const handleDeleteMapping = async () => {
-    if (!appMapping) return
-    
+  const handleDeleteMapping = async (mappingId: string) => {
     try {
-      const response = await fetch(`/api/connectors/${connector.id}/kintone/apps?serviceFeature=${appMapping.service_feature}`, {
+      const response = await fetch(`/api/connectors/${connector.id}/kintone/apps/${mappingId}`, {
         method: 'DELETE'
       })
       if (!response.ok) {
@@ -464,10 +476,15 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
         throw new Error(errorData.error || 'Failed to delete mapping')
       }
       toast.success('マッピングを削除しました')
-      setAppMapping(null)
-      setFieldMappings([])
-      setFieldMappingValues({})
-      setKintoneFields([])
+      
+      // Update state
+      setAppMappings(prev => prev.filter(m => m.id !== mappingId))
+      if (selectedMapping?.id === mappingId) {
+        setSelectedMapping(null)
+        setFieldMappings([])
+        setFieldMappingValues({})
+        setKintoneFields([])
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete mapping'
       toast.error("マッピングの削除に失敗しました", {
@@ -490,7 +507,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
 
   const getValidationErrors = () => {
     const errors: string[] = []
-    const currentServiceFields = serviceFields[appMapping?.service_feature as keyof typeof serviceFields]
+    const currentServiceFields = serviceFields[selectedMapping?.target_app_type as keyof typeof serviceFields]
     
     if (currentServiceFields) {
       currentServiceFields.required.forEach(field => {
@@ -511,14 +528,25 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
     }
   }, [connector.id, isConnected])
 
-  // Refresh mapping when wizard activates
+  // Listen for mapping events
   useEffect(() => {
-    function onActivated() {
+    const handleMappingActivated = () => {
       loadAppMapping()
     }
-    window.addEventListener('mapping:activated', onActivated as any)
-    return () => window.removeEventListener('mapping:activated', onActivated as any)
+    
+    const handleMappingUpdated = () => {
+      loadAppMapping()
+    }
+
+    window.addEventListener('mapping:activated', handleMappingActivated)
+    window.addEventListener('mapping:updated', handleMappingUpdated)
+
+    return () => {
+      window.removeEventListener('mapping:activated', handleMappingActivated)
+      window.removeEventListener('mapping:updated', handleMappingUpdated)
+    }
   }, [])
+
 
   useEffect(() => {
     if (showAppPicker) {
@@ -781,7 +809,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   }
 
   // Step 1: No app mapping - show empty state
-  if (!appMapping) {
+  if (appMappings.length === 0) {
     return (
       <div className="space-y-6">
         {/* Header with primary CTA */}
@@ -914,197 +942,106 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
     )
   }
 
-  // Step 2: App mapping exists - show field mapping panel
-  const validationErrors = getValidationErrors()
-  const hasChanges = Object.keys(fieldMappingValues).length > 0 && 
-    Object.values(fieldMappingValues).some(value => value !== '')
-
+  // Step 2: App mappings exist - show table and always show add button
   return (
     <div className="space-y-6">
-      {/* App Summary Card */}
+      {/* Header with Add Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Database className="h-5 w-5" />
+          <span className="text-lg font-semibold">アプリ＆マッピング</span>
+          <Badge variant="secondary">{appMappings.length}</Badge>
+        </div>
+        <Button onClick={() => {
+          openWizard({ connectorId: connector.id, tenantId })
+        }}>
+          <Plus className="h-4 w-4 mr-2" />
+          ＋ Kintone から追加
+        </Button>
+      </div>
+
+      {/* Mappings Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Database className="h-5 w-5" />
-              <span className="text-lg font-semibold">
-                {serviceFields[appMapping.service_feature as keyof typeof serviceFields]?.label || '選択されたアプリ'}
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button 
-                onClick={() => setShowAppPicker(true)}
-                size="sm"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                ＋ Kintone から追加
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowAppPicker(true)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                アプリを変更
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleDeleteMapping}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                削除
-              </Button>
-            </div>
-          </div>
+          <CardTitle>アプリマッピング一覧</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">アプリ名</Label>
-              <p className="font-medium">{appMapping.kintone_app_name}</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">アプリID</Label>
-              <p className="font-mono text-sm">{appMapping.kintone_app_id}</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">アプリコード</Label>
-              <p className="font-mono text-sm">{appMapping.kintone_app_code}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Field Mapping Panel */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <GitBranch className="h-5 w-5" />
-              <span className="text-lg font-semibold">フィールドマッピング</span>
-            </div>
-            {hasChanges && (
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>アプリ名</TableHead>
+                <TableHead>アプリID</TableHead>
+                <TableHead>マッピング先</TableHead>
+                <TableHead>ステータス</TableHead>
+                <TableHead>作成日</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {appMappings.map((mapping) => (
+                <TableRow 
+                  key={mapping.id}
+                  className={selectedMapping?.id === mapping.id ? "bg-muted/50" : ""}
                   onClick={() => {
-                    setFieldMappingValues({})
-                    loadFieldMappings(appMapping.id)
+                    setSelectedMapping(mapping)
+                    loadFieldMappings(mapping.id)
+                    loadKintoneFields(mapping.source_app_id)
                   }}
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  変更をキャンセル
-                </Button>
-                <Button 
-                  size="sm"
-                  onClick={handleSaveFieldMappings}
-                  disabled={savingMappings || validationErrors.length > 0}
-                >
-                  {savingMappings ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Settings className="h-4 w-4 mr-2" />
-                  )}
-                  マッピングを保存
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loadingFields ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span>Kintone フィールドを読み込み中...</span>
-            </div>
-          ) : kintoneFields.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Kintone フィールドが見つかりませんでした
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Validation Errors */}
-              {validationErrors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                    <span className="font-medium text-red-800">必須フィールドがマッピングされていません</span>
-                  </div>
-                  <ul className="text-sm text-red-700 space-y-1">
-                    {validationErrors.map((error, index) => (
-                      <li key={index}>• {error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Field Mapping Table */}
-              <div className="space-y-3">
-                {(() => {
-                  const currentServiceFields = serviceFields[appMapping?.service_feature as keyof typeof serviceFields]
-                  if (!currentServiceFields) return null
-                  
-                  const allFields = [...currentServiceFields.required, ...currentServiceFields.optional]
-                  
-                  return allFields.map((serviceField) => (
-                    <div key={serviceField.name} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-3 border rounded-lg">
-                      <div className="space-y-2">
-                        <Label className="font-medium">
-                          {serviceField.label}
-                          {currentServiceFields.required.find(f => f.name === serviceField.name) && <span className="text-red-500 ml-1">*</span>}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {currentServiceFields.required.find(f => f.name === serviceField.name) ? '必須' : 'オプション'} • {serviceField.name}
-                        </p>
-                      </div>
-                    <div>
-                      <Select
-                        value={fieldMappingValues[serviceField.name] || ''}
-                        onValueChange={(value) => {
-                          setFieldMappingValues(prev => ({
-                            ...prev,
-                            [serviceField.name]: value
-                          }))
+                  <TableCell className="font-medium">
+                    {mapping.source_app_name || mapping.kintone_app_name}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {mapping.source_app_id || mapping.kintone_app_id}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {serviceFields[mapping.target_app_type as keyof typeof serviceFields]?.label || mapping.target_app_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={mapping.is_active ? "default" : "secondary"}>
+                      {mapping.is_active ? "有効" : "無効"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(mapping.created_at).toLocaleDateString('ja-JP')}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openWizard({ 
+                            connectorId: connector.id, 
+                            tenantId,
+                            editMode: true,
+                            existingMapping: mapping
+                          })
                         }}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Kintone フィールドを選択..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {kintoneFields.map((field) => {
-                            const serviceFieldType = (serviceField as any).type || 'string'
-                            const isCompatible = getFieldTypeCompatibility(serviceFieldType, field.type)
-                            return (
-                              <SelectItem 
-                                key={field.code} 
-                                value={field.code}
-                                disabled={!isCompatible}
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <span>{field.label}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {field.type}
-                                  </Badge>
-                                  {!isCompatible && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      非対応
-                                    </Badge>
-                                  )}
-                                </div>
-                              </SelectItem>
-                            )
-                          })}
-                        </SelectContent>
-                      </Select>
+                        <Edit className="h-4 w-4 mr-1" />
+                        フィールド編集
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteMapping(mapping.id)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        削除
+                      </Button>
                     </div>
-                  </div>
-                ))
-                })()}
-              </div>
-            </div>
-          )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
@@ -1114,7 +1051,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Database className="h-5 w-5" />
-              <span>アプリを変更</span>
+              <span>Kintone からアプリを変更</span>
             </DialogTitle>
           </DialogHeader>
           
@@ -1131,7 +1068,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
             </div>
             
             {/* Apps List */}
-            <ScrollArea className="h-96">
+            <ScrollArea className="h-64">
               {modalLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -1146,43 +1083,37 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
                   {kintoneApps.map((app) => (
                     <div
                       key={app.appId}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAddApp(app)
+                      }}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="font-medium truncate">{app.name}</h4>
+                      <div className="space-y-2">
+                        <h4 className="font-medium truncate">{app.name}</h4>
+                        <div className="flex items-center justify-between">
                           <Badge variant="outline" className="text-xs">
                             ID: {app.appId}
                           </Badge>
-                        </div>
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <span>コード: {app.code}</span>
-                          {app.description && (
-                            <>
-                              <span>•</span>
-                              <span className="truncate">{app.description}</span>
-                            </>
-                          )}
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleAddApp(app)
+                            }}
+                            disabled={addingApp === String(app.appId)}
+                          >
+                            {addingApp === String(app.appId) ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-1" />
+                                変更
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          console.log('Button clicked for app:', app.appId, 'addingApp:', addingApp)
-                          handleAddApp(app)
-                        }}
-                        disabled={addingApp === String(app.appId)}
-                      >
-                        {addingApp === String(app.appId) ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Plus className="h-4 w-4 mr-1" />
-                            変更
-                          </>
-                        )}
-                      </Button>
                     </div>
                   ))}
                 </div>
@@ -1191,6 +1122,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
           </div>
         </DialogContent>
       </Dialog>
+
       <KintoneWizardModal />
     </div>
   )
