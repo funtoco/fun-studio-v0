@@ -258,10 +258,17 @@ export async function GET(
     
     const supabase = getServerClient()
 
-    // Get connector
+    // Get connector with connection status
     const { data: connector, error: connectorError } = await supabase
       .from('connectors')
-      .select('*')
+      .select(`
+        *,
+        connection_status (
+          status,
+          last_error,
+          updated_at
+        )
+      `)
       .eq('id', connectorId)
       .single()
 
@@ -282,8 +289,6 @@ export async function GET(
       )
     }
 
-
-
     if (connector.provider !== 'kintone') {
       console.log(`[apps-api] Provider mismatch: expected 'kintone', got '${connector.provider}'`)
       return NextResponse.json(
@@ -292,11 +297,12 @@ export async function GET(
       )
     }
 
-    // Temporarily allow non-connected status for debugging
-    if (connector.status !== 'connected') {
-      console.log(`[apps-api] Connector status is '${connector.status}', not 'connected' - allowing for debugging`)
+    // Check connection status
+    const connectionStatus = connector.connection_status?.[0]
+    if (!connectionStatus || connectionStatus.status !== 'connected') {
+      console.log(`[apps-api] Connection status is '${connectionStatus?.status || 'not found'}', not 'connected' - allowing for debugging`)
       // return NextResponse.json(
-      //   { error: `Connector is not connected (status: ${connector.status})` },
+      //   { error: `Connector is not connected (status: ${connectionStatus?.status || 'not found'})` },
       //   { status: 400 }
       // )
     }
@@ -447,7 +453,6 @@ export async function GET(
       .from('connector_app_mappings')
       .select()
       .eq('connector_id', connectorId)
-      .eq('target_app_type', 'default')
       .order('created_at', { ascending: false })
 
     if (appsError) {
@@ -459,6 +464,15 @@ export async function GET(
     }
 
     console.log(`[apps-api] Found ${storedApps?.length || 0} app mappings for connector ${connectorId}`)
+    
+    if (storedApps && storedApps.length > 0) {
+      console.log('[apps-api] Mapping details:', storedApps.map(app => ({
+        id: app.id,
+        source_app_name: app.source_app_name,
+        target_app_type: app.target_app_type,
+        is_active: app.is_active
+      })))
+    }
 
     return NextResponse.json({
       apps: storedApps || [],
@@ -509,10 +523,17 @@ export async function POST(
     
     const supabase = getServerClient()
 
-    // Get connector
+    // Get connector with connection status
     const { data: connector, error: connectorError } = await supabase
       .from('connectors')
-      .select('*')
+      .select(`
+        *,
+        connection_status (
+          status,
+          last_error,
+          updated_at
+        )
+      `)
       .eq('id', connectorId)
       .single()
 
@@ -530,11 +551,12 @@ export async function POST(
       )
     }
 
-    // Temporarily allow non-connected status for debugging
-    if (connector.status !== 'connected') {
-      console.log(`[apps-api] Connector status is '${connector.status}', not 'connected' - allowing for debugging`)
+    // Check connection status
+    const connectionStatus = connector.connection_status?.[0]
+    if (!connectionStatus || connectionStatus.status !== 'connected') {
+      console.log(`[apps-api] Connection status is '${connectionStatus?.status || 'not found'}', not 'connected' - allowing for debugging`)
       // return NextResponse.json(
-      //   { error: 'Connector is not connected' },
+      //   { error: `Connector is not connected (status: ${connectionStatus?.status || 'not found'})` },
       //   { status: 400 }
       // )
     }
@@ -749,7 +771,7 @@ export async function DELETE(
   try {
     const { id: connectorId } = params
     const { searchParams } = new URL(request.url)
-    const serviceFeature = searchParams.get('serviceFeature') || 'default'
+    const targetAppType = searchParams.get('targetAppType') || searchParams.get('serviceFeature') || 'default'
     
     const supabase = getServerClient()
 
@@ -779,7 +801,7 @@ export async function DELETE(
       .from('connector_app_mappings')
       .delete()
       .eq('connector_id', connectorId)
-      .eq('target_app_type', serviceFeature)
+      .eq('target_app_type', targetAppType)
 
     if (deleteError) {
       console.error('Error deleting app mapping:', deleteError)

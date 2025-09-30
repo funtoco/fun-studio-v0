@@ -152,8 +152,10 @@ export async function getCredential(connectorId: string, type: string): Promise<
     .select('payload, payload_encrypted, format')
     .eq('connector_id', connectorId)
     .eq('type', type)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single()
-  
+
   if (error && error.code !== 'PGRST116') {
     throw new Error(`Failed to get credential: ${error.message}`)
   }

@@ -90,13 +90,13 @@ function SelectingKintoneApp() {
       <div className="max-h-72 overflow-auto space-y-2">
         {cache.data.apps.map((app) => (
           <button
-            key={String(app.appId ?? app.id)}
+            key={String(app.id)}
             type="button"
             className="w-full text-left p-3 border rounded hover:bg-muted"
-            onClick={() => setSelectedKintoneApp({ id: String(app.appId ?? app.id), name: app.name })}
+            onClick={() => setSelectedKintoneApp({ id: String(app.id), name: app.name })}
           >
             <div className="font-medium">{app.name}</div>
-            <div className="text-xs text-muted-foreground">ID: {String(app.appId ?? app.id)}</div>
+            <div className="text-xs text-muted-foreground">ID: {String(app.id)}</div>
           </button>
         ))}
         {cache.data.apps.length === 0 && (
@@ -148,6 +148,8 @@ function MappingFields() {
     setSchemaCache,
     setMappingIdDraft,
     next,
+    editMode,
+    existingMapping,
   } = useKintoneWizardStore()
 
   const fieldsCache = selectedKintoneApp ? getFieldsCacheValid(selectedKintoneApp.id) : null
@@ -176,6 +178,28 @@ function MappingFields() {
   }, [connectorId, selectedKintoneApp, fieldsCache, setFieldsCache])
 
   const kintoneFields = fieldsCache?.data.fields || []
+
+  // Load existing field mappings in edit mode
+  useEffect(() => {
+    if (editMode && existingMapping && existingMapping.id && draftFieldMappings.length === 0) {
+      const loadExistingMappings = async () => {
+        try {
+          const response = await fetch(`/api/connectors/${connectorId}/mappings/${existingMapping.id}/fields`)
+          if (response.ok) {
+            const data = await response.json()
+            const mappings = data.fields.map((field: any) => ({
+              source_field_code: field.source_field_code,
+              destination_field_key: field.target_field_id
+            }))
+            setDraftFieldMappings(mappings)
+          }
+        } catch (error) {
+          console.error('Failed to load existing field mappings:', error)
+        }
+      }
+      loadExistingMappings()
+    }
+  }, [editMode, existingMapping, connectorId, draftFieldMappings.length, setDraftFieldMappings])
 
   const destinationKey = selectedDestinationApp?.key || 'people'
   const schemaCache = destinationKey ? getSchemaCacheValid(destinationKey) : null
@@ -376,18 +400,96 @@ export function KintoneWizardModal() {
 }
 
 function ActivateButton({ mappingId }: { mappingId: string | null }) {
-  const { close } = useKintoneWizardStore()
+  const { close, connectorId, tenantId, editMode, draftFieldMappings } = useKintoneWizardStore()
+  
   async function onActivate() {
-    if (!mappingId) return
-    const res = await fetch(`/api/connector/mappings/${mappingId}/activate`, { method: 'POST' })
-    if (res.ok) {
-      console.log(`[FLOW] Activate mappingId=${mappingId} → done`)
-      // notify page to refresh mapping card
-      window.dispatchEvent(new CustomEvent('mapping:activated'))
-      close()
+    if (!mappingId || !connectorId || !tenantId) return
+    
+    try {
+      if (editMode) {
+        // 編集モードの場合は更新処理
+        const res = await fetch(`/api/connectors/${connectorId}/mappings/${mappingId}/fields`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fields: draftFieldMappings.map(m => ({
+              source_field_code: m.source_field_code,
+              target_field_id: m.destination_field_key
+            }))
+          })
+        })
+        
+        if (res.ok) {
+          console.log(`[FLOW] Field mappings updated for mappingId=${mappingId}`)
+          
+          // 更新後に連携も実行
+          const syncRes = await fetch(`/api/connectors/${connectorId}/sync`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tenantId,
+              force: true
+            })
+          })
+          
+          if (syncRes.ok) {
+            const syncResult = await syncRes.json()
+            console.log(`[FLOW] Sync started after update for connectorId=${connectorId}`, syncResult)
+            // 新規登録と同様のイベントを送信
+            window.dispatchEvent(new CustomEvent('mapping:activated'))
+            close()
+          } else {
+            console.error('[FLOW] Sync failed after update:', await syncRes.json())
+            // フィールド更新は成功したので、更新イベントは送信
+            window.dispatchEvent(new CustomEvent('mapping:updated'))
+            close()
+          }
+        } else {
+          const error = await res.json()
+          console.error('[FLOW] Update failed:', error)
+        }
+      } else {
+        // 新規作成モードの場合は同期処理
+        const res = await fetch(`/api/connectors/${connectorId}/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tenantId,
+            force: true
+          })
+        })
+        
+        if (res.ok) {
+          const result = await res.json()
+          console.log(`[FLOW] Sync started for connectorId=${connectorId}, mappingId=${mappingId}`, result)
+          // notify page to refresh mapping card
+          window.dispatchEvent(new CustomEvent('mapping:activated'))
+          close()
+        } else {
+          const error = await res.json()
+          console.error('[FLOW] Sync failed:', error)
+        }
+      }
+    } catch (error) {
+      console.error('[FLOW] Operation error:', error)
     }
   }
-  return <Button type="button" onClick={onActivate} disabled={!mappingId}>有効化</Button>
+  
+  return (
+    <Button 
+      type="button" 
+      onClick={onActivate} 
+      disabled={!mappingId || !connectorId || !tenantId}
+    >
+      有効化
+    </Button>
+  )
 }
 
 

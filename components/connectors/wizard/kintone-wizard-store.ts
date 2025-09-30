@@ -33,13 +33,15 @@ export type WizardState = {
   selectedDestinationApp: DestinationAppLite | null
   draftFieldMappings: DraftFieldMapping[]
   mappingIdDraft: string | null
+  editMode: boolean
+  existingMapping: any | null
 
   // 10-min caches
   appsCache?: CacheEntry<{ apps: KintoneAppLite[]; total: number; nextOffset?: number }>
   fieldsCacheByAppId: Record<string, CacheEntry<{ fields: Array<{ code: string; label: string; type: string }> }>>
   schemaCacheByAppKey?: Record<string, CacheEntry<{ columns: Array<{ key: string; label: string; type: string; position?: number }> }>>
 
-  open: (ctx?: { connectorId?: string; tenantId?: string }) => void
+  open: (ctx?: { connectorId?: string; tenantId?: string; editMode?: boolean; existingMapping?: any }) => void
   close: () => void
   reset: () => void
 
@@ -69,13 +71,40 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   selectedDestinationApp: null,
   draftFieldMappings: [],
   mappingIdDraft: null,
+  editMode: false,
+  existingMapping: null,
   fieldsCacheByAppId: {},
   schemaCacheByAppKey: {},
 
   open: (ctx) => {
-    set({ isOpen: true, connectorId: ctx?.connectorId, tenantId: ctx?.tenantId })
-    console.log("[FLOW] → selectingKintoneApp")
-    set({ uiFlowState: "selectingKintoneApp" })
+    set({ 
+      isOpen: true, 
+      connectorId: ctx?.connectorId, 
+      tenantId: ctx?.tenantId,
+      editMode: ctx?.editMode || false,
+      existingMapping: ctx?.existingMapping || null
+    })
+    
+    if (ctx?.editMode && ctx?.existingMapping) {
+      // 編集モードの場合、既存のマッピング情報をセット
+      const mapping = ctx.existingMapping
+      set({
+        selectedKintoneApp: {
+          id: mapping.source_app_id || mapping.kintone_app_id,
+          name: mapping.source_app_name || mapping.kintone_app_name
+        },
+        selectedDestinationApp: {
+          key: mapping.target_app_type,
+          name: mapping.target_app_type
+        },
+        mappingIdDraft: mapping.id
+      })
+      console.log("[FLOW] → mappingFields (edit mode)")
+      set({ uiFlowState: "mappingFields" })
+    } else {
+      console.log("[FLOW] → selectingKintoneApp")
+      set({ uiFlowState: "selectingKintoneApp" })
+    }
   },
   close: () => {
     set({ isOpen: false })
@@ -87,6 +116,8 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
       selectedDestinationApp: null,
       draftFieldMappings: [],
       mappingIdDraft: null,
+      editMode: false,
+      existingMapping: null,
     })
   },
 

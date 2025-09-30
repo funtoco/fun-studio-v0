@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // client side debug
+            "type": "chrome",
+            "request": "launch",
+            "name": "Next.js Client",
+            "url": "https://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+        }, 
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to Next.js Server Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "port": 9229
+        }
+    ]
+}
