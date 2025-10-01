@@ -468,7 +468,8 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
 
   const handleDeleteMapping = async (mappingId: string) => {
     try {
-      const response = await fetch(`/api/connectors/${connector.id}/kintone/apps/${mappingId}`, {
+      console.log('Deleting mapping:', { mappingId, connectorId: connector.id })
+      const response = await fetch(`/api/connectors/${connector.id}/kintone/mappings/${mappingId}`, {
         method: 'DELETE'
       })
       if (!response.ok) {

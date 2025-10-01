@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
+import Select from "react-select"
 import { useKintoneWizardStore } from "./kintone-wizard-store"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -135,6 +136,96 @@ function SelectingDestinationApp() {
   )
 }
 
+// Kintoneフィールド用のSelectコンポーネント
+function KintoneFieldSelect({ 
+  value, 
+  onChange, 
+  options 
+}: { 
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ code: string; label: string; type: string }>
+}) {
+  const selectOptions = options.map(field => ({
+    value: field.code,
+    label: `${field.label} (${field.type})`
+  }))
+
+  const selectedOption = selectOptions.find(option => option.value === value)
+
+  return (
+    <Select
+      value={selectedOption}
+      onChange={(option: any) => onChange(option?.value || '')}
+      options={selectOptions}
+      placeholder="Kintone フィールドを選択"
+      isSearchable
+      isClearable
+      className="text-sm"
+      styles={{
+        control: (base: any) => ({
+          ...base,
+          minHeight: '40px',
+          border: '1px solid #d1d5db',
+          borderRadius: '6px',
+          '&:hover': {
+            borderColor: '#9ca3af'
+          }
+        }),
+        placeholder: (base: any) => ({
+          ...base,
+          color: '#6b7280'
+        })
+      }}
+    />
+  )
+}
+
+// Funstudioフィールド用のSelectコンポーネント
+function FunstudioFieldSelect({ 
+  value, 
+  onChange, 
+  options 
+}: { 
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ key: string; label: string; type: string }>
+}) {
+  const selectOptions = options.map(field => ({
+    value: field.key,
+    label: `${field.label}${field.type ? ` (${field.type})` : ''}`
+  }))
+
+  const selectedOption = selectOptions.find(option => option.value === value)
+
+  return (
+    <Select
+      value={selectedOption}
+      onChange={(option: any) => onChange(option?.value || '')}
+      options={selectOptions}
+      placeholder="Funstudio フィールドを選択"
+      isSearchable
+      isClearable
+      className="text-sm"
+      styles={{
+        control: (base: any) => ({
+          ...base,
+          minHeight: '40px',
+          border: '1px solid #d1d5db',
+          borderRadius: '6px',
+          '&:hover': {
+            borderColor: '#9ca3af'
+          }
+        }),
+        placeholder: (base: any) => ({
+          ...base,
+          color: '#6b7280'
+        })
+      }}
+    />
+  )
+}
+
 function MappingFields() {
   const {
     selectedKintoneApp,
@@ -263,41 +354,28 @@ function MappingFields() {
       <div className="space-y-2">
         {draftFieldMappings.map((m, idx) => (
           <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border rounded">
-            <select
-              className="border rounded p-2 text-sm"
+            <KintoneFieldSelect
               value={m.source_field_code}
-              aria-label="Kintone field"
-              onChange={(e) => {
+              onChange={(value) => {
                 const copy = [...draftFieldMappings]
-                copy[idx] = { ...copy[idx], source_field_code: e.target.value }
+                copy[idx] = { ...copy[idx], source_field_code: value }
                 setDraftFieldMappings(copy)
               }}
-            >
-              <option value="">Kintone フィールドを選択</option>
-              {kintoneFields.map(f => (
-                <option key={f.code} value={f.code}>{f.label} ({f.type})</option>
-              ))}
-            </select>
-            <select
-              className="border rounded p-2 text-sm"
+              options={kintoneFields}
+            />
+            <FunstudioFieldSelect
               value={m.destination_field_key}
-              aria-label="Destination field"
-              onChange={(e) => {
+              onChange={(value) => {
                 const copy = [...draftFieldMappings]
-                copy[idx] = { ...copy[idx], destination_field_key: e.target.value }
+                copy[idx] = { ...copy[idx], destination_field_key: value }
                 setDraftFieldMappings(copy)
               }}
-            >
-              <option value="">Funstudio フィールドを選択</option>
-              {destFields.map((df: any, i: number) => {
-                const k = df.key ?? df.column_name ?? String(i)
-                const lbl = df.label ?? df.column_name ?? df.key ?? ''
-                const type = df.type ?? ''
-                return (
-                  <option key={k} value={k}>{lbl}{type ? ` (${type})` : ''}</option>
-                )
-              })}
-            </select>
+              options={destFields.map((df: any, i: number) => ({
+                key: df.key ?? df.column_name ?? String(i),
+                label: df.label ?? df.column_name ?? df.key ?? '',
+                type: df.type ?? ''
+              }))}
+            />
           </div>
         ))}
         <div>
