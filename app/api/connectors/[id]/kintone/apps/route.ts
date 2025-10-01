@@ -440,10 +440,22 @@ export async function GET(
       }
 
 
+      // Transform kintoneApps to match frontend expectations
+      const transformedApps = kintoneApps.map(app => ({
+        id: app.appId,  // Map appId to id for frontend compatibility
+        name: app.name,
+        code: app.code,
+        description: app.description,
+        spaceId: app.spaceId,
+        threadId: app.threadId,
+        createdAt: app.createdAt,
+        modifiedAt: app.modifiedAt
+      }))
+
       return NextResponse.json({
-        apps: kintoneApps,
-        total: kintoneApps.length,
-        hasMore: kintoneApps.length === limit,
+        apps: transformedApps,
+        total: transformedApps.length,
+        hasMore: transformedApps.length === limit,
         nextOffset: offset + limit
       })
     }
