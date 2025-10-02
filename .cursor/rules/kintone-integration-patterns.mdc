@@ -1,0 +1,188 @@
+---
+description: Kintone統合パターンとベストプラクティス
+globs: lib/sync/*.ts,lib/kintone/*.ts,app/api/connectors/**/*.ts
+---
+
+# Kintone統合パターン
+
+## 概要
+Kintone APIとの統合におけるベストプラクティス。認証、データ同期、エラーハンドリングを含みます。
+
+## 認証パターン
+
+### 1. ドメイン設定
+```typescript
+// ✅ 良い例: 完全なドメインURLからサブドメインを抽出
+const domainUrl = configCredential.domain
+const domainMatch = domainUrl.match(/https?:\/\/([^.]+)\.cybozu\.com/)
+if (!domainMatch) {
+  throw new Error(`無効なKintoneドメイン形式: ${domainUrl}`)
+}
+const subdomain = domainMatch[1]
+```
+
+### 2. クライアント作成
+```typescript
+// ✅ 良い例: KintoneApiClientに完全なドメインを使用
+const kintoneClient = new KintoneApiClient({
+  domain: `https://${subdomain}.cybozu.com`,
+  accessToken
+})
+```
+
+### 3. トークンリフレッシュ
+```typescript
+// ✅ 良い例: 適切なエラーハンドリングでトークンリフレッシュを処理
+try {
+  const refreshedCredentials = await refreshKintoneToken(
+    subdomain, 
+    refreshToken,
+    clientCredentials.clientId,
+    clientCredentials.clientSecret
+  )
+  accessToken = refreshedCredentials.access_token
+} catch (error) {
+  console.error('アクセストークンのリフレッシュに失敗:', error)
+  // リフレッシュに失敗した場合は既存のトークンで続行
+}
+```
+
+## クエリ構築パターン
+
+### 1. フィルタークエリ構築
+```typescript
+// ✅ 良い例: データベース条件からフィルタークエリを構築
+private async buildFilterQuery(appType: 'people' | 'visas'): Promise<string> {
+  const { data: filters } = await this.supabase
+    .from('connector_app_filters')
+    .select('field_code, filter_value')
+    .eq('app_mapping_id', mapping.id)
+    .eq('is_active', true)
+
+  if (!filters || filters.length === 0) {
+    return ''
+  }
+
+  const conditions = filters
+    .filter(f => f.field_code && f.filter_value)
+    .map(f => `${f.field_code} = "${f.filter_value}"`)
+    .join(' AND ')
+
+  return conditions
+}
+```
+
+### 2. クエリ検証
+- Kintoneに送信する前に常にクエリ形式を検証する
+- サポートされていないクエリ形式を優雅に処理する
+- デバッグのためにクエリ構築をログに記録する
+
+## データ同期パターン
+
+### 1. レコード処理
+```typescript
+// ✅ 良い例: 適切なエラーハンドリングでレコードを処理
+for (const record of records) {
+  const itemId = `k_${record.$id.value}`
+  
+  try {
+    // レコードを変換してアップサート
+    const transformedRecord = transformRecord(record, fieldMappings)
+    await upsertRecord(transformedRecord)
+    syncedCount++
+  } catch (err) {
+    console.error(`レコード ${record.$id.value} の同期に失敗:`, err)
+    // エラーをログに記録するが他のレコードの処理は続行
+  }
+}
+```
+
+### 2. フィールドマッピング
+```typescript
+// ✅ 良い例: データベース設定からの動的フィールドマッピング
+for (const fieldMapping of appMapping.field_mappings) {
+  const sourceValue = record[fieldMapping.source_field_code]?.value
+  transformedRecord[fieldMapping.target_field_id] = sourceValue || null
+}
+```
+
+## エラーハンドリングパターン
+
+### 1. APIエラーハンドリング
+```typescript
+// ✅ 良い例: Kintone APIエラーを処理
+try {
+  const records = await this.kintoneClient.getRecords(appId, query, [])
+} catch (error) {
+  if (error.code === 'CB_VA01') {
+    console.error('無効なクエリ形式:', error.message)
+    // クエリ形式エラーを処理
+  } else {
+    console.error('Kintone APIエラー:', error)
+    // その他のAPIエラーを処理
+  }
+}
+```
+
+### 2. 接続エラーハンドリング
+```typescript
+// ✅ 良い例: 接続と認証エラーを処理
+try {
+  const response = await fetch(url, options)
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+} catch (error) {
+  if (error.message.includes('Invalid URL')) {
+    console.error('無効なKintone URL設定')
+  } else {
+    console.error('接続エラー:', error)
+  }
+}
+```
+
+## 設定管理
+
+### 1. データベース駆動設定
+- KintoneアプリIDを `connector_app_mappings.source_app_id` に保存
+- フィールドマッピングを `connector_field_mappings` に保存
+- フィルター条件を `connector_app_filters` に保存
+
+### 2. 環境変数
+```typescript
+// ✅ 良い例: 機能フラグに環境変数を使用
+if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || 
+    process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
+  // 進行前にアクティブなマッピングをチェック
+}
+```
+
+## テストパターン
+
+### 1. Kintoneレスポンスのモック
+- テスト用にKintone APIレスポンスをモック
+- 異なるエラーシナリオをテスト
+- クエリ構築を検証
+
+### 2. データベース状態テスト
+- 異なるマッピング設定でテスト
+- フィルター条件が正しく動作することを検証
+- データ不足でのエラーハンドリングをテスト
+
+## よくある問題と解決策
+
+### 1. 未定義ドメイン
+- **問題**: リクエストで `undefined/k/v1/records.json` が発生
+- **解決策**: 設定からドメインが適切に抽出されることを確認
+
+### 2. 無効なクエリ形式
+- **問題**: `unsupported query format` エラー
+- **解決策**: クエリ構築を検証し、複数のフィルター条件を適切に処理
+
+### 3. 認証エラー
+- **問題**: トークンの期限切れまたは無効な認証情報
+- **解決策**: 適切なエラーハンドリングでトークンリフレッシュを実装
+
+### 4. フィールドマッピングエラー
+- **問題**: 不正確なフィールドマッピングによるデータ損失
+- **解決策**: 適切な検証でデータベース駆動のフィールドマッピングを使用

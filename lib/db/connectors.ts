@@ -125,6 +125,21 @@ export async function listConnectors(tenantId: string): Promise<Connector[]> {
   return data || []
 }
 
+export async function listAllConnectors(): Promise<Connector[]> {
+  const supabase = getServerClient()
+  
+  const { data, error } = await supabase
+    .from('connectors')
+    .select()
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    throw new Error(`Failed to list all connectors: ${error.message}`)
+  }
+  
+  return data || []
+}
+
 // Credential operations
 export async function storeCredential(connectorId: string, type: string, data: any): Promise<void> {
   const supabase = getServerClient()

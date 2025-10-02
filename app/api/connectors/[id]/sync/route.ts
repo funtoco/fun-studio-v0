@@ -9,7 +9,6 @@ export const runtime = 'nodejs'
 
 // Validation schema
 const syncRequestSchema = z.object({
-  tenantId: z.string().uuid(),
   force: z.boolean().optional()
 })
 
@@ -22,17 +21,20 @@ export async function POST(
     const body = await request.json()
     
     // Validate input
-    const { tenantId, force } = syncRequestSchema.parse(body)
+    const { force } = syncRequestSchema.parse(body)
     
     // Get and validate connector
     const connector = await getConnector(connectorId)
     
-    if (!connector || connector.tenant_id !== tenantId) {
+    if (!connector) {
       return NextResponse.json(
         { error: 'Connector not found' },
         { status: 404 }
       )
     }
+    
+    // Use tenant_id from connector
+    const tenantId = connector.tenant_id
     
     // Temporarily disable status check for testing
     // if (connector.status !== 'connected') {

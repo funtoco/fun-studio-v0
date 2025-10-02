@@ -1,0 +1,131 @@
+---
+description: ハードコードされた設定をデータベース駆動の設定に置き換えるパターン
+globs: lib/sync/*.ts,lib/db/*.ts
+---
+
+# データベース駆動設定パターン
+
+## 概要
+保守性と柔軟性を向上させるため、ハードコードされた設定を動的なデータベース駆動の設定に置き換えます。
+
+## 主要原則
+
+### 1. 設定の読み込み
+- ハードコードされた定数の代わりに、常にデータベーステーブルから設定を読み込む
+- 設定データを取得する専用関数を使用する
+- 設定が見つからない場合は適切なエラーメッセージで優雅に処理する
+
+### 2. フィールドマッピングパターン
+```typescript
+// ✅ 良い例: データベースからの動的フィールドマッピング
+interface FieldMapping {
+  source_field_code: string
+  target_field_id: string
+  is_required: boolean
+  sort_order: number
+}
+
+async function getFieldMappings(supabase: any, appMappingId: string): Promise<FieldMapping[]> {
+  const { data, error } = await supabase
+    .from('connector_field_mappings')
+    .select('source_field_code, target_field_id, is_required, sort_order')
+    .eq('app_mapping_id', appMappingId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+  
+  if (error) {
+    console.error('フィールドマッピングの取得エラー:', error)
+    return []
+  }
+  return data || []
+}
+```
+
+### 3. アプリ設定パターン
+```typescript
+// ✅ 良い例: 動的アプリ設定
+interface AppMapping {
+  id: string
+  source_app_id: string
+  target_app_type: string
+  field_mappings: FieldMapping[]
+}
+
+async function getAppMapping(supabase: any, connectorId: string, targetAppType: string): Promise<AppMapping | null> {
+  const { data, error } = await supabase
+    .from('connector_app_mappings')
+    .select('id, source_app_id, target_app_type')
+    .eq('connector_id', connectorId)
+    .eq('target_app_type', targetAppType)
+    .eq('is_active', true)
+    .single()
+  
+  if (error || !data) {
+    console.error('アプリマッピングの取得エラー:', error)
+    return null
+  }
+  
+  const fieldMappings = await getFieldMappings(supabase, data.id)
+  return { ...data, field_mappings: fieldMappings }
+}
+```
+
+### 4. 動的レコード変換
+```typescript
+// ✅ 良い例: レコード変換での動的フィールドマッピング
+for (const fieldMapping of appMapping.field_mappings) {
+  const sourceValue = record[fieldMapping.source_field_code]?.value
+  person[fieldMapping.target_field_id] = sourceValue || null
+}
+```
+
+## 避けるべきアンチパターン
+
+### ❌ ハードコードされた設定
+```typescript
+// ❌ 悪い例: ハードコードされたフィールドマッピング
+const FIELD_MAPPINGS = {
+  people: {
+    kintoneAppId: '13',
+    coid: '2787',
+    fields: {
+      'name': 'name',
+      'kana': '文字列__1行_',
+      // ... その他のハードコードされたマッピング
+    }
+  }
+}
+```
+
+### ❌ ハードコードされたフィルター条件
+```typescript
+// ❌ 悪い例: ハードコードされたフィルター条件
+if (mapping.coid) {
+  query = `COID = "${mapping.coid}"`
+}
+```
+
+## データベーススキーマ要件
+
+### 必要なテーブル
+- `connector_app_mappings`: アプリレベルの設定
+- `connector_field_mappings`: フィールドレベルのマッピング
+- `connector_app_filters`: フィルター条件
+
+### 主要フィールド
+- `is_active`: アクティブな設定のブールフラグ
+- `sort_order`: フィールドマッピングの順序
+- `source_field_code`: Kintoneフィールド識別子
+- `target_field_id`: ターゲットデータベースフィールド識別子
+
+## エラーハンドリング
+- 常にデータベースエラーをチェックする
+- 意味のあるエラーメッセージを提供する
+- 設定が見つからない場合は優雅に処理する
+- デバッグのためにエラーをログに記録する
+
+## テストの考慮事項
+- 異なるデータベース設定でテストする
+- フィールドマッピングの正確性を検証する
+- エラーシナリオ（データ不足、無効なマッピング）をテストする
+- ハードコードされた設定からの移行時に後方互換性を確保する

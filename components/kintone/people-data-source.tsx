@@ -4,7 +4,7 @@
 
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Database, RefreshCw, Loader2, AlertCircle, CheckCircle } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 import { getPeople } from "@/lib/supabase/people"
 import { getVisas } from "@/lib/supabase/visas"
@@ -45,6 +46,8 @@ export function PeopleDataSource({ onDataChange, onLoadingChange, onErrorChange 
   const [error, setError] = useState<string | null>(null)
   const [connectorId, setConnectorId] = useState<string>('')
 
+  console.log('PeopleDataSource: Component initialized', { useKintone, loading, error })
+
   // Load Kintone apps when switching to Kintone mode
   useEffect(() => {
     if (useKintone && !connectorId) {
@@ -66,12 +69,42 @@ export function PeopleDataSource({ onDataChange, onLoadingChange, onErrorChange 
     }
   }, [useKintone, selectedApp, connectorId])
 
+  const loadSampleData = useCallback(async () => {
+    try {
+      console.log('PeopleDataSource: loadSampleData started')
+      setLoading(true)
+      onLoadingChange(true)
+      setError(null)
+      onErrorChange(null)
+      
+      console.log('PeopleDataSource: Calling getPeople()...')
+      const [peopleData] = await Promise.all([
+        getPeople()
+      ])
+      
+      console.log('PeopleDataSource: getPeople() result:', { count: peopleData.length, data: peopleData })
+      onDataChange(peopleData, 'sample')
+      console.log('PeopleDataSource: onDataChange called with sample data')
+    } catch (err) {
+      console.error('PeopleDataSource: Error in loadSampleData:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load sample data'
+      setError(errorMessage)
+      onErrorChange(errorMessage)
+    } finally {
+      console.log('PeopleDataSource: loadSampleData finished')
+      setLoading(false)
+      onLoadingChange(false)
+    }
+  }, [onDataChange, onLoadingChange, onErrorChange])
+
   // Load sample data when not using Kintone
   useEffect(() => {
+    console.log('PeopleDataSource: useEffect for sample data', { useKintone })
     if (!useKintone) {
+      console.log('PeopleDataSource: Loading sample data...')
       loadSampleData()
     }
-  }, [useKintone])
+  }, [useKintone, loadSampleData])
 
   const loadConnector = async () => {
     try {
@@ -129,28 +162,13 @@ export function PeopleDataSource({ onDataChange, onLoadingChange, onErrorChange 
     }
   }
 
-  const loadSampleData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const [peopleData] = await Promise.all([
-        getPeople()
-      ])
-      onDataChange(peopleData, 'sample')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load sample data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const transformKintoneRecordsToPeople = (records: KintoneRecord[]): Person[] => {
     return records.map(record => ({
       id: record.id,
       name: record.name || record.名前 || record.氏名 || 'Unknown',
       kana: record.kana || record.カナ || record.フリガナ || '',
       nationality: record.nationality || record.国籍 || '',
-      company: record.company || record.会社 || record.所属会社 || '',
+      tenantName: record.company || record.会社 || record.所属会社 || '',
       email: record.email || record.メール || record.メールアドレス || '',
       phone: record.phone || record.電話 || record.電話番号 || '',
       employeeNumber: record.employeeNumber || record.従業員番号 || record.社員番号 || '',

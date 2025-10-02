@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { X, Cable, Check, Eye, EyeOff, Info } from "lucide-react"
 import Image from "next/image"
+import { TenantSelector } from "./wizard/tenant-selector"
 
 interface AddConnectorDialogProps {
   open: boolean
@@ -36,6 +37,7 @@ const providers = [
 
 export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnectorDialogProps) {
   const [currentStep, setCurrentStep] = useState(1)
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null)
   const [subdomain, setSubdomain] = useState('')
   const [clientId, setClientId] = useState('')
@@ -46,6 +48,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
 
   const handleClose = () => {
     setCurrentStep(1)
+    setSelectedTenantId(null)
     setSelectedProvider(null)
     setSubdomain('')
     setClientId('')
@@ -58,7 +61,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
 
   const handleNext = () => {
     setError(null)
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -79,7 +82,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
       const providerData = providers.find(p => p.id === selectedProvider)
       const config = {
         name: `${providerData?.name} (${selectedProvider === 'kintone' ? subdomain : 'Main'})`,
-        tenantId: "550e8400-e29b-41d4-a716-446655440001", // Funtoco
+        tenantId: selectedTenantId,
         provider: selectedProvider,
         providerConfig: selectedProvider === 'kintone' ? { subdomain } : {},
         clientId,
@@ -122,10 +125,12 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return selectedProvider !== null
+        return selectedTenantId !== null
       case 2:
-        return subdomain.trim() !== '' && clientId.trim() !== '' && clientSecret.trim() !== ''
+        return selectedProvider !== null
       case 3:
+        return subdomain.trim() !== '' && clientId.trim() !== '' && clientSecret.trim() !== ''
+      case 4:
         return true
       default:
         return false
@@ -135,6 +140,14 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
   const renderStep = () => {
     switch (currentStep) {
       case 1:
+        return (
+          <TenantSelector
+            selectedTenantId={selectedTenantId}
+            onTenantSelect={setSelectedTenantId}
+          />
+        )
+
+      case 2:
         return (
           <div className="space-y-4">
             <div className="text-center space-y-2">
@@ -193,7 +206,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
           </div>
         )
 
-      case 2:
+      case 3:
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
@@ -287,7 +300,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
           </div>
         )
 
-      case 3:
+      case 4:
         return (
           <div className="space-y-6">
             <div className="text-center space-y-2">
@@ -348,7 +361,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
         <div className="space-y-6">
           {/* Step Indicator */}
           <div className="flex items-center justify-center space-x-2">
-            {[1, 2, 3].map((step) => (
+            {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-medium ${
@@ -365,7 +378,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
                     <span>{step}</span>
                   )}
                 </div>
-                {step < 3 && (
+                {step < 4 && (
                   <div
                     className={`w-12 border-t-2 ${
                       step < currentStep ? "border-primary" : "border-muted-foreground/30"
@@ -399,7 +412,7 @@ export function AddConnectorDialog({ open, onOpenChange, onSuccess }: AddConnect
             </Button>
 
             <div className="flex items-center space-x-2">
-              {currentStep < 3 ? (
+              {currentStep < 4 ? (
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed() || isLoading}

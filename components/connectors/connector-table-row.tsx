@@ -70,6 +70,11 @@ export function ConnectorTableRow({
         </div>
       </TableCell>
       <TableCell>
+        <span className="text-sm text-muted-foreground">
+          {(connector as any).tenant_name || 'Unknown Tenant'}
+        </span>
+      </TableCell>
+      <TableCell>
         <Badge variant="outline">
           {connector.provider.charAt(0).toUpperCase() + connector.provider.slice(1)}
         </Badge>
@@ -109,7 +114,7 @@ export function ConnectorTableRow({
             <Trash2 className="h-4 w-4" />
           </Button>
           
-          <Link href={`/admin/connectors/${connector.id}?tenantId=${tenantId}`}>
+          <Link href={`/admin/connectors/${connector.id}`}>
             <Button variant="ghost" size="sm" title="詳細">
               <ExternalLink className="h-4 w-4" />
             </Button>

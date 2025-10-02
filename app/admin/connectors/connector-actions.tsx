@@ -8,7 +8,7 @@ import { AddConnectorDialog } from "@/components/connectors/add-connector-dialog
 import { type Connector } from "@/lib/db/connectors"
 
 interface ConnectorActionsProps {
-  tenantId: string
+  tenantId?: string
   connector?: Connector
   connectionStatus?: { status: 'connected' | 'disconnected' | 'error' }
   showLabel?: boolean
@@ -29,8 +29,8 @@ export function ConnectorActions({ tenantId, connector, connectionStatus, showLa
     
     setIsLoading(true)
     try {
-      const returnTo = encodeURIComponent(`/admin/connectors/${connector.id}?tenantId=${tenantId}&connected=true`)
-      const startUrl = `/api/auth/connectors/${connector.provider}/start?tenantId=${tenantId}&connectorId=${connector.id}&returnTo=${returnTo}`
+      const returnTo = encodeURIComponent(`/admin/connectors/${connector.id}${tenantId ? `?tenantId=${tenantId}` : ''}&connected=true`)
+      const startUrl = `/api/auth/connectors/${connector.provider}/start${tenantId ? `?tenantId=${tenantId}` : ''}&connectorId=${connector.id}&returnTo=${returnTo}`
       window.location.href = startUrl
     } catch (err) {
       console.error('Connection failed:', err)

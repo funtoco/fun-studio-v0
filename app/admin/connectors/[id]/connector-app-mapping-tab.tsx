@@ -154,6 +154,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   const [fieldMappingValues, setFieldMappingValues] = useState<Record<string, string>>({})
   const [savingMappings, setSavingMappings] = useState(false)
   const [loadingFields, setLoadingFields] = useState(false)
+  const [syncingMapping, setSyncingMapping] = useState<string | null>(null)
   
   const debouncedSearch = useDebounce(searchTerm, 300)
 
@@ -491,6 +492,42 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       toast.error("マッピングの削除に失敗しました", {
         description: errorMessage
       })
+    }
+  }
+
+  const handleStartSync = async (mappingId: string) => {
+    try {
+      setSyncingMapping(mappingId)
+      
+      const response = await fetch(`/api/connectors/${connector.id}/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tenantId,
+          force: true
+        })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to start sync')
+      }
+      
+      const result = await response.json()
+      toast.success('連携を開始しました', {
+        description: 'データの同期処理が開始されました'
+      })
+      
+      console.log('Sync started:', result)
+    } catch (error) {
+      console.error('Error starting sync:', error)
+      toast.error('連携の開始に失敗しました', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setSyncingMapping(null)
     }
   }
 
@@ -1026,6 +1063,24 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
                         <Edit className="h-4 w-4 mr-1" />
                         フィールド編集
                       </Button>
+                      {mapping.is_active && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStartSync(mapping.id)
+                          }}
+                          disabled={syncingMapping === mapping.id}
+                        >
+                          {syncingMapping === mapping.id ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                          )}
+                          {syncingMapping === mapping.id ? '連携中...' : '連携開始'}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

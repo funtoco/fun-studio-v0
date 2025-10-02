@@ -13,8 +13,9 @@ function Stepper() {
   const steps = [
     { key: "selectingKintoneApp", label: "①Kintoneアプリ" },
     { key: "selectingDestinationApp", label: "②Funstudioアプリ" },
-    { key: "mappingFields", label: "③フィールド対応" },
-    { key: "reviewAndSave", label: "④確認" },
+    { key: "settingFilters", label: "③フィルター設定" },
+    { key: "mappingFields", label: "④フィールド対応" },
+    { key: "reviewAndSave", label: "⑤確認" },
   ]
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -226,10 +227,136 @@ function FunstudioFieldSelect({
   )
 }
 
+function SettingFilters() {
+  const {
+    selectedKintoneApp,
+    draftFilters,
+    setDraftFilters,
+    connectorId,
+    getFieldsCacheValid,
+    setFieldsCache,
+    next,
+  } = useKintoneWizardStore()
+
+  const fieldsCache = selectedKintoneApp ? getFieldsCacheValid(selectedKintoneApp.id) : null
+
+  // Load fields when enter
+  useEffect(() => {
+    let active = true
+    if (!selectedKintoneApp || fieldsCache) return
+    ;(async () => {
+      let id = connectorId
+      if (!id && typeof window !== 'undefined') {
+        const m = window.location.pathname.match(/\/admin\/connectors\/([^/]+)/)
+        if (m && m[1]) id = m[1]
+      }
+      if (!id) return
+      const res = await fetch(`/api/connectors/${id}/kintone/apps/${selectedKintoneApp.id}/fields`)
+      if (!active) return
+      if (res.ok) {
+        const data = await res.json()
+        setFieldsCache(selectedKintoneApp.id, { fields: data.fields || [] })
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [connectorId, selectedKintoneApp, fieldsCache, setFieldsCache])
+
+  const kintoneFields = fieldsCache?.data.fields || []
+
+  const addFilter = () => {
+    setDraftFilters([...draftFilters, { field_code: '', field_name: '', field_type: '', filter_value: '' }])
+  }
+
+  const removeFilter = (index: number) => {
+    const newFilters = draftFilters.filter((_, i) => i !== index)
+    setDraftFilters(newFilters)
+  }
+
+  const updateFilter = (index: number, field: string, value: string) => {
+    const newFilters = [...draftFilters]
+    if (field === 'field_code') {
+      const selectedField = kintoneFields.find(f => f.code === value)
+      newFilters[index] = {
+        ...newFilters[index],
+        field_code: value,
+        field_name: selectedField?.label || '',
+        field_type: selectedField?.type || '',
+        filter_value: ''
+      }
+    } else {
+      newFilters[index] = { ...newFilters[index], [field]: value }
+    }
+    setDraftFilters(newFilters)
+  }
+
+  const canProceed = draftFilters.length === 0 || draftFilters.every(f => f.field_code && f.filter_value)
+
+  return (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground">
+        連携対象を絞り込むフィルター条件を設定してください（任意）
+      </div>
+      <div className="space-y-3">
+        {draftFilters.map((filter, idx) => (
+          <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border rounded">
+            <KintoneFieldSelect
+              value={filter.field_code}
+              onChange={(value) => updateFilter(idx, 'field_code', value)}
+              options={kintoneFields}
+            />
+            <div className="flex items-center text-sm text-muted-foreground">
+              =
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={filter.filter_value}
+                onChange={(e) => updateFilter(idx, 'filter_value', e.target.value)}
+                placeholder="フィルター値を入力"
+                className="flex-1 px-3 py-2 border rounded text-sm"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeFilter(idx)}
+                className="px-2"
+              >
+                ×
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addFilter}
+          >
+            フィルターを追加
+          </Button>
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <Button 
+          type="button" 
+          onClick={next} 
+          disabled={!canProceed}
+        >
+          次へ
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function MappingFields() {
   const {
     selectedKintoneApp,
     selectedDestinationApp,
+    draftFilters,
     draftFieldMappings,
     setDraftFieldMappings,
     connectorId,
@@ -326,25 +453,56 @@ function MappingFields() {
   const destFields = schemaCache?.data.columns || []
 
   const canSave = draftFieldMappings.length >= 1 && draftFieldMappings.every(m => m.source_field_code && m.destination_field_key)
+  const [isSaving, setIsSaving] = useState(false)
 
   async function onSaveDraft() {
-    if (!selectedKintoneApp || !selectedDestinationApp) return
-    const res = await fetch(`/api/connector/mappings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        connector_id: connectorId,
-        source_type: 'kintone',
-        source_app_id: selectedKintoneApp.id,
-        destination_app_key: selectedDestinationApp.key,
-        field_mappings: draftFieldMappings,
-      }),
-    })
-    if (res.ok) {
+    if (!selectedKintoneApp || !selectedDestinationApp || isSaving) return
+    
+    setIsSaving(true)
+    try {
+      // First save the mapping
+      const res = await fetch(`/api/connector/mappings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          connector_id: connectorId,
+          source_type: 'kintone',
+          source_app_id: selectedKintoneApp.id,
+          destination_app_key: selectedDestinationApp.key,
+          field_mappings: draftFieldMappings,
+        }),
+      })
+      
+      if (!res.ok) {
+        console.error('Failed to save mapping:', await res.json())
+        return
+      }
+      
       const data = await res.json()
       setMappingIdDraft(data.mapping_id)
       console.log(`[FLOW] SaveDraft mappingId=${data.mapping_id}`)
+      
+      // Then save filters if any
+      if (draftFilters.length > 0) {
+        const filterRes = await fetch(`/api/connectors/${connectorId}/mappings/${data.mapping_id}/filters`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filters: draftFilters }),
+        })
+        
+        if (!filterRes.ok) {
+          console.error('Failed to save filters:', await filterRes.json())
+          return
+        }
+        
+        console.log(`[FLOW] Filters saved for mappingId=${data.mapping_id}`)
+      }
+      
       next()
+    } catch (error) {
+      console.error('Error in onSaveDraft:', error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -389,17 +547,33 @@ function MappingFields() {
         </div>
       </div>
       <div className="flex justify-end">
-        <Button type="button" onClick={onSaveDraft} disabled={!canSave}>下書きを保存</Button>
+        <Button type="button" onClick={onSaveDraft} disabled={!canSave || isSaving}>
+          {isSaving ? '保存中...' : '下書きを保存'}
+        </Button>
       </div>
     </div>
   )
 }
 
 function ReviewAndSave() {
-  const { selectedKintoneApp, selectedDestinationApp, draftFieldMappings, mappingIdDraft } = useKintoneWizardStore()
+  const { selectedKintoneApp, selectedDestinationApp, draftFilters, draftFieldMappings, mappingIdDraft } = useKintoneWizardStore()
   return (
     <div className="space-y-4 text-sm">
       <div>アプリ: {selectedKintoneApp?.name} → {selectedDestinationApp?.name}</div>
+      
+      {draftFilters.length > 0 && (
+        <div>
+          <div className="font-medium mb-2">フィルター条件:</div>
+          <div className="border rounded p-3 space-y-1">
+            {draftFilters.map((f, i) => (
+              <div key={i} className="text-xs">
+                {f.field_name} ({f.field_code}) = "{f.filter_value}"
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div>ペア数: {draftFieldMappings.length}</div>
       <div className="border rounded p-3">
         {draftFieldMappings.map((m, i) => (
@@ -456,6 +630,7 @@ export function KintoneWizardModal() {
           <div className="p-6 max-h-[70vh] overflow-auto">
             {uiFlowState === "selectingKintoneApp" && <SelectingKintoneApp />}
             {uiFlowState === "selectingDestinationApp" && <SelectingDestinationApp />}
+            {uiFlowState === "settingFilters" && <SettingFilters />}
             {uiFlowState === "mappingFields" && <MappingFields />}
             {uiFlowState === "reviewAndSave" && <ReviewAndSave />}
             {uiFlowState === "done" && <DoneStep />}
@@ -479,13 +654,15 @@ export function KintoneWizardModal() {
 
 function ActivateButton({ mappingId }: { mappingId: string | null }) {
   const { close, connectorId, tenantId, editMode, draftFieldMappings } = useKintoneWizardStore()
+  const [isActivating, setIsActivating] = useState(false)
   
   async function onActivate() {
-    if (!mappingId || !connectorId || !tenantId) return
+    if (!mappingId || !connectorId || !tenantId || isActivating) return
     
+    setIsActivating(true)
     try {
       if (editMode) {
-        // 編集モードの場合は更新処理
+        // 編集モードの場合はフィールドマッピングを更新してから有効化
         const res = await fetch(`/api/connectors/${connectorId}/mappings/${mappingId}/fields`, {
           method: 'POST',
           headers: {
@@ -499,63 +676,36 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
           })
         })
         
-        if (res.ok) {
-          console.log(`[FLOW] Field mappings updated for mappingId=${mappingId}`)
-          
-          // 更新後に連携も実行
-          const syncRes = await fetch(`/api/connectors/${connectorId}/sync`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tenantId,
-              force: true
-            })
-          })
-          
-          if (syncRes.ok) {
-            const syncResult = await syncRes.json()
-            console.log(`[FLOW] Sync started after update for connectorId=${connectorId}`, syncResult)
-            // 新規登録と同様のイベントを送信
-            window.dispatchEvent(new CustomEvent('mapping:activated'))
-            close()
-          } else {
-            console.error('[FLOW] Sync failed after update:', await syncRes.json())
-            // フィールド更新は成功したので、更新イベントは送信
-            window.dispatchEvent(new CustomEvent('mapping:updated'))
-            close()
-          }
-        } else {
+        if (!res.ok) {
           const error = await res.json()
-          console.error('[FLOW] Update failed:', error)
+          console.error('[FLOW] Field mapping update failed:', error)
+          return
         }
-      } else {
-        // 新規作成モードの場合は同期処理
-        const res = await fetch(`/api/connectors/${connectorId}/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tenantId,
-            force: true
-          })
-        })
         
-        if (res.ok) {
-          const result = await res.json()
-          console.log(`[FLOW] Sync started for connectorId=${connectorId}, mappingId=${mappingId}`, result)
-          // notify page to refresh mapping card
-          window.dispatchEvent(new CustomEvent('mapping:activated'))
-          close()
-        } else {
-          const error = await res.json()
-          console.error('[FLOW] Sync failed:', error)
+        console.log(`[FLOW] Field mappings updated for mappingId=${mappingId}`)
+      }
+      
+      // マッピングを有効化（連携処理は実行しない）
+      const activateRes = await fetch(`/api/connectors/${connectorId}/mappings/${mappingId}/activate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         }
+      })
+      
+      if (activateRes.ok) {
+        console.log(`[FLOW] Mapping activated for mappingId=${mappingId}`)
+        // UI更新イベントを送信
+        window.dispatchEvent(new CustomEvent('mapping:activated'))
+        close()
+      } else {
+        const error = await activateRes.json()
+        console.error('[FLOW] Activation failed:', error)
       }
     } catch (error) {
       console.error('[FLOW] Operation error:', error)
+    } finally {
+      setIsActivating(false)
     }
   }
   
@@ -563,9 +713,9 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
     <Button 
       type="button" 
       onClick={onActivate} 
-      disabled={!mappingId || !connectorId || !tenantId}
+      disabled={!mappingId || !connectorId || !tenantId || isActivating}
     >
-      有効化
+      {isActivating ? '有効化中...' : '有効化'}
     </Button>
   )
 }

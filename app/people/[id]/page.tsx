@@ -50,10 +50,10 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
                         {person.nationality}
                       </Badge>
                     )}
-                    {person.company && (
+                    {person.tenantName && (
                       <Badge variant="outline" className="gap-1">
                         <Building2 className="h-3 w-3" />
-                        {person.company}
+                        {person.tenantName}
                       </Badge>
                     )}
                     {person.workingStatus && (

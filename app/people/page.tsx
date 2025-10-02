@@ -7,7 +7,6 @@ import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { getPeople } from "@/lib/supabase/people"
 import { getVisas } from "@/lib/supabase/visas"
-import { PeopleDataSource } from "@/components/kintone/people-data-source"
 import type { Person } from "@/lib/models"
 
 interface PersonWithVisa extends Person {
@@ -20,9 +19,31 @@ export default function PeoplePage() {
   const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
   const [visas, setVisas] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [dataSource, setDataSource] = useState<'sample' | 'kintone'>('sample')
+
+  console.log('PeoplePage: Component initialized', { people: people.length, loading, error, dataSource })
+
+  // Load people data
+  useEffect(() => {
+    async function fetchPeopleData() {
+      try {
+        setLoading(true)
+        setError(null)
+        const peopleData = await getPeople()
+        setPeople(peopleData)
+        setDataSource('sample')
+        console.log('PeoplePage: People data loaded', { count: peopleData.length })
+      } catch (err) {
+        console.error('Error fetching people data:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load people data')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchPeopleData()
+  }, [])
 
   // Load visa data (always from sample for now)
   useEffect(() => {
@@ -72,7 +93,7 @@ export default function PeoplePage() {
       filterable: true,
     },
     {
-      key: "company",
+      key: "tenantName",
       label: "会社",
       sortable: true,
       filterable: true,
@@ -117,11 +138,11 @@ export default function PeoplePage() {
       multiple: true,
     },
     {
-      key: "company",
+      key: "tenantName",
       label: "会社",
-      options: Array.from(new Set(people.map((p) => p.company).filter(Boolean))).map((company) => ({
-        value: company!,
-        label: company!,
+      options: Array.from(new Set(people.map((p) => p.tenantName).filter(Boolean))).map((tenantName) => ({
+        value: tenantName!,
+        label: tenantName!,
       })),
       multiple: true,
     },
@@ -191,22 +212,13 @@ export default function PeoplePage() {
         </div>
       </div>
 
-      {/* Data Source Configuration */}
-      <PeopleDataSource
-        onDataChange={(peopleData, source) => {
-          setPeople(peopleData)
-          setDataSource(source)
-        }}
-        onLoadingChange={setLoading}
-        onErrorChange={setError}
-      />
 
       {/* Data Table */}
       <DataTable
         data={peopleWithVisas}
         columns={columns}
         filters={filters}
-        searchKeys={["name", "company", "email", "nationality"]}
+        searchKeys={["name", "tenantName", "email", "nationality"]}
         onRowClick={handleRowClick}
       />
     </div>

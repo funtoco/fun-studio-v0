@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "dev:https",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"label": "npm: dev:https",
+			"detail": "NODE_OPTIONS='--inspect' next dev --experimental-https"
+		}
+	]
+}

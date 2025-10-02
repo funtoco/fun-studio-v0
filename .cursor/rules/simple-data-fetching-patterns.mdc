@@ -1,0 +1,119 @@
+---
+description: シンプルなデータ取得パターンとベストプラクティス
+globs: app/**/*.tsx,components/**/*.tsx
+---
+
+# シンプルなデータ取得パターン
+
+## 基本原則
+データベースから直接データを取得する場合は、複雑なデータソースコンポーネントを作らず、シンプルな実装を推奨します。
+
+## 推奨パターン
+
+### ✅ 良い例: シンプルなデータ取得
+```typescript
+// app/people/page.tsx
+export default function PeoplePage() {
+  const [people, setPeople] = useState<Person[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // データ取得
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await getPeople()
+        setPeople(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  // レンダリング
+  if (loading) return <div>読み込み中...</div>
+  if (error) return <div>エラー: {error}</div>
+  
+  return <DataTable data={people} />
+}
+```
+
+### ❌ 避けるべき例: 過度に複雑な実装
+```typescript
+// 複雑なデータソースコンポーネント
+<PeopleDataSource
+  onDataChange={(data, source) => setPeople(data)}
+  onLoadingChange={setLoading}
+  onErrorChange={setError}
+/>
+```
+
+## ベストプラクティス
+
+### 1. 直接的なAPI呼び出し
+- `useEffect` で直接API関数を呼び出す
+- 不要な抽象化レイヤーを避ける
+- データの流れを明確にする
+
+### 2. 適切な状態管理
+- `loading`、`error`、`data` の状態を適切に管理
+- 初期値は `false` または `null` に設定
+- エラーハンドリングを必ず実装
+
+### 3. シンプルなレンダリング
+- 条件分岐を最小限に抑える
+- ローディング、エラー、データ表示の3つの状態のみ
+- 不要なコンポーネントの入れ子を避ける
+
+## 適用場面
+
+### データベースから直接取得する場合
+- 既にデータが格納されているテーブルから取得
+- 複雑な変換やフィルタリングが不要
+- リアルタイム更新が不要
+
+### 避けるべき場面
+- 複数のデータソースを切り替える必要がある場合
+- 複雑なデータ変換やバリデーションが必要な場合
+- リアルタイム更新やWebSocket接続が必要な場合
+
+## デバッグのコツ
+
+### ログの配置
+```typescript
+useEffect(() => {
+  async function fetchData() {
+    console.log('データ取得開始')
+    try {
+      setLoading(true)
+      const data = await getPeople()
+      console.log('データ取得成功:', { count: data.length })
+      setPeople(data)
+    } catch (err) {
+      console.error('データ取得エラー:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load data')
+    } finally {
+      console.log('データ取得完了')
+      setLoading(false)
+    }
+  }
+  fetchData()
+}, [])
+```
+
+### 問題の特定
+1. コンポーネントの初期化ログ
+2. データ取得の開始・完了ログ
+3. エラーの詳細ログ
+4. 状態変更のログ
+
+## 覚えておくこと
+- **シンプルが最良**: 要件を満たす最小限の実装を心がける
+- **可読性重視**: コードの意図が明確に分かるように書く
+- **保守性**: 将来的な変更に対応しやすい構造にする
+- **デバッグ容易**: 問題が発生した時に原因を特定しやすくする

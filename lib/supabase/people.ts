@@ -8,7 +8,10 @@ export async function getPeople(): Promise<Person[]> {
   
   const { data, error } = await supabase
     .from('people')
-    .select()
+    .select(`
+      *,
+      tenant:tenant_id (id, name)
+    `)
     .order('created_at', { ascending: false })
   
   console.log('getPeople: Query result:', { data, error, count: data?.length })
@@ -39,7 +42,7 @@ export async function getPeople(): Promise<Person[]> {
     residenceCardIssuedDate: person.residence_card_issued_date,
     email: person.email,
     address: person.address,
-    company: person.company,
+    tenantName: person.tenant?.name,
     note: person.note,
     visaId: person.visa_id,
     createdAt: person.created_at,
@@ -54,7 +57,10 @@ export async function getPersonById(id: string): Promise<Person | null> {
   
   const { data, error } = await supabase
     .from('people')
-    .select()
+    .select(`
+      *,
+      tenant:tenant_id (id, name)
+    `)
     .eq('id', id)
     .single()
   
@@ -80,7 +86,7 @@ export async function getPersonById(id: string): Promise<Person | null> {
     residenceCardIssuedDate: data.residence_card_issued_date,
     email: data.email,
     address: data.address,
-    company: data.company,
+    tenantName: data.tenant?.name,
     note: data.note,
     visaId: data.visa_id,
     createdAt: data.created_at,
@@ -108,11 +114,13 @@ export async function createPerson(person: Omit<Person, 'createdAt' | 'updatedAt
       residence_card_issued_date: person.residenceCardIssuedDate,
       email: person.email,
       address: person.address,
-      company: person.company,
       note: person.note,
       visa_id: person.visaId
     })
-    .select()
+    .select(`
+      *,
+      tenant:tenant_id (id, name)
+    `)
     .single()
   
   if (error) {
@@ -135,7 +143,7 @@ export async function createPerson(person: Omit<Person, 'createdAt' | 'updatedAt
     residenceCardIssuedDate: data.residence_card_issued_date,
     email: data.email,
     address: data.address,
-    company: data.company,
+    tenantName: data.tenant?.name,
     note: data.note,
     visaId: data.visa_id,
     createdAt: data.created_at,
@@ -162,12 +170,14 @@ export async function updatePerson(id: string, updates: Partial<Omit<Person, 'id
       residence_card_issued_date: updates.residenceCardIssuedDate,
       email: updates.email,
       address: updates.address,
-      company: updates.company,
       note: updates.note,
       visa_id: updates.visaId
     })
     .eq('id', id)
-    .select()
+    .select(`
+      *,
+      tenant:tenant_id (id, name)
+    `)
     .single()
   
   if (error) {
@@ -190,7 +200,7 @@ export async function updatePerson(id: string, updates: Partial<Omit<Person, 'id
     residenceCardIssuedDate: data.residence_card_issued_date,
     email: data.email,
     address: data.address,
-    company: data.company,
+    tenantName: data.tenant?.name,
     note: data.note,
     visaId: data.visa_id,
     createdAt: data.created_at,

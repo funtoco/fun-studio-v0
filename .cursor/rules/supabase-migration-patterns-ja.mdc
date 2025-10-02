@@ -1,0 +1,123 @@
+---
+description: Supabaseマイグレーションとデータベースパターン（日本語版）
+globs: *.sql,supabase/migrations/*.sql
+---
+
+# Supabase マイグレーションパターン
+
+## マイグレーションファイル命名規則
+
+マイグレーションファイルは以下のパターンに従います: `YYYYMMDDHHMMSS_description.sql`
+
+### 日時取得方法
+新しいマイグレーションを作成する際は、必ずMCPを使って現在日時を取得してください：
+
+1. **MCPで現在日時を取得**:
+   ```
+   mcp_datetime_get-current-time
+   ```
+
+2. **取得した日時をフォーマット**:
+   - 例: `2025-10-02T15:58:40.570+09:00` → `20251002155840`
+   - タイムゾーンはJST（+09:00）を想定
+   - 秒まで使用（ミリ秒は切り捨て）
+
+3. **ファイル名の例**:
+   - `20251002155840_create_connector_app_filters.sql`
+   - `20251002160000_fix_user_tenants_rls_policies.sql`
+
+### 注意事項
+- 未来の日時を使用しない（例: 20250103は2025年1月3日で未来）
+- 既存のマイグレーションより新しい日時を使用
+- 同じ秒に複数のマイグレーションを作成する場合は、秒を1つずつ増やす
+
+## テーブル構造パターン
+
+### 標準フィールド
+すべてのテーブルに含めるべきフィールド:
+```sql
+"id" uuid NOT NULL DEFAULT gen_random_uuid(),
+"created_at" timestamp with time zone DEFAULT now(),
+"updated_at" timestamp with time zone DEFAULT now()
+```
+
+### RLSポリシー
+テナントベースのアクセス制御を使用:
+```sql
+CREATE POLICY "Users can access [table] for their tenant" ON "public"."[table]"
+    FOR ALL USING (
+        "connector_id" IN (
+            SELECT "id" FROM "connectors" 
+            WHERE "tenant_id" IN (
+                SELECT "tenant_id" FROM "user_tenants" 
+                WHERE "user_id" = auth.uid() AND "status" = 'active'
+            )
+        )
+    );
+```
+
+### 必須コンポーネント
+1. **主キー**: `ADD CONSTRAINT "[table]_pkey" PRIMARY KEY USING INDEX "[table]_pkey"`
+2. **外部キー**: 親テーブルを`ON DELETE CASCADE`で参照
+3. **インデックス**: 頻繁にクエリされるカラムにインデックスを作成
+4. **トリガー**: `updated_at`用に`update_updated_at_column()`トリガーを追加
+5. **権限**: `anon`, `authenticated`, `service_role`に権限を付与
+6. **コメント**: テーブルとカラムのコメントを追加してドキュメント化
+
+## マイグレーションコマンド
+
+- **ローカル開発**: `npx supabase db reset` (リセットしてすべてのマイグレーションを適用)
+- **ローカル増分**: `npx supabase migration up` (新しいマイグレーションのみ適用)
+- **本番環境**: `npx supabase db push` (リモートSupabaseに適用)
+
+### マイグレーション作成ワークフロー
+
+1. **現在日時を取得**:
+   ```
+   mcp_datetime_get-current-time
+   ```
+
+2. **ファイル名を決定**:
+   - 取得した日時を `YYYYMMDDHHMMSS` 形式に変換
+   - 適切な説明を追加
+
+3. **マイグレーションファイルを作成**:
+   ```bash
+   touch supabase/migrations/YYYYMMDDHHMMSS_description.sql
+   ```
+
+4. **マイグレーションを適用**:
+   ```bash
+   npx supabase migration up
+   ```
+
+## 共通パターン
+
+### 外部キー参照
+```sql
+ALTER TABLE "public"."child_table" 
+    ADD CONSTRAINT "child_table_parent_id_fkey" 
+    FOREIGN KEY ("parent_id") REFERENCES "public"."parent_table"("id") ON DELETE CASCADE;
+```
+
+### Updated At トリガー
+```sql
+CREATE TRIGGER "update_[table]_updated_at"
+    BEFORE UPDATE ON "public"."[table]"
+    FOR EACH ROW
+    EXECUTE FUNCTION "public"."update_updated_at_column"();
+```
+
+### 権限付与
+```sql
+GRANT [OPERATION] ON TABLE "public"."[table]" TO "[role]";
+-- 操作: DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE
+-- ロール: anon, authenticated, service_role
+```
+
+## 注意事項
+
+- マイグレーションは必ずローカルでテストしてから本番に適用
+- データの破壊的変更は慎重に検討
+- インデックスの追加は本番環境でのパフォーマンスに影響する可能性
+- RLSポリシーはセキュリティの重要な部分なので十分にテスト

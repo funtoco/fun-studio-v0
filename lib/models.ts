@@ -13,7 +13,7 @@ export type Person = {
   residenceCardIssuedDate?: string
   email?: string
   address?: string
-  company?: string
+  tenantName?: string
   note?: string
   visaId?: string
   createdAt: string
