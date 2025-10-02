@@ -422,8 +422,18 @@ function MappingFields() {
 
   const kintoneFields = fieldsCache?.data.fields || []
   
+  // レコードIDを手動で追加（Kintone APIでは取得されないため）
+  const kintoneFieldsWithRecordId = [
+    {
+      code: '$id',
+      label: 'レコードID',
+      type: '__ID__'
+    },
+    ...kintoneFields
+  ]
+  
   console.log('[DEBUG] Kintone fields for select', {
-    kintoneFields,
+    kintoneFields: kintoneFieldsWithRecordId,
     fieldsCache,
     selectedKintoneApp
   })
@@ -564,7 +574,7 @@ function MappingFields() {
                 copy[idx] = { ...copy[idx], source_field_code: value }
                 setDraftFieldMappings(copy)
               }}
-              options={kintoneFields}
+              options={kintoneFieldsWithRecordId}
             />
             <FunstudioFieldSelect
               value={m.destination_field_key}
