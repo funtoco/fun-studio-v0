@@ -75,20 +75,27 @@ export default async function ConnectorDetailPage({
   searchParams 
 }: ConnectorDetailPageProps) {
   const connectorId = params.id
-  const tenantId = searchParams.tenantId || "550e8400-e29b-41d4-a716-446655440001"
+  const tenantId = searchParams.tenantId
   
   // Handle redirects from old tab URLs
   const tab = searchParams.tab
   if (tab === 'apps' || tab === 'mappings') {
     // Redirect to the new unified tab
-    const redirectUrl = `/admin/connectors/${connectorId}?tenantId=${tenantId}`
+    const redirectUrl = tenantId 
+      ? `/admin/connectors/${connectorId}?tenantId=${tenantId}`
+      : `/admin/connectors/${connectorId}`
     redirect(redirectUrl)
   }
   
   // Get connector data from new system
   const connector = await getConnector(connectorId)
   
-  if (!connector || connector.tenant_id !== tenantId) {
+  if (!connector) {
+    notFound()
+  }
+  
+  // If tenantId is provided, verify it matches the connector's tenant
+  if (tenantId && connector.tenant_id !== tenantId) {
     notFound()
   }
   
@@ -232,7 +239,7 @@ export default async function ConnectorDetailPage({
         description={`${connector.provider.charAt(0).toUpperCase() + connector.provider.slice(1)} コネクターの詳細設定と状態`}
         breadcrumbs={[
           { label: "概要", href: "/admin/connectors/dashboard" },
-          { label: "コネクター", href: `/admin/connectors?tenantId=${tenantId}` },
+          { label: "コネクター", href: tenantId ? `/admin/connectors?tenantId=${tenantId}` : "/admin/connectors" },
           { label: connector.display_name }
         ]}
         actions={

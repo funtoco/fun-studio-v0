@@ -114,7 +114,7 @@ export function ConnectorTableRow({
             <Trash2 className="h-4 w-4" />
           </Button>
           
-          <Link href={`/admin/connectors/${connector.id}?tenantId=${tenantId}`}>
+          <Link href={`/admin/connectors/${connector.id}`}>
             <Button variant="ghost" size="sm" title="詳細">
               <ExternalLink className="h-4 w-4" />
             </Button>
