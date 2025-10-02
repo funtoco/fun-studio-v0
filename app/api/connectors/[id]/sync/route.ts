@@ -96,7 +96,7 @@ export async function POST(
         { 
           success: false,
           error: errorMessage,
-          synced: { people: 0, visas: 0 },
+          synced: {},
           errors: [errorMessage],
           duration: 0
         },
