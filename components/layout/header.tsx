@@ -73,13 +73,13 @@ export function Header() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>管理者設定</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/admin/connectors/dashboard')}>
-                <Cable className="mr-2 h-4 w-4" />
-                コネクター管理
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/admin/tenants')}>
                 <Users className="mr-2 h-4 w-4" />
                 テナント管理
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/admin/connectors/dashboard')}>
+                <Cable className="mr-2 h-4 w-4" />
+                コネクター管理
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
