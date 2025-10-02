@@ -382,6 +382,7 @@ export class KintoneDataSync {
         // Transform Kintone record to our format using database field mappings
         const person: any = {
           id: itemId, // Prefix with 'k_' for Kintone origin
+          tenant_id: this.tenantId, // Set tenant_id from connector
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
@@ -525,6 +526,7 @@ export class KintoneDataSync {
         const visa = {
           id: itemId, // Prefix with 'k_' for Kintone origin
           person_id: personId,
+          tenant_id: this.tenantId, // Set tenant_id from connector
           type: record[mapping.fields.type]?.value || '認定申請',
           status: mappedStatus,
           expiry_date: record[mapping.fields.expiry_date]?.value || null,
