@@ -194,10 +194,10 @@ export class KintoneDataSync {
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       // Check active mapping exists for this connector
       const { data: activeMappings } = await this.supabase
-        .from('app_mappings')
+        .from('connector_app_mappings')
         .select('id')
         .eq('connector_id', this.connectorId)
-        .eq('status', 'active')
+        .eq('is_active', true)
 
       if (!activeMappings || activeMappings.length === 0) {
         console.log('[GUARD] reject write: no active mapping')
@@ -315,10 +315,10 @@ export class KintoneDataSync {
   private async syncPeople(): Promise<number> {
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       const { data: active } = await this.supabase
-        .from('app_mappings')
+        .from('connector_app_mappings')
         .select('id')
         .eq('connector_id', this.connectorId)
-        .eq('status', 'active')
+        .eq('is_active', true)
       if (!active || active.length === 0) {
         console.log('[GUARD] reject write: no active mapping')
         return 0
@@ -409,10 +409,10 @@ export class KintoneDataSync {
   private async syncVisas(): Promise<number> {
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       const { data: active } = await this.supabase
-        .from('app_mappings')
+        .from('connector_app_mappings')
         .select('id')
         .eq('connector_id', this.connectorId)
-        .eq('status', 'active')
+        .eq('is_active', true)
       if (!active || active.length === 0) {
         console.log('[GUARD] reject write: no active mapping')
         return 0
@@ -577,8 +577,19 @@ export async function createSyncService(
     throw new Error('OAuth credentials not found in credentials table')
   }
 
-  // Get subdomain from connector config (hardcoded for now)
-  const subdomain = 'funtoco'
+  // Get subdomain from connector config
+  const configCredential = await getCredential(connectorId, 'kintone_config')
+  if (!configCredential || !configCredential.domain) {
+    throw new Error('Kintone domain not found in connector config')
+  }
+  
+  // Extract subdomain from domain URL (e.g., "https://funtoco.cybozu.com" -> "funtoco")
+  const domainUrl = configCredential.domain
+  const domainMatch = domainUrl.match(/https?:\/\/([^.]+)\.cybozu\.com/)
+  if (!domainMatch) {
+    throw new Error(`Invalid Kintone domain format: ${domainUrl}`)
+  }
+  const subdomain = domainMatch[1]
   
   // Check if access token is expired and refresh if needed
   // Clean access token by removing full-width spaces and other invalid characters
@@ -609,7 +620,7 @@ export async function createSyncService(
   
   // Create Kintone client
   const kintoneClient = new KintoneApiClient({
-    subdomain,
+    domain: `https://${subdomain}.cybozu.com`,
     accessToken
   })
   
