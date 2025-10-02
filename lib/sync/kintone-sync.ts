@@ -12,6 +12,74 @@ import { decryptJson } from '@/lib/security/crypto'
 import { SyncLogger, createSyncLogger } from './sync-logger'
 // import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
 
+// Types for field mappings
+interface FieldMapping {
+  source_field_code: string
+  target_field_id: string
+  is_required: boolean
+  sort_order: number
+}
+
+interface AppMapping {
+  id: string
+  source_app_id: string
+  target_app_type: string
+  field_mappings: FieldMapping[]
+}
+
+/**
+ * Get field mappings from database for a specific app mapping
+ */
+async function getFieldMappings(
+  supabase: any,
+  appMappingId: string
+): Promise<FieldMapping[]> {
+  const { data, error } = await supabase
+    .from('connector_field_mappings')
+    .select('source_field_code, target_field_id, is_required, sort_order')
+    .eq('app_mapping_id', appMappingId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching field mappings:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * Get app mapping configuration from database
+ */
+async function getAppMapping(
+  supabase: any,
+  connectorId: string,
+  targetAppType: string
+): Promise<AppMapping | null> {
+  const { data, error } = await supabase
+    .from('connector_app_mappings')
+    .select('id, source_app_id, target_app_type')
+    .eq('connector_id', connectorId)
+    .eq('target_app_type', targetAppType)
+    .eq('is_active', true)
+    .single()
+
+  if (error || !data) {
+    console.error('Error fetching app mapping:', error)
+    return null
+  }
+
+  const fieldMappings = await getFieldMappings(supabase, data.id)
+  
+  return {
+    id: data.id,
+    source_app_id: data.source_app_id,
+    target_app_type: data.target_app_type,
+    field_mappings: fieldMappings
+  }
+}
+
 /**
  * Refresh Kintone access token using refresh token
  * Based on https://cybozu.dev/ja/common/docs/oauth-client/add-client/
@@ -69,41 +137,7 @@ function getServerClient() {
   return createClient(supabaseUrl, serviceKey)
 }
 
-// Mapping configuration for Kintone fields to our database
-const FIELD_MAPPINGS = {
-  people: {
-    kintoneAppId: '13', // Kintone app ID
-    coid: '2787', // COID for filtering
-    fields: {
-      'name': 'name',
-      'kana': '文字列__1行_',
-      'nationality': 'country',
-      'dob': 'dateOfBirth',
-      'phone': 'phoneNumber', // 仮のマッピング
-      // 'email': 'メールアドレス',
-      'address': 'address',
-      // 'employee_number': 'HRID',
-      'working_status': 'salesStatus',
-      'specific_skill_field': 'field',
-      'residence_card_no': 'latestResidenceCardNo',
-      'residence_card_expiry_date': 'latestResidenceCardExpirationDate',
-      'residence_card_issued_date': 'latestResidenceCardPermitDate'
-    }
-  },
-  visas: {
-    kintoneAppId: '50', // Kintone app ID
-    coid: '2787', // COID for filtering
-    fields: {
-      'person_id': 'WOID',
-      'type': 'requestType',
-      'status': 'ステータス',
-      'expiry_date': 'latestResidenceCardExpirationDate',
-      'submitted_at': '入社日___支援開始日',
-      'result_at': '更新ビザ許可になった日',
-      'manager': 'operationStaffCompany'
-    }
-  }
-}
+// Field mappings are now loaded from database dynamically
 
 export interface SyncResult {
   success: boolean
@@ -238,18 +272,18 @@ export class KintoneDataSync {
         // await addLog(this.connectorId, 'error', 'people_sync_failed', { error, sessionId })
       }
 
-        // Sync visa data
-        try {
-          syncedVisas = await this.syncVisas()
-        // await addLog(this.connectorId, 'info', 'visas_synced', {
-        //   count: syncedVisas,
-        //   sessionId
-        // })
-      } catch (err) {
-        const error = `Visa sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-        errors.push(error)
-        // await addLog(this.connectorId, 'error', 'visa_sync_failed', { error, sessionId })
-      }
+        // Sync visa data (temporarily disabled for testing)
+        // try {
+        //   syncedVisas = await this.syncVisas()
+        // // await addLog(this.connectorId, 'info', 'visas_synced', {
+        // //   count: syncedVisas,
+        // //   sessionId
+        // // })
+        // } catch (err) {
+        //   const error = `Visa sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+        //   errors.push(error)
+        //   // await addLog(this.connectorId, 'error', 'visa_sync_failed', { error, sessionId })
+        // }
 
       const duration = Date.now() - startTime
       const success = errors.length === 0
@@ -325,23 +359,19 @@ export class KintoneDataSync {
       }
     }
     try {
-      // Use hardcoded configuration
-      const mapping = FIELD_MAPPINGS.people
-      
-      // Build query
-      let query = ''
-      if (mapping.coid) {
-        query = `COID = "${mapping.coid}"`
+      // Get mapping configuration from database
+      const appMapping = await getAppMapping(this.supabase, this.connectorId, 'people')
+      if (!appMapping) {
+        console.error('No active people mapping found')
+        return 0
       }
       
-      // Get filter conditions from database
+      // Build query using only database filter conditions
       const filterQuery = await this.buildFilterQuery('people')
-      if (filterQuery) {
-        query = query ? `${query} AND ${filterQuery}` : filterQuery
-      }
+      const query = filterQuery || ''
       
       // Get records from Kintone
-      const records = await this.kintoneClient.getRecords(mapping.kintoneAppId, query, [])
+      const records = await this.kintoneClient.getRecords(appMapping.source_app_id, query, [])
     
     let syncedCount = 0
     
@@ -349,24 +379,17 @@ export class KintoneDataSync {
       const itemId = `k_${record.$id.value}`
       
       try {
-        // Transform Kintone record to our format using hardcoded field mappings
-        const person = {
+        // Transform Kintone record to our format using database field mappings
+        const person: any = {
           id: itemId, // Prefix with 'k_' for Kintone origin
-          name: record[mapping.fields.name]?.value || '',
-          kana: record[mapping.fields.kana]?.value || null,
-          nationality: record[mapping.fields.nationality]?.value || null,
-          dob: record[mapping.fields.dob]?.value || null,
-          phone: record[mapping.fields.phone]?.value || null,
-          email: record[mapping.fields.email]?.value || null,
-          address: record[mapping.fields.address]?.value || null,
-          employee_number: record[mapping.fields.employee_number]?.value || null,
-          working_status: record[mapping.fields.working_status]?.value || null,
-          specific_skill_field: record[mapping.fields.specific_skill_field]?.value || null,
-          residence_card_no: record[mapping.fields.residence_card_no]?.value || null,
-          residence_card_expiry_date: record[mapping.fields.residence_card_expiry_date]?.value || null,
-          residence_card_issued_date: record[mapping.fields.residence_card_issued_date]?.value || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
+        }
+
+        // Map fields using database configuration
+        for (const fieldMapping of appMapping.field_mappings) {
+          const sourceValue = record[fieldMapping.source_field_code]?.value
+          person[fieldMapping.target_field_id] = sourceValue || null
         }
 
         // Upsert to Supabase
