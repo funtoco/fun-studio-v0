@@ -376,40 +376,85 @@ function MappingFields() {
   useEffect(() => {
     let active = true
     if (!selectedKintoneApp || fieldsCache) return
+    
+    console.log('[DEBUG] Loading Kintone fields for edit mode', {
+      selectedKintoneApp,
+      fieldsCache,
+      editMode,
+      existingMapping
+    })
+    
     ;(async () => {
       let id = connectorId
       if (!id && typeof window !== 'undefined') {
         const m = window.location.pathname.match(/\/admin\/connectors\/([^/]+)/)
         if (m && m[1]) id = m[1]
       }
-      if (!id) return
+      if (!id) {
+        console.error('[DEBUG] No connector ID found')
+        return
+      }
+      
+      console.log('[DEBUG] Fetching fields from API', {
+        connectorId: id,
+        appId: selectedKintoneApp.id,
+        url: `/api/connectors/${id}/kintone/apps/${selectedKintoneApp.id}/fields`
+      })
+      
       const res = await fetch(`/api/connectors/${id}/kintone/apps/${selectedKintoneApp.id}/fields`)
       if (!active) return
+      
+      console.log('[DEBUG] API response status', res.status)
+      
       if (res.ok) {
         const data = await res.json()
+        console.log('[DEBUG] API response data', data)
         setFieldsCache(selectedKintoneApp.id, { fields: data.fields || [] })
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        console.error('[DEBUG] API error', errorData)
       }
     })()
     return () => {
       active = false
     }
-  }, [connectorId, selectedKintoneApp, fieldsCache, setFieldsCache])
+  }, [connectorId, selectedKintoneApp, fieldsCache, setFieldsCache, editMode, existingMapping])
 
   const kintoneFields = fieldsCache?.data.fields || []
+  
+  console.log('[DEBUG] Kintone fields for select', {
+    kintoneFields,
+    fieldsCache,
+    selectedKintoneApp
+  })
 
   // Load existing field mappings in edit mode
   useEffect(() => {
     if (editMode && existingMapping && existingMapping.id && draftFieldMappings.length === 0) {
+      console.log('[DEBUG] Loading existing field mappings', {
+        editMode,
+        existingMapping,
+        connectorId,
+        draftFieldMappingsLength: draftFieldMappings.length
+      })
+      
       const loadExistingMappings = async () => {
         try {
           const response = await fetch(`/api/connectors/${connectorId}/mappings/${existingMapping.id}/fields`)
+          console.log('[DEBUG] Existing mappings API response status', response.status)
+          
           if (response.ok) {
             const data = await response.json()
+            console.log('[DEBUG] Existing mappings data', data)
             const mappings = data.fields.map((field: any) => ({
               source_field_code: field.source_field_code,
               destination_field_key: field.target_field_id
             }))
+            console.log('[DEBUG] Mapped field mappings', mappings)
             setDraftFieldMappings(mappings)
+          } else {
+            const errorData = await response.json().catch(() => ({}))
+            console.error('[DEBUG] Existing mappings API error', errorData)
           }
         } catch (error) {
           console.error('Failed to load existing field mappings:', error)

@@ -88,6 +88,8 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   schemaCacheByAppKey: {},
 
   open: (ctx) => {
+    console.log('[DEBUG] Opening wizard with context', ctx)
+    
     set({ 
       isOpen: true, 
       connectorId: ctx?.connectorId, 
@@ -99,15 +101,22 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
     if (ctx?.editMode && ctx?.existingMapping) {
       // 編集モードの場合、既存のマッピング情報をセット
       const mapping = ctx.existingMapping
+      console.log('[DEBUG] Setting up edit mode with mapping', mapping)
+      
+      const kintoneApp = {
+        id: mapping.source_app_id || mapping.kintone_app_id,
+        name: mapping.source_app_name || mapping.kintone_app_name
+      }
+      const destinationApp = {
+        key: mapping.target_app_type,
+        name: mapping.target_app_type
+      }
+      
+      console.log('[DEBUG] Setting selected apps', { kintoneApp, destinationApp })
+      
       set({
-        selectedKintoneApp: {
-          id: mapping.source_app_id || mapping.kintone_app_id,
-          name: mapping.source_app_name || mapping.kintone_app_name
-        },
-        selectedDestinationApp: {
-          key: mapping.target_app_type,
-          name: mapping.target_app_type
-        },
+        selectedKintoneApp: kintoneApp,
+        selectedDestinationApp: destinationApp,
         mappingIdDraft: mapping.id
       })
       console.log("[FLOW] → mappingFields (edit mode)")
