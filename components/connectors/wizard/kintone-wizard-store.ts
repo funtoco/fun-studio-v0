@@ -8,7 +8,6 @@ export type UiFlowState =
   | "selectingDestinationApp"
   | "settingFilters"
   | "mappingFields"
-  | "reviewAndSave"
   | "done"
 
 export type KintoneAppLite = { id: string; name: string }
@@ -163,8 +162,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
     if (state === "selectingKintoneApp") set({ uiFlowState: "selectingDestinationApp" })
     else if (state === "selectingDestinationApp") set({ uiFlowState: "settingFilters" })
     else if (state === "settingFilters") set({ uiFlowState: "mappingFields" })
-    else if (state === "mappingFields") set({ uiFlowState: "reviewAndSave" })
-    else if (state === "reviewAndSave") set({ uiFlowState: "done" })
+    else if (state === "mappingFields") set({ uiFlowState: "done" })
   },
   back: () => {
     const state = get().uiFlowState

@@ -15,7 +15,6 @@ function Stepper() {
     { key: "selectingDestinationApp", label: "②Funstudioアプリ" },
     { key: "settingFilters", label: "③フィルター設定" },
     { key: "mappingFields", label: "④フィールド対応" },
-    { key: "reviewAndSave", label: "⑤確認" },
   ]
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -368,6 +367,7 @@ function MappingFields() {
     next,
     editMode,
     existingMapping,
+    close,
   } = useKintoneWizardStore()
 
   const fieldsCache = selectedKintoneApp ? getFieldsCacheValid(selectedKintoneApp.id) : null
@@ -553,7 +553,7 @@ function MappingFields() {
         console.log(`[FLOW] Filters saved for mappingId=${data.mapping_id}`)
       }
       
-      next()
+      close()
     } catch (error) {
       console.error('Error in onSaveDraft:', error)
     } finally {
@@ -610,35 +610,6 @@ function MappingFields() {
   )
 }
 
-function ReviewAndSave() {
-  const { selectedKintoneApp, selectedDestinationApp, draftFilters, draftFieldMappings, mappingIdDraft } = useKintoneWizardStore()
-  return (
-    <div className="space-y-4 text-sm">
-      <div>アプリ: {selectedKintoneApp?.name} → {selectedDestinationApp?.name}</div>
-      
-      {draftFilters.length > 0 && (
-        <div>
-          <div className="font-medium mb-2">フィルター条件:</div>
-          <div className="border rounded p-3 space-y-1">
-            {draftFilters.map((f, i) => (
-              <div key={i} className="text-xs">
-                {f.field_name} ({f.field_code}) = "{f.filter_value}"
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      <div>ペア数: {draftFieldMappings.length}</div>
-      <div className="border rounded p-3">
-        {draftFieldMappings.map((m, i) => (
-          <div key={i}>{m.source_field_code} → {m.destination_field_key}</div>
-        ))}
-      </div>
-      <div className="text-xs text-muted-foreground">mappingId: {mappingIdDraft || '-'}</div>
-    </div>
-  )
-}
 
 function DoneStep() {
   return <div className="text-sm">接続が有効になりました。ウィザードを閉じることができます。</div>
@@ -687,16 +658,12 @@ export function KintoneWizardModal() {
             {uiFlowState === "selectingDestinationApp" && <SelectingDestinationApp />}
             {uiFlowState === "settingFilters" && <SettingFilters />}
             {uiFlowState === "mappingFields" && <MappingFields />}
-            {uiFlowState === "reviewAndSave" && <ReviewAndSave />}
             {uiFlowState === "done" && <DoneStep />}
           </div>
           <div className="p-4 border-t flex items-center justify-end gap-2">
             {uiFlowState === "selectingKintoneApp" && <Button type="button" onClick={next}>Next</Button>}
             {uiFlowState === "selectingDestinationApp" && <Button type="button" onClick={next}>Next</Button>}
             {uiFlowState === "mappingFields" && null}
-            {uiFlowState === "reviewAndSave" && (
-              <ActivateButton mappingId={mappingIdDraft} />
-            )}
             {uiFlowState === "done" && <Button type="button" onClick={close}>Close</Button>}
           </div>
         </div>
