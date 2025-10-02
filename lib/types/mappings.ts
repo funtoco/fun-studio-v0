@@ -37,6 +37,23 @@ export interface MappingAppWithFields extends MappingApp {
   fields: MappingField[]
 }
 
+export interface MappingFilter {
+  id: string
+  connector_id: string
+  app_mapping_id: string // Reference to connector_app_mappings
+  field_code: string // Kintone field code for filtering
+  field_name?: string // Display name of the Kintone field
+  field_type?: string // Kintone field type (SINGLE_LINE_TEXT, etc.)
+  filter_value: string // Filter value for equality comparison
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MappingAppWithFilters extends MappingApp {
+  filters: MappingFilter[]
+}
+
 // Helper types for API responses
 export interface MappingAppResponse {
   success: boolean
@@ -59,6 +76,18 @@ export interface MappingAppsListResponse {
 export interface MappingFieldsListResponse {
   success: boolean
   data?: MappingField[]
+  error?: string
+}
+
+export interface MappingFilterResponse {
+  success: boolean
+  data?: MappingFilter
+  error?: string
+}
+
+export interface MappingFiltersListResponse {
+  success: boolean
+  data?: MappingFilter[]
   error?: string
 }
 

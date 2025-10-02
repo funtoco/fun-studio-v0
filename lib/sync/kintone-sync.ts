@@ -142,6 +142,52 @@ export class KintoneDataSync {
   }
 
   /**
+   * Build Kintone query from filter conditions
+   */
+  private async buildFilterQuery(appType: 'people' | 'visas'): Promise<string> {
+    try {
+      // Get active mappings for this connector
+      const { data: mappings, error: mappingsError } = await this.supabase
+        .from('connector_app_mappings')
+        .select('id, target_app_type')
+        .eq('connector_id', this.connectorId)
+        .eq('is_active', true)
+
+      if (mappingsError || !mappings || mappings.length === 0) {
+        return ''
+      }
+
+      // Find mapping for the target app type
+      const mapping = mappings.find(m => m.target_app_type === appType)
+      if (!mapping) {
+        return ''
+      }
+
+      // Get filter conditions for this mapping
+      const { data: filters, error: filtersError } = await this.supabase
+        .from('connector_app_filters')
+        .select('field_code, filter_value')
+        .eq('app_mapping_id', mapping.id)
+        .eq('is_active', true)
+
+      if (filtersError || !filters || filters.length === 0) {
+        return ''
+      }
+
+      // Build query conditions
+      const conditions = filters
+        .filter(f => f.field_code && f.filter_value)
+        .map(f => `${f.field_code} = "${f.filter_value}"`)
+        .join(' AND ')
+
+      return conditions
+    } catch (error) {
+      console.error('Error building filter query:', error)
+      return ''
+    }
+  }
+
+  /**
    * Sync all data from Kintone to Supabase
    */
   async syncAll(): Promise<SyncResult> {
@@ -288,6 +334,12 @@ export class KintoneDataSync {
         query = `COID = "${mapping.coid}"`
       }
       
+      // Get filter conditions from database
+      const filterQuery = await this.buildFilterQuery('people')
+      if (filterQuery) {
+        query = query ? `${query} AND ${filterQuery}` : filterQuery
+      }
+      
       // Get records from Kintone
       const records = await this.kintoneClient.getRecords(mapping.kintoneAppId, query, [])
     
@@ -374,6 +426,12 @@ export class KintoneDataSync {
       let query = ''
       if (mapping.coid) {
         query = `COID = "${mapping.coid}"`
+      }
+      
+      // Get filter conditions from database
+      const filterQuery = await this.buildFilterQuery('visas')
+      if (filterQuery) {
+        query = query ? `${query} AND ${filterQuery}` : filterQuery
       }
       
       // Get records from Kintone

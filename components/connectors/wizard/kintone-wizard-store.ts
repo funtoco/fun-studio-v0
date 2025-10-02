@@ -6,6 +6,7 @@ export type UiFlowState =
   | "idle"
   | "selectingKintoneApp"
   | "selectingDestinationApp"
+  | "settingFilters"
   | "mappingFields"
   | "reviewAndSave"
   | "done"
@@ -17,6 +18,13 @@ export type DraftFieldMapping = {
   source_field_code: string
   destination_field_key: string
   transform?: unknown
+}
+
+export type DraftFilter = {
+  field_code: string
+  field_name: string
+  field_type: string
+  filter_value: string
 }
 
 type CacheEntry<T> = {
@@ -31,6 +39,7 @@ export type WizardState = {
   tenantId?: string
   selectedKintoneApp: KintoneAppLite | null
   selectedDestinationApp: DestinationAppLite | null
+  draftFilters: DraftFilter[]
   draftFieldMappings: DraftFieldMapping[]
   mappingIdDraft: string | null
   editMode: boolean
@@ -48,6 +57,7 @@ export type WizardState = {
   goToSelectingKintoneApp: () => void
   setSelectedKintoneApp: (app: KintoneAppLite) => void
   setSelectedDestinationApp: (app: DestinationAppLite) => void
+  setDraftFilters: (f: DraftFilter[]) => void
   setDraftFieldMappings: (m: DraftFieldMapping[]) => void
   setMappingIdDraft: (id: string | null) => void
   next: () => void
@@ -69,6 +79,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   uiFlowState: "idle",
   selectedKintoneApp: null,
   selectedDestinationApp: null,
+  draftFilters: [],
   draftFieldMappings: [],
   mappingIdDraft: null,
   editMode: false,
@@ -114,6 +125,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
       uiFlowState: "idle",
       selectedKintoneApp: null,
       selectedDestinationApp: null,
+      draftFilters: [],
       draftFieldMappings: [],
       mappingIdDraft: null,
       editMode: false,
@@ -130,23 +142,26 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   },
   setSelectedDestinationApp: (app) => {
     set({ selectedDestinationApp: app })
-    console.log(`[FLOW] DestinationSelected appKey=${app.key} → mappingFields`)
-    set({ uiFlowState: "mappingFields" })
+    console.log(`[FLOW] DestinationSelected appKey=${app.key} → settingFilters`)
+    set({ uiFlowState: "settingFilters" })
   },
+  setDraftFilters: (f) => set({ draftFilters: f }),
   setDraftFieldMappings: (m) => set({ draftFieldMappings: m }),
   setMappingIdDraft: (id) => set({ mappingIdDraft: id }),
 
   next: () => {
     const state = get().uiFlowState
     if (state === "selectingKintoneApp") set({ uiFlowState: "selectingDestinationApp" })
-    else if (state === "selectingDestinationApp") set({ uiFlowState: "mappingFields" })
+    else if (state === "selectingDestinationApp") set({ uiFlowState: "settingFilters" })
+    else if (state === "settingFilters") set({ uiFlowState: "mappingFields" })
     else if (state === "mappingFields") set({ uiFlowState: "reviewAndSave" })
     else if (state === "reviewAndSave") set({ uiFlowState: "done" })
   },
   back: () => {
     const state = get().uiFlowState
     if (state === "selectingDestinationApp") set({ uiFlowState: "selectingKintoneApp" })
-    else if (state === "mappingFields") set({ uiFlowState: "selectingDestinationApp" })
+    else if (state === "settingFilters") set({ uiFlowState: "selectingDestinationApp" })
+    else if (state === "mappingFields") set({ uiFlowState: "settingFilters" })
     else if (state === "reviewAndSave") set({ uiFlowState: "mappingFields" })
   },
 

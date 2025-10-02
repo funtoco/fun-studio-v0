@@ -13,8 +13,9 @@ function Stepper() {
   const steps = [
     { key: "selectingKintoneApp", label: "①Kintoneアプリ" },
     { key: "selectingDestinationApp", label: "②Funstudioアプリ" },
-    { key: "mappingFields", label: "③フィールド対応" },
-    { key: "reviewAndSave", label: "④確認" },
+    { key: "settingFilters", label: "③フィルター設定" },
+    { key: "mappingFields", label: "④フィールド対応" },
+    { key: "reviewAndSave", label: "⑤確認" },
   ]
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -226,10 +227,136 @@ function FunstudioFieldSelect({
   )
 }
 
+function SettingFilters() {
+  const {
+    selectedKintoneApp,
+    draftFilters,
+    setDraftFilters,
+    connectorId,
+    getFieldsCacheValid,
+    setFieldsCache,
+    next,
+  } = useKintoneWizardStore()
+
+  const fieldsCache = selectedKintoneApp ? getFieldsCacheValid(selectedKintoneApp.id) : null
+
+  // Load fields when enter
+  useEffect(() => {
+    let active = true
+    if (!selectedKintoneApp || fieldsCache) return
+    ;(async () => {
+      let id = connectorId
+      if (!id && typeof window !== 'undefined') {
+        const m = window.location.pathname.match(/\/admin\/connectors\/([^/]+)/)
+        if (m && m[1]) id = m[1]
+      }
+      if (!id) return
+      const res = await fetch(`/api/connectors/${id}/kintone/apps/${selectedKintoneApp.id}/fields`)
+      if (!active) return
+      if (res.ok) {
+        const data = await res.json()
+        setFieldsCache(selectedKintoneApp.id, { fields: data.fields || [] })
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [connectorId, selectedKintoneApp, fieldsCache, setFieldsCache])
+
+  const kintoneFields = fieldsCache?.data.fields || []
+
+  const addFilter = () => {
+    setDraftFilters([...draftFilters, { field_code: '', field_name: '', field_type: '', filter_value: '' }])
+  }
+
+  const removeFilter = (index: number) => {
+    const newFilters = draftFilters.filter((_, i) => i !== index)
+    setDraftFilters(newFilters)
+  }
+
+  const updateFilter = (index: number, field: string, value: string) => {
+    const newFilters = [...draftFilters]
+    if (field === 'field_code') {
+      const selectedField = kintoneFields.find(f => f.code === value)
+      newFilters[index] = {
+        ...newFilters[index],
+        field_code: value,
+        field_name: selectedField?.label || '',
+        field_type: selectedField?.type || '',
+        filter_value: ''
+      }
+    } else {
+      newFilters[index] = { ...newFilters[index], [field]: value }
+    }
+    setDraftFilters(newFilters)
+  }
+
+  const canProceed = draftFilters.length === 0 || draftFilters.every(f => f.field_code && f.filter_value)
+
+  return (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground">
+        連携対象を絞り込むフィルター条件を設定してください（任意）
+      </div>
+      <div className="space-y-3">
+        {draftFilters.map((filter, idx) => (
+          <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border rounded">
+            <KintoneFieldSelect
+              value={filter.field_code}
+              onChange={(value) => updateFilter(idx, 'field_code', value)}
+              options={kintoneFields}
+            />
+            <div className="flex items-center text-sm text-muted-foreground">
+              =
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={filter.filter_value}
+                onChange={(e) => updateFilter(idx, 'filter_value', e.target.value)}
+                placeholder="フィルター値を入力"
+                className="flex-1 px-3 py-2 border rounded text-sm"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeFilter(idx)}
+                className="px-2"
+              >
+                ×
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addFilter}
+          >
+            フィルターを追加
+          </Button>
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <Button 
+          type="button" 
+          onClick={next} 
+          disabled={!canProceed}
+        >
+          次へ
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function MappingFields() {
   const {
     selectedKintoneApp,
     selectedDestinationApp,
+    draftFilters,
     draftFieldMappings,
     setDraftFieldMappings,
     connectorId,
@@ -329,6 +456,8 @@ function MappingFields() {
 
   async function onSaveDraft() {
     if (!selectedKintoneApp || !selectedDestinationApp) return
+    
+    // First save the mapping
     const res = await fetch(`/api/connector/mappings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -340,10 +469,27 @@ function MappingFields() {
         field_mappings: draftFieldMappings,
       }),
     })
+    
     if (res.ok) {
       const data = await res.json()
       setMappingIdDraft(data.mapping_id)
       console.log(`[FLOW] SaveDraft mappingId=${data.mapping_id}`)
+      
+      // Then save filters if any
+      if (draftFilters.length > 0) {
+        const filterRes = await fetch(`/api/connectors/${connectorId}/mappings/${data.mapping_id}/filters`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filters: draftFilters }),
+        })
+        
+        if (filterRes.ok) {
+          console.log(`[FLOW] Filters saved for mappingId=${data.mapping_id}`)
+        } else {
+          console.error('Failed to save filters:', await filterRes.json())
+        }
+      }
+      
       next()
     }
   }
@@ -396,10 +542,24 @@ function MappingFields() {
 }
 
 function ReviewAndSave() {
-  const { selectedKintoneApp, selectedDestinationApp, draftFieldMappings, mappingIdDraft } = useKintoneWizardStore()
+  const { selectedKintoneApp, selectedDestinationApp, draftFilters, draftFieldMappings, mappingIdDraft } = useKintoneWizardStore()
   return (
     <div className="space-y-4 text-sm">
       <div>アプリ: {selectedKintoneApp?.name} → {selectedDestinationApp?.name}</div>
+      
+      {draftFilters.length > 0 && (
+        <div>
+          <div className="font-medium mb-2">フィルター条件:</div>
+          <div className="border rounded p-3 space-y-1">
+            {draftFilters.map((f, i) => (
+              <div key={i} className="text-xs">
+                {f.field_name} ({f.field_code}) = "{f.filter_value}"
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div>ペア数: {draftFieldMappings.length}</div>
       <div className="border rounded p-3">
         {draftFieldMappings.map((m, i) => (
@@ -456,6 +616,7 @@ export function KintoneWizardModal() {
           <div className="p-6 max-h-[70vh] overflow-auto">
             {uiFlowState === "selectingKintoneApp" && <SelectingKintoneApp />}
             {uiFlowState === "selectingDestinationApp" && <SelectingDestinationApp />}
+            {uiFlowState === "settingFilters" && <SettingFilters />}
             {uiFlowState === "mappingFields" && <MappingFields />}
             {uiFlowState === "reviewAndSave" && <ReviewAndSave />}
             {uiFlowState === "done" && <DoneStep />}
