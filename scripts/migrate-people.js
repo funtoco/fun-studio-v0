@@ -42,7 +42,7 @@ async function migratePeopleData() {
         phone: person.phone,
         email: person.email,
         address: person.address,
-        company: person.company,
+        // company: person.company, // 削除: tenantNameに変更
         note: person.note,
         visa_id: person.visaId,
         created_at: person.createdAt,

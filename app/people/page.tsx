@@ -93,7 +93,7 @@ export default function PeoplePage() {
       filterable: true,
     },
     {
-      key: "company",
+      key: "tenantName",
       label: "会社",
       sortable: true,
       filterable: true,
@@ -138,11 +138,11 @@ export default function PeoplePage() {
       multiple: true,
     },
     {
-      key: "company",
+      key: "tenantName",
       label: "会社",
-      options: Array.from(new Set(people.map((p) => p.company).filter(Boolean))).map((company) => ({
-        value: company!,
-        label: company!,
+      options: Array.from(new Set(people.map((p) => p.tenantName).filter(Boolean))).map((tenantName) => ({
+        value: tenantName!,
+        label: tenantName!,
       })),
       multiple: true,
     },
@@ -218,7 +218,7 @@ export default function PeoplePage() {
         data={peopleWithVisas}
         columns={columns}
         filters={filters}
-        searchKeys={["name", "company", "email", "nationality"]}
+        searchKeys={["name", "tenantName", "email", "nationality"]}
         onRowClick={handleRowClick}
       />
     </div>

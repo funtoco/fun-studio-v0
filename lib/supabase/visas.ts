@@ -218,7 +218,7 @@ export async function getVisasPaginated(
         name,
         kana,
         nationality,
-        company
+        tenant_id
       )
     `, { count: 'exact' })
     .order('updated_at', { ascending: false })
@@ -251,7 +251,7 @@ export async function getVisasPaginated(
       name: item.people.name,
       kana: item.people.kana,
       nationality: item.people.nationality,
-      company: item.people.company
+      tenantId: item.people.tenant_id
     }
   }))
   

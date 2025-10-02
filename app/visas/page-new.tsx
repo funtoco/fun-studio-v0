@@ -212,7 +212,7 @@ export default function VisasPage() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span>{visa.type}</span>
                         <span>担当: {visa.manager || "未設定"}</span>
-                        {visa.person.company && <span>{visa.person.company}</span>}
+                        {visa.person.tenantId && <span>テナントID: {visa.person.tenantId}</span>}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">

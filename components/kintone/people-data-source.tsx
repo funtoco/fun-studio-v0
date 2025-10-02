@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Database, RefreshCw, Loader2, AlertCircle, CheckCircle } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 import { getPeople } from "@/lib/supabase/people"
 import { getVisas } from "@/lib/supabase/visas"
@@ -167,7 +168,7 @@ export function PeopleDataSource({ onDataChange, onLoadingChange, onErrorChange 
       name: record.name || record.名前 || record.氏名 || 'Unknown',
       kana: record.kana || record.カナ || record.フリガナ || '',
       nationality: record.nationality || record.国籍 || '',
-      company: record.company || record.会社 || record.所属会社 || '',
+      tenantName: record.company || record.会社 || record.所属会社 || '',
       email: record.email || record.メール || record.メールアドレス || '',
       phone: record.phone || record.電話 || record.電話番号 || '',
       employeeNumber: record.employeeNumber || record.従業員番号 || record.社員番号 || '',
