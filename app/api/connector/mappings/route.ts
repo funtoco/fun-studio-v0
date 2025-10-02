@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { KintoneApiClient } from '@/lib/kintone/api-client'
+import { decryptJson } from '@/lib/crypto/secretStore'
 
 export const runtime = 'nodejs'
 
@@ -97,22 +99,79 @@ export async function POST(request: NextRequest) {
 
     // Save draft field mappings if provided
     if (Array.isArray(field_mappings) && field_mappings.length > 0) {
+      // Get Kintone field information to populate source_field_type and source_field_name
+      let kintoneFields: any[] = []
+      try {
+        // Get Kintone config and token
+        const { data: configCreds } = await supabase
+          .from('credentials')
+          .select('*')
+          .eq('connector_id', connector_id)
+          .eq('type', 'kintone_config')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        const { data: tokenCreds } = await supabase
+          .from('credentials')
+          .select('*')
+          .eq('connector_id', connector_id)
+          .eq('type', 'kintone_token')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (configCreds && tokenCreds) {
+          let kintoneConfig
+          if (configCreds.payload) {
+            kintoneConfig = JSON.parse(configCreds.payload)
+          } else if (configCreds.payload_encrypted) {
+            kintoneConfig = decryptJson(configCreds.payload_encrypted)
+          }
+
+          let tokenData
+          if (tokenCreds.payload) {
+            tokenData = JSON.parse(tokenCreds.payload)
+          } else if (tokenCreds.payload_encrypted) {
+            tokenData = decryptJson(tokenCreds.payload_encrypted)
+          }
+
+          if (kintoneConfig?.domain && tokenData?.access_token) {
+            const kintoneClient = new KintoneApiClient({ 
+              domain: kintoneConfig.domain, 
+              accessToken: tokenData.access_token 
+            })
+            kintoneFields = await kintoneClient.getAppFields(String(source_app_id))
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch Kintone fields for field mapping:', error)
+        // Continue without field type information
+      }
+
       // replace existing field mappings for this mapping
       await supabase.from('connector_field_mappings').delete().eq('app_mapping_id', upserted.id)
 
       const toInsert = field_mappings
         .filter((f: any) => f.source_field_code && f.destination_field_key)
-        .map((f: any, index: number) => ({
-          connector_id,
-          app_mapping_id: upserted.id,
-          source_field_id: f.source_field_code,
-          source_field_code: f.source_field_code,
-          target_field_id: f.destination_field_key,
-          target_field_code: f.destination_field_key,
-          is_required: false,
-          is_active: true,
-          sort_order: index,
-        }))
+        .map((f: any, index: number) => {
+          // Find corresponding Kintone field information
+          const kintoneField = kintoneFields.find(field => field.code === f.source_field_code)
+          
+          return {
+            connector_id,
+            app_mapping_id: upserted.id,
+            source_field_id: f.source_field_code,
+            source_field_code: f.source_field_code,
+            source_field_name: kintoneField?.label || f.source_field_code,
+            source_field_type: kintoneField?.type || 'UNKNOWN',
+            target_field_id: f.destination_field_key,
+            target_field_code: f.destination_field_key,
+            is_required: false,
+            is_active: true,
+            sort_order: index,
+          }
+        })
 
       if (toInsert.length > 0) {
         await supabase.from('connector_field_mappings').insert(toInsert)
