@@ -8,8 +8,28 @@ globs: *.sql,supabase/migrations/*.sql
 ## マイグレーションファイル命名規則
 
 マイグレーションファイルは以下のパターンに従います: `YYYYMMDDHHMMSS_description.sql`
-- 新しいマイグレーションには現在の日時を使用
-- 例: `20251002000000_create_connector_app_filters.sql`
+
+### 日時取得方法
+新しいマイグレーションを作成する際は、必ずMCPを使って現在日時を取得してください：
+
+1. **MCPで現在日時を取得**:
+   ```
+   mcp_datetime_get-current-time
+   ```
+
+2. **取得した日時をフォーマット**:
+   - 例: `2025-10-02T15:58:40.570+09:00` → `20251002155840`
+   - タイムゾーンはJST（+09:00）を想定
+   - 秒まで使用（ミリ秒は切り捨て）
+
+3. **ファイル名の例**:
+   - `20251002155840_create_connector_app_filters.sql`
+   - `20251002160000_fix_user_tenants_rls_policies.sql`
+
+### 注意事項
+- 未来の日時を使用しない（例: 20250103は2025年1月3日で未来）
+- 既存のマイグレーションより新しい日時を使用
+- 同じ秒に複数のマイグレーションを作成する場合は、秒を1つずつ増やす
 
 ## テーブル構造パターン
 
@@ -49,6 +69,27 @@ CREATE POLICY "Users can access [table] for their tenant" ON "public"."[table]"
 - **ローカル開発**: `npx supabase db reset` (リセットしてすべてのマイグレーションを適用)
 - **ローカル増分**: `npx supabase migration up` (新しいマイグレーションのみ適用)
 - **本番環境**: `npx supabase db push` (リモートSupabaseに適用)
+
+### マイグレーション作成ワークフロー
+
+1. **現在日時を取得**:
+   ```
+   mcp_datetime_get-current-time
+   ```
+
+2. **ファイル名を決定**:
+   - 取得した日時を `YYYYMMDDHHMMSS` 形式に変換
+   - 適切な説明を追加
+
+3. **マイグレーションファイルを作成**:
+   ```bash
+   touch supabase/migrations/YYYYMMDDHHMMSS_description.sql
+   ```
+
+4. **マイグレーションを適用**:
+   ```bash
+   npx supabase migration up
+   ```
 
 ## 共通パターン
 

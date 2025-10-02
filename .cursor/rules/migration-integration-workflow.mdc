@@ -1,0 +1,137 @@
+---
+description: マイグレーションファイルの統合と修正ワークフロー
+globs: supabase/migrations/*.sql
+---
+
+# マイグレーションファイル統合ワークフロー
+
+## 基本原則
+**コミットされていないマイグレーションファイルが重複している場合、統合して1つのファイルにまとめる**
+
+## 統合が必要な状況
+- 複数のマイグレーションファイルで同じテーブル/ポリシーを修正している
+- 後から作成したマイグレーションで前のマイグレーションを`DROP`している
+- マイグレーション履歴が冗長になっている
+
+## 統合ワークフロー
+
+### 1. 現状確認
+```bash
+npx supabase migration list
+```
+- ローカルとリモートのマイグレーション状態を確認
+- 重複や冗長なマイグレーションを特定
+
+### 2. 最新マイグレーションをロールバック
+```bash
+npx supabase migration down
+```
+- 統合対象の最新マイグレーションを`down`で戻す
+- データベースを統合前の状態に戻す
+
+### 3. 重複ファイルを削除
+- 古い/冗長なマイグレーションファイルを削除
+- 統合するファイルを特定
+
+### 4. 統合ファイルを修正
+- 残すファイルに全ての変更を統合
+- 重複する`DROP POLICY`や`CREATE POLICY`を整理
+- コメントで統合したことを明記
+
+### 5. マイグレーション履歴を修復
+```bash
+# 削除したファイルの履歴をrevertedに設定
+npx supabase migration repair --status reverted [deleted_migration_id]
+
+# 統合ファイルの履歴をappliedに設定
+npx supabase migration repair --status applied [integrated_migration_id]
+```
+
+### 6. 統合ファイルを適用
+```bash
+npx supabase migration up
+```
+
+## 統合時の注意事項
+
+### ファイル名の命名規則
+- 統合ファイルは最新の日時を使用
+- コメントで統合したファイルを明記
+- 例: `-- Replaces the previous migration 20251002160000_fix_user_tenants_rls_policies.sql`
+
+### 内容の整理
+- 重複する`DROP POLICY`文を削除
+- 重複する`CREATE POLICY`文を統合
+- 関数定義は1つにまとめる
+- コメントで変更履歴を追跡可能にする
+
+### 履歴の管理
+- 削除したファイルの履歴は`reverted`に設定
+- 統合ファイルの履歴は`applied`に設定
+- マイグレーション履歴の整合性を保つ
+
+## 統合テンプレート
+
+### 統合ファイルのヘッダー
+```sql
+-- [統合された機能の説明]
+-- This migration [機能説明]
+-- Replaces the previous migration [削除したファイル名]
+```
+
+### 統合時の構造
+```sql
+-- 1. 関数定義（重複を避けて1つにまとめる）
+CREATE OR REPLACE FUNCTION function_name() ...
+
+-- 2. 既存ポリシーの削除（重複を避けて整理）
+DROP POLICY IF EXISTS "policy_name" ON "table_name";
+
+-- 3. 新しいポリシーの作成（統合された内容）
+CREATE POLICY "policy_name" ON "table_name" ...
+
+-- 4. コメントでドキュメント化
+COMMENT ON FUNCTION function_name() IS '説明';
+```
+
+## 実行前の確認事項
+
+### 必須チェック
+- [ ] 統合対象のマイグレーションがコミットされていない
+- [ ] 重複する内容を特定している
+- [ ] 統合後のファイルが完全である
+- [ ] マイグレーション履歴の修復計画がある
+
+### 安全確認
+- [ ] データベースのバックアップを取得済み（必要に応じて）
+- [ ] 統合後の動作テスト計画がある
+- [ ] ロールバック手順を理解している
+
+## 例：実際の統合手順
+
+```bash
+# 1. 現状確認
+npx supabase migration list
+
+# 2. 最新をロールバック
+npx supabase migration down
+
+# 3. 重複ファイル削除
+rm supabase/migrations/20251002160000_old_migration.sql
+
+# 4. 統合ファイル修正
+# ファイル内容を統合・整理
+
+# 5. 履歴修復
+npx supabase migration repair --status reverted 20251002160000
+npx supabase migration repair --status applied 20251002160938
+
+# 6. 適用
+npx supabase migration up
+```
+
+## 覚えておくこと
+- 統合は**コミット前**にのみ実行
+- 統合後は必ず動作確認
+- マイグレーション履歴の整合性を保つ
+- 統合の理由と内容をコメントで記録

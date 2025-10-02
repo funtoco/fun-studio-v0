@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+      "datetime": {
+        "command": "npx",
+        "args": ["-y", "@odgrim/mcp-datetime"],
+        "env": {}
+      }
+    }
+  }
+  
