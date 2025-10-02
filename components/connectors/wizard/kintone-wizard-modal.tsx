@@ -453,24 +453,31 @@ function MappingFields() {
   const destFields = schemaCache?.data.columns || []
 
   const canSave = draftFieldMappings.length >= 1 && draftFieldMappings.every(m => m.source_field_code && m.destination_field_key)
+  const [isSaving, setIsSaving] = useState(false)
 
   async function onSaveDraft() {
-    if (!selectedKintoneApp || !selectedDestinationApp) return
+    if (!selectedKintoneApp || !selectedDestinationApp || isSaving) return
     
-    // First save the mapping
-    const res = await fetch(`/api/connector/mappings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        connector_id: connectorId,
-        source_type: 'kintone',
-        source_app_id: selectedKintoneApp.id,
-        destination_app_key: selectedDestinationApp.key,
-        field_mappings: draftFieldMappings,
-      }),
-    })
-    
-    if (res.ok) {
+    setIsSaving(true)
+    try {
+      // First save the mapping
+      const res = await fetch(`/api/connector/mappings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          connector_id: connectorId,
+          source_type: 'kintone',
+          source_app_id: selectedKintoneApp.id,
+          destination_app_key: selectedDestinationApp.key,
+          field_mappings: draftFieldMappings,
+        }),
+      })
+      
+      if (!res.ok) {
+        console.error('Failed to save mapping:', await res.json())
+        return
+      }
+      
       const data = await res.json()
       setMappingIdDraft(data.mapping_id)
       console.log(`[FLOW] SaveDraft mappingId=${data.mapping_id}`)
@@ -483,14 +490,19 @@ function MappingFields() {
           body: JSON.stringify({ filters: draftFilters }),
         })
         
-        if (filterRes.ok) {
-          console.log(`[FLOW] Filters saved for mappingId=${data.mapping_id}`)
-        } else {
+        if (!filterRes.ok) {
           console.error('Failed to save filters:', await filterRes.json())
+          return
         }
+        
+        console.log(`[FLOW] Filters saved for mappingId=${data.mapping_id}`)
       }
       
       next()
+    } catch (error) {
+      console.error('Error in onSaveDraft:', error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -535,7 +547,9 @@ function MappingFields() {
         </div>
       </div>
       <div className="flex justify-end">
-        <Button type="button" onClick={onSaveDraft} disabled={!canSave}>下書きを保存</Button>
+        <Button type="button" onClick={onSaveDraft} disabled={!canSave || isSaving}>
+          {isSaving ? '保存中...' : '下書きを保存'}
+        </Button>
       </div>
     </div>
   )
@@ -640,13 +654,15 @@ export function KintoneWizardModal() {
 
 function ActivateButton({ mappingId }: { mappingId: string | null }) {
   const { close, connectorId, tenantId, editMode, draftFieldMappings } = useKintoneWizardStore()
+  const [isActivating, setIsActivating] = useState(false)
   
   async function onActivate() {
-    if (!mappingId || !connectorId || !tenantId) return
+    if (!mappingId || !connectorId || !tenantId || isActivating) return
     
+    setIsActivating(true)
     try {
       if (editMode) {
-        // 編集モードの場合は更新処理
+        // 編集モードの場合はフィールドマッピングを更新してから有効化
         const res = await fetch(`/api/connectors/${connectorId}/mappings/${mappingId}/fields`, {
           method: 'POST',
           headers: {
@@ -660,63 +676,36 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
           })
         })
         
-        if (res.ok) {
-          console.log(`[FLOW] Field mappings updated for mappingId=${mappingId}`)
-          
-          // 更新後に連携も実行
-          const syncRes = await fetch(`/api/connectors/${connectorId}/sync`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tenantId,
-              force: true
-            })
-          })
-          
-          if (syncRes.ok) {
-            const syncResult = await syncRes.json()
-            console.log(`[FLOW] Sync started after update for connectorId=${connectorId}`, syncResult)
-            // 新規登録と同様のイベントを送信
-            window.dispatchEvent(new CustomEvent('mapping:activated'))
-            close()
-          } else {
-            console.error('[FLOW] Sync failed after update:', await syncRes.json())
-            // フィールド更新は成功したので、更新イベントは送信
-            window.dispatchEvent(new CustomEvent('mapping:updated'))
-            close()
-          }
-        } else {
+        if (!res.ok) {
           const error = await res.json()
-          console.error('[FLOW] Update failed:', error)
+          console.error('[FLOW] Field mapping update failed:', error)
+          return
         }
-      } else {
-        // 新規作成モードの場合は同期処理
-        const res = await fetch(`/api/connectors/${connectorId}/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tenantId,
-            force: true
-          })
-        })
         
-        if (res.ok) {
-          const result = await res.json()
-          console.log(`[FLOW] Sync started for connectorId=${connectorId}, mappingId=${mappingId}`, result)
-          // notify page to refresh mapping card
-          window.dispatchEvent(new CustomEvent('mapping:activated'))
-          close()
-        } else {
-          const error = await res.json()
-          console.error('[FLOW] Sync failed:', error)
+        console.log(`[FLOW] Field mappings updated for mappingId=${mappingId}`)
+      }
+      
+      // マッピングを有効化（連携処理は実行しない）
+      const activateRes = await fetch(`/api/connectors/${connectorId}/mappings/${mappingId}/activate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         }
+      })
+      
+      if (activateRes.ok) {
+        console.log(`[FLOW] Mapping activated for mappingId=${mappingId}`)
+        // UI更新イベントを送信
+        window.dispatchEvent(new CustomEvent('mapping:activated'))
+        close()
+      } else {
+        const error = await activateRes.json()
+        console.error('[FLOW] Activation failed:', error)
       }
     } catch (error) {
       console.error('[FLOW] Operation error:', error)
+    } finally {
+      setIsActivating(false)
     }
   }
   
@@ -724,9 +713,9 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
     <Button 
       type="button" 
       onClick={onActivate} 
-      disabled={!mappingId || !connectorId || !tenantId}
+      disabled={!mappingId || !connectorId || !tenantId || isActivating}
     >
-      有効化
+      {isActivating ? '有効化中...' : '有効化'}
     </Button>
   )
 }
