@@ -5,7 +5,6 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { AuthProvider } from "@/contexts/auth-context"
-import { CompanyProvider } from "@/contexts/company-context"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { ConditionalLayout } from "@/components/layout/conditional-layout"
@@ -27,12 +26,10 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <AuthProvider>
-          <CompanyProvider>
-            <ConditionalLayout>
-              <Suspense fallback={null}>{children}</Suspense>
-            </ConditionalLayout>
-            <Toaster />
-          </CompanyProvider>
+          <ConditionalLayout>
+            <Suspense fallback={null}>{children}</Suspense>
+          </ConditionalLayout>
+          <Toaster />
         </AuthProvider>
         <Analytics />
       </body>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Bell, Settings, User, LogOut, Building2, Eye, RefreshCw, Cable, Users } from "lucide-react"
+import { Search, Bell, Settings, User, LogOut, RefreshCw, Cable, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -12,15 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/contexts/auth-context"
-import { useCompany } from "@/contexts/company-context"
 import { useRouter } from "next/navigation"
 import { currentUser } from "@/data/users"
 
 export function Header() {
   const { user, role, signOut, refreshUser } = useAuth()
-  const { selectedCompanyId, selectedCompany, availableCompanies, setSelectedCompanyId, isAllCompaniesView } = useCompany()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -56,42 +53,6 @@ export function Header() {
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-            <SelectTrigger className="w-48">
-              <SelectValue>
-                {isAllCompaniesView ? (
-                  <div className="flex items-center space-x-2">
-                    <Eye className="h-4 w-4" />
-                    <span>全て表示</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Building2 className="h-4 w-4" />
-                    <span>{selectedCompany?.name || "会社を選択"}</span>
-                  </div>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <div className="flex items-center space-x-2">
-                  <Eye className="h-4 w-4" />
-                  <span>全て表示</span>
-                </div>
-              </SelectItem>
-              {availableCompanies.map((company) => (
-                <SelectItem key={company.id} value={company.id}>
-                  <div className="flex items-center space-x-2">
-                    <Building2 className="h-4 w-4" />
-                    <span>{company.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       {/* Actions */}
@@ -112,10 +73,6 @@ export function Header() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>管理者設定</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/admin/companies')}>
-                <Building2 className="mr-2 h-4 w-4" />
-                法人管理
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/admin/connectors/dashboard')}>
                 <Cable className="mr-2 h-4 w-4" />
                 コネクター管理
