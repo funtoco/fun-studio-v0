@@ -18,6 +18,7 @@ import { Shield, Database, GitBranch, Zap, AlertCircle, Settings, Activity } fro
 import Image from "next/image"
 import Link from "next/link"
 import { getConnector, getConnectionStatus } from "@/lib/db/connectors"
+import { getTenantById } from "@/lib/supabase/tenants"
 import { redactClientId, redactDomain } from "@/lib/ui/redact"
 
 // New function to get connection status from oauth_credentials
@@ -101,6 +102,9 @@ export default async function ConnectorDetailPage({
   
   // Get connection status using oauth_credentials
   const connectionStatus = await getConnectionStatusFromCredentials(connectorId)
+  
+  // Get tenant information
+  const tenant = await getTenantById(connector.tenant_id)
   
   // Get real data from database
   let logs: any[] = []
@@ -392,6 +396,11 @@ export default async function ConnectorDetailPage({
                     {
                       key: '表示名',
                       value: connector.display_name,
+                      icon: <Database className="h-4 w-4" />
+                    },
+                    {
+                      key: 'テナント名',
+                      value: tenant?.name || 'Unknown Tenant',
                       icon: <Database className="h-4 w-4" />
                     },
                     {
