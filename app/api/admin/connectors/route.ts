@@ -5,11 +5,22 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { listConnectors, createConnector, getCredential, getConnectionStatus } from '@/lib/db/connectors'
+import { listConnectors, createConnector, getCredential, getConnectionStatus, listAllConnectors } from '@/lib/db/connectors'
+import { getTenantById } from '@/lib/supabase/tenants'
 import { computeRedirectUri } from '@/lib/utils/redirect-uri'
 
 // Use Node.js runtime for crypto operations
 export const runtime = 'nodejs'
+
+// Helper function to get tenant info
+async function getTenantInfo(tenantId: string) {
+  try {
+    return await getTenantById(tenantId)
+  } catch (error) {
+    console.error(`Failed to get tenant info for ${tenantId}:`, error)
+    return null
+  }
+}
 
 // Validation schema for new connector system
 const createConnectorSchema = z.object({
@@ -28,21 +39,24 @@ export async function GET(request: NextRequest) {
     const tenantId = searchParams.get('tenantId')
     const searchQuery = searchParams.get('q')
     
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'tenantId is required' },
-        { status: 400 }
-      )
+    // Get all connectors if no specific tenantId is provided
+    let connectors
+    if (tenantId) {
+      connectors = await listConnectors(tenantId)
+    } else {
+      // Get all connectors from all tenants
+      connectors = await listAllConnectors()
     }
     
-    const connectors = await listConnectors(tenantId)
-    
-    // Enrich connectors with config and status data
+    // Enrich connectors with config, status data, and tenant info
     const enrichedConnectors = await Promise.all(
       connectors.map(async (connector) => {
         try {
           // Get connection status
           const status = await getConnectionStatus(connector.id)
+          
+          // Get tenant info
+          const tenantInfo = await getTenantInfo(connector.tenant_id)
           
           // For now, use mock config to avoid encryption issues
           const mockConfig = {
@@ -55,6 +69,8 @@ export async function GET(request: NextRequest) {
             provider: connector.provider,
             status: status?.status || 'disconnected',
             provider_config: mockConfig,
+            tenant_id: connector.tenant_id,
+            tenant_name: tenantInfo?.name || 'Unknown Tenant',
             created_at: connector.created_at,
             updated_at: connector.updated_at
           }
@@ -66,6 +82,8 @@ export async function GET(request: NextRequest) {
             provider: connector.provider,
             status: 'error',
             provider_config: { subdomain: 'funtoco' },
+            tenant_id: connector.tenant_id,
+            tenant_name: 'Unknown Tenant',
             created_at: connector.created_at,
             updated_at: connector.updated_at
           }

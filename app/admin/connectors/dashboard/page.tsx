@@ -22,8 +22,8 @@ interface ConnectorDashboardPageProps {
 }
 
 export default function ConnectorDashboardPage({ searchParams }: ConnectorDashboardPageProps) {
-  // For development, use default tenant
-  const tenantId = searchParams.tenantId || "550e8400-e29b-41d4-a716-446655440001" // Funtoco
+  // Get tenantId from search params, or undefined to show all connectors
+  const tenantId = searchParams.tenantId
   const searchQuery = searchParams.q
 
   // Calculate statistics

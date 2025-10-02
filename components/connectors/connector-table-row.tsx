@@ -70,6 +70,11 @@ export function ConnectorTableRow({
         </div>
       </TableCell>
       <TableCell>
+        <span className="text-sm text-muted-foreground">
+          {(connector as any).tenant_name || 'Unknown Tenant'}
+        </span>
+      </TableCell>
+      <TableCell>
         <Badge variant="outline">
           {connector.provider.charAt(0).toUpperCase() + connector.provider.slice(1)}
         </Badge>

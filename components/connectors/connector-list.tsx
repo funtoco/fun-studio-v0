@@ -30,7 +30,11 @@ export function ConnectorList({ tenantId, searchQuery }: ConnectorListProps) {
     try {
       setLoading(true)
       setError(null)
-      const response = await fetch(`/api/admin/connectors?tenantId=${tenantId}&q=${searchQuery || ''}`)
+      // If tenantId is provided, filter by tenant, otherwise get all connectors
+      const url = tenantId 
+        ? `/api/admin/connectors?tenantId=${tenantId}&q=${searchQuery || ''}`
+        : `/api/admin/connectors?q=${searchQuery || ''}`
+      const response = await fetch(url)
       if (!response.ok) throw new Error('Failed to fetch connectors')
       const data = await response.json()
       setConnectors(data.connectors || [])
@@ -163,6 +167,7 @@ export function ConnectorList({ tenantId, searchQuery }: ConnectorListProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>名称</TableHead>
+                  <TableHead>テナント名</TableHead>
                   <TableHead>プロバイダー</TableHead>
                   <TableHead>設定</TableHead>
                   <TableHead>ステータス</TableHead>
