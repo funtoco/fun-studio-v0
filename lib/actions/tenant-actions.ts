@@ -56,6 +56,25 @@ export async function createTenantAction(data: CreateTenantData) {
       throw new Error('テナントの作成に失敗しました')
     }
 
+    // Add the creator as owner in user_tenants table
+    const { error: userTenantError } = await supabase
+      .from('user_tenants')
+      .insert({
+        user_id: user.id,
+        tenant_id: tenant.id,
+        email: user.email,
+        role: 'owner',
+        status: 'active',
+        joined_at: new Date().toISOString()
+      })
+
+    if (userTenantError) {
+      console.error('Error adding user to tenant:', userTenantError)
+      // If user_tenants insertion fails, we should clean up the tenant
+      await supabase.from('tenants').delete().eq('id', tenant.id)
+      throw new Error('ユーザーをテナントに追加できませんでした')
+    }
+
     // Update user metadata with tenant name
     const { error: updateError } = await supabase.auth.updateUser({
       data: {
