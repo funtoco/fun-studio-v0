@@ -19,9 +19,10 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Database, Settings, ExternalLink, RefreshCw, Loader2, Plus, Edit, Trash2, Search, X, GitBranch, AlertCircle } from "lucide-react"
+import { Database, Settings, ExternalLink, RefreshCw, Loader2, Plus, Edit, Trash2, Search, X, GitBranch, AlertCircle, ToggleLeft, ToggleRight } from "lucide-react"
 import { type Connector } from "@/lib/types/connector"
 import { toast } from "sonner"
+import { StatusToggleDialog } from "@/components/ui/status-toggle-dialog"
 
 interface AppMapping {
   id: string
@@ -133,6 +134,13 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   const [loadingMore, setLoadingMore] = useState(false)
   const [currentOffset, setCurrentOffset] = useState(0)
   const [addingApp, setAddingApp] = useState<string | null>(null)
+  
+  // Status toggle dialog state
+  const [statusToggleDialog, setStatusToggleDialog] = useState<{
+    isOpen: boolean
+    mapping: AppMapping | null
+  }>({ isOpen: false, mapping: null })
+  const [togglingStatus, setTogglingStatus] = useState<string | null>(null)
   
   // Reset addingApp state on component mount
   useEffect(() => {
@@ -528,6 +536,58 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       })
     } finally {
       setSyncingMapping(null)
+    }
+  }
+
+  const handleStatusToggle = (mapping: AppMapping) => {
+    setStatusToggleDialog({ isOpen: true, mapping })
+  }
+
+  const handleConfirmStatusToggle = async () => {
+    const { mapping } = statusToggleDialog
+    if (!mapping) return
+
+    try {
+      setTogglingStatus(mapping.id)
+      
+      const endpoint = mapping.is_active 
+        ? `/api/connectors/${connector.id}/mappings/${mapping.id}/deactivate`
+        : `/api/connectors/${connector.id}/mappings/${mapping.id}/activate`
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to toggle status')
+      }
+      
+      // Update local state
+      setAppMappings(prev => 
+        prev.map(m => 
+          m.id === mapping.id 
+            ? { ...m, is_active: !m.is_active }
+            : m
+        )
+      )
+      
+      const action = mapping.is_active ? '無効化' : '有効化'
+      toast.success(`マッピングを${action}しました`, {
+        description: `${mapping.source_app_name || mapping.kintone_app_name} のマッピングが${action}されました`
+      })
+      
+    } catch (error) {
+      console.error('Error toggling status:', error)
+      const action = mapping.is_active ? '無効化' : '有効化'
+      toast.error(`マッピングの${action}に失敗しました`, {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setTogglingStatus(null)
     }
   }
 
@@ -1038,9 +1098,25 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={mapping.is_active ? "default" : "secondary"}>
-                      {mapping.is_active ? "有効" : "無効"}
-                    </Badge>
+                    <Button
+                      variant={mapping.is_active ? "default" : "secondary"}
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleStatusToggle(mapping)
+                      }}
+                      disabled={togglingStatus === mapping.id}
+                      className="flex items-center space-x-1"
+                    >
+                      {togglingStatus === mapping.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : mapping.is_active ? (
+                        <ToggleRight className="h-4 w-4" />
+                      ) : (
+                        <ToggleLeft className="h-4 w-4" />
+                      )}
+                      <span>{mapping.is_active ? "有効" : "無効"}</span>
+                    </Button>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(mapping.created_at).toLocaleDateString('ja-JP')}
@@ -1180,6 +1256,16 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       </Dialog>
 
       <KintoneWizardModal />
+      
+      {/* Status Toggle Dialog */}
+      <StatusToggleDialog
+        isOpen={statusToggleDialog.isOpen}
+        onClose={() => setStatusToggleDialog({ isOpen: false, mapping: null })}
+        onConfirm={handleConfirmStatusToggle}
+        currentStatus={statusToggleDialog.mapping?.is_active ?? false}
+        appName={statusToggleDialog.mapping?.source_app_name || statusToggleDialog.mapping?.kintone_app_name || ''}
+        isLoading={togglingStatus === statusToggleDialog.mapping?.id}
+      />
     </div>
   )
 }
