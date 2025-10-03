@@ -220,8 +220,9 @@ export class KintoneDataSync {
 
   /**
    * Sync all data from Kintone to Supabase based on connector_app_mappings
+   * @param appMappingId Optional specific app mapping ID to sync. If not provided, syncs all active mappings.
    */
-  async syncAll(): Promise<SyncResult> {
+  async syncAll(appMappingId?: string): Promise<SyncResult> {
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       // Check active mapping exists for this connector
       const { data: activeMappings } = await this.supabase
@@ -250,15 +251,24 @@ export class KintoneDataSync {
         this.runBy
       )
 
-      // Get all active app mappings for this connector
-      const { data: appMappings, error: mappingsError } = await this.supabase
+      // Get app mappings for this connector
+      let query = this.supabase
         .from('connector_app_mappings')
         .select('id, target_app_type, source_app_id')
         .eq('connector_id', this.connectorId)
         .eq('is_active', true)
 
+      // If specific app mapping ID is provided, filter by it
+      if (appMappingId) {
+        query = query.eq('id', appMappingId)
+      }
+
+      const { data: appMappings, error: mappingsError } = await query
+
       if (mappingsError || !appMappings || appMappings.length === 0) {
-        const error = 'No active app mappings found'
+        const error = appMappingId 
+          ? `No active app mapping found with ID: ${appMappingId}`
+          : 'No active app mappings found'
         errors.push(error)
         return { success: false, synced: {}, errors, duration: Date.now() - startTime, sessionId }
       }
@@ -323,6 +333,8 @@ export class KintoneDataSync {
    * Sync app data from Kintone based on app mapping configuration
    */
   private async syncAppData(targetAppType: string, sourceAppId: string): Promise<number> {
+    console.log(`🔄 Starting sync for ${targetAppType} from app ${sourceAppId}`)
+    
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       const { data: active } = await this.supabase
         .from('connector_app_mappings')
@@ -339,21 +351,35 @@ export class KintoneDataSync {
       // Get mapping configuration from database
       const appMapping = await getAppMapping(this.supabase, this.connectorId, targetAppType)
       if (!appMapping) {
-        console.error(`No active ${targetAppType} mapping found`)
+        console.error(`❌ No active ${targetAppType} mapping found`)
         return 0
       }
+      
+      console.log(`📋 Found mapping for ${targetAppType}:`, {
+        sourceAppId: appMapping.source_app_id,
+        fieldMappingsCount: appMapping.field_mappings.length,
+        fieldMappings: appMapping.field_mappings.map(fm => ({
+          source: fm.source_field_code,
+          target: fm.target_field_id,
+          required: fm.is_required
+        }))
+      })
       
       // Build query using only database filter conditions
       const filterQuery = await this.buildFilterQuery(targetAppType as 'people' | 'visas')
       const query = filterQuery || ''
       
+      console.log(`🔍 Query for ${targetAppType}:`, query || 'No filters')
+      
       // Get records from Kintone
       const records = await this.kintoneClient.getRecords(sourceAppId, query, [])
+      console.log(`📊 Retrieved ${records.length} records from Kintone for ${targetAppType}`)
     
       let syncedCount = 0
       
       for (const record of records) {
         const itemId = `k_${record.$id.value}`
+        console.log(`🔄 Processing record ${record.$id.value} for ${targetAppType}`)
         
         try {
           // Transform Kintone record to our format using database field mappings
@@ -368,8 +394,8 @@ export class KintoneDataSync {
           for (const fieldMapping of appMapping.field_mappings) {
             const sourceValue = record[fieldMapping.source_field_code]?.value
             data[fieldMapping.target_field_id] = sourceValue || null
+            console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
           }
-
 
           // Determine target table based on app type
           const targetTable = this.getTargetTable(targetAppType)
@@ -377,37 +403,43 @@ export class KintoneDataSync {
             throw new Error(`Unknown target app type: ${targetAppType}`)
           }
 
+          console.log(`💾 Upserting to ${targetTable}:`, data)
+
           // Upsert to Supabase
           const { error } = await this.supabase
             .from(targetTable)
             .upsert(data, { onConflict: 'id' })
 
           if (error) {
+            console.error(`❌ Database error for ${targetAppType} ${record.$id.value}:`, error)
             throw error
           }
 
+          console.log(`✅ Successfully synced ${targetAppType} ${record.$id.value}`)
+
           // Log successful item sync (for manual syncs only)
           if (this.syncType === 'manual') {
-            await this.syncLogger.logItem(targetAppType as 'people' | 'visa', itemId, 'success')
+            await this.syncLogger.logItem(targetAppType as 'people' | 'visas', itemId, 'success')
           }
 
           syncedCount++
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-          console.error(`Failed to sync ${targetAppType} ${record.$id.value}:`, err)
+          console.error(`❌ Failed to sync ${targetAppType} ${record.$id.value}:`, err)
           
           // Log failed item sync (for manual syncs only)
           if (this.syncType === 'manual') {
-            await this.syncLogger.logItem(targetAppType as 'people' | 'visa', itemId, 'failed', errorMessage)
+            await this.syncLogger.logItem(targetAppType as 'people' | 'visas', itemId, 'failed', errorMessage)
           }
           
           // Continue with other records
         }
       }
 
+      console.log(`✅ Completed sync for ${targetAppType}: ${syncedCount} records synced`)
       return syncedCount
     } catch (error) {
-      console.error(`Error in syncAppData for ${targetAppType}:`, error)
+      console.error(`❌ Error in syncAppData for ${targetAppType}:`, error)
       throw error
     }
   }

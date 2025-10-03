@@ -514,7 +514,8 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
         },
         body: JSON.stringify({
           tenantId,
-          force: true
+          force: true,
+          appMappingId: mappingId
         })
       })
       
