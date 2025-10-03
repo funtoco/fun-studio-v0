@@ -74,6 +74,7 @@ interface ConnectorAppMappingTabProps {
   connector: Connector
   tenantId: string
   connectionStatus?: { status: string } | null
+  onMappingsCountChange?: (count: number) => void
 }
 
 // Service field definitions for different features
@@ -112,7 +113,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }: ConnectorAppMappingTabProps) {
+export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, onMappingsCountChange }: ConnectorAppMappingTabProps) {
   // Dev logging
   if (process.env.NODE_ENV === 'development') {
     console.debug('[apps-mapping] mount', { connectorId: connector.id, isConnected: connectionStatus?.status === 'connected' })
@@ -146,6 +147,13 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   useEffect(() => {
     setAddingApp(null)
   }, [])
+
+  // Notify parent component when appMappings count changes
+  useEffect(() => {
+    if (onMappingsCountChange) {
+      onMappingsCountChange(appMappings.length)
+    }
+  }, [appMappings.length, onMappingsCountChange])
   const [showDestinationSelector, setShowDestinationSelector] = useState(false)
   
   // Debug showDestinationSelector state changes
@@ -231,7 +239,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       
       if (process.env.NODE_ENV === 'development') {
         console.debug('[apps-mapping] loaded mappings:', mappings.length, mappings)
-        console.debug('[apps-mapping] mapping details:', mappings.map(m => ({
+        console.debug('[apps-mapping] mapping details:', mappings.map((m: any) => ({
           id: m.id,
           service_feature: m.service_feature,
           target_app_type: m.target_app_type,
@@ -415,7 +423,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
         description: `${selectedApp.name} を${serviceFields[selectedDestination as keyof typeof serviceFields].label}に追加しました`
       })
       
-      setAppMapping(data.mapping)
+      setSelectedMapping(data.mapping)
       setShowAppPicker(false)
       setShowDestinationSelector(false)
       setSelectedApp(null)
@@ -437,12 +445,12 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   }
 
   const handleSaveFieldMappings = async () => {
-    if (!appMapping) return
+    if (!selectedMapping) return
     
     try {
       setSavingMappings(true)
       
-      const response = await fetch(`/api/connectors/${connector.id}/mappings/${appMapping.id}/fields`, {
+      const response = await fetch(`/api/connectors/${connector.id}/mappings/${selectedMapping.id}/fields`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -453,7 +461,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
             kintone_field_code: kintoneField,
             kintone_field_label: kintoneFields.find(f => f.code === kintoneField)?.label || '',
             kintone_field_type: kintoneFields.find(f => f.code === kintoneField)?.type || '',
-            is_required: serviceFields[appMapping.service_feature as keyof typeof serviceFields]?.required.find(f => f.name === internalField) !== undefined
+            is_required: serviceFields[selectedMapping.service_feature as keyof typeof serviceFields]?.required.find(f => f.name === internalField) !== undefined
           }))
         })
       })
@@ -464,7 +472,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       }
       
       toast.success('フィールドマッピングを保存しました')
-      await loadFieldMappings(appMapping.id)
+      await loadFieldMappings(selectedMapping.id)
     } catch (error) {
       console.error('Error saving field mappings:', error)
       toast.error('フィールドマッピングの保存に失敗しました', {
