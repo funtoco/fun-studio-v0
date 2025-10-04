@@ -50,52 +50,25 @@ export async function POST(request: NextRequest) {
     if (Number.isNaN(appIdNum)) {
       return NextResponse.json({ error: 'source_app_id must be numeric' }, { status: 400 })
     }
-    // Manual upsert one draft mapping per (connector, destination)
-    const { data: existing, error: findErr } = await supabase
+    // Always create new mapping
+    const { data: inserted, error: insErr } = await supabase
       .from('connector_app_mappings')
-      .select('id')
-      .eq('connector_id', connector_id)
-      .eq('target_app_type', destination_app_key)
-      .maybeSingle()
-
-    let upserted: any
-    if (findErr) {
-      console.error('find mapping error', findErr)
+      .insert({
+        connector_id,
+        target_app_type: destination_app_key,
+        source_app_id: String(source_app_id),
+        source_app_name: `Kintone app ${source_app_id}`,
+        is_active: false, // draft status
+      })
+      .select()
+      .single()
+    
+    if (insErr || !inserted) {
+      console.error('insert mapping error', insErr)
+      return NextResponse.json({ error: 'Failed to create mapping' }, { status: 500 })
     }
-    if (existing?.id) {
-      const { data: updated, error: updErr } = await supabase
-        .from('connector_app_mappings')
-        .update({
-          source_app_id: String(source_app_id),
-          source_app_name: `Kintone app ${source_app_id}`,
-          is_active: false, // draft status
-        })
-        .eq('id', existing.id)
-        .select()
-        .single()
-      if (updErr || !updated) {
-        console.error('update mapping error', updErr)
-        return NextResponse.json({ error: 'Failed to update mapping' }, { status: 500 })
-      }
-      upserted = updated
-    } else {
-      const { data: inserted, error: insErr } = await supabase
-        .from('connector_app_mappings')
-        .insert({
-          connector_id,
-          target_app_type: destination_app_key,
-          source_app_id: String(source_app_id),
-          source_app_name: `Kintone app ${source_app_id}`,
-          is_active: false, // draft status
-        })
-        .select()
-        .single()
-      if (insErr || !inserted) {
-        console.error('insert mapping error', insErr)
-        return NextResponse.json({ error: 'Failed to create mapping' }, { status: 500 })
-      }
-      upserted = inserted
-    }
+    
+    const upserted = inserted
 
     // Save draft field mappings if provided
     if (Array.isArray(field_mappings) && field_mappings.length > 0) {
