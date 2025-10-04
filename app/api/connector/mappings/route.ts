@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
             target_field_code: f.destination_field_key,
             is_required: false,
             is_active: true,
+            is_update_key: f.is_update_key || false,
             sort_order: index,
           }
         })

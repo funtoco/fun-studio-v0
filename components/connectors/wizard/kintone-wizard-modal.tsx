@@ -566,7 +566,7 @@ function MappingFields() {
       <div className="text-sm text-muted-foreground">フィールドの対応関係を設定してください（最低1件必須）</div>
       <div className="space-y-2">
         {draftFieldMappings.map((m, idx) => (
-          <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border rounded">
+          <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border rounded">
             <KintoneFieldSelect
               value={m.source_field_code}
               onChange={(value) => {
@@ -589,13 +589,29 @@ function MappingFields() {
                 type: df.type ?? ''
               }))}
             />
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id={`update-key-${idx}`}
+                checked={m.is_update_key || false}
+                onChange={(e) => {
+                  const copy = [...draftFieldMappings]
+                  copy[idx] = { ...copy[idx], is_update_key: e.target.checked }
+                  setDraftFieldMappings(copy)
+                }}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor={`update-key-${idx}`} className="text-sm text-gray-700">
+                更新キー
+              </label>
+            </div>
           </div>
         ))}
         <div>
           <Button
             type="button"
             variant="outline"
-            onClick={() => setDraftFieldMappings([...draftFieldMappings, { source_field_code: '', destination_field_key: '' }])}
+            onClick={() => setDraftFieldMappings([...draftFieldMappings, { source_field_code: '', destination_field_key: '', is_update_key: false }])}
           >
             追加
           </Button>

@@ -10,6 +10,7 @@ import { getCredential } from '@/lib/db/connectors'
 import { decryptJson } from '@/lib/security/crypto'
 // import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
 import { SyncLogger, createSyncLogger } from './sync-logger'
+import { getUpdateKeysByConnector, buildConflictColumns } from './update-key-utils'
 // import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
 
 // Types for field mappings
@@ -403,12 +404,16 @@ export class KintoneDataSync {
             throw new Error(`Unknown target app type: ${targetAppType}`)
           }
 
-          console.log(`💾 Upserting to ${targetTable}:`, data)
+          // Get dynamic update keys for this connector and target app type
+          const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType)
+          const conflictColumns = buildConflictColumns(updateKeys)
+          
+          console.log(`💾 Upserting to ${targetTable} with update keys: ${conflictColumns}`, data)
 
-          // Upsert to Supabase
+          // Upsert to Supabase with dynamic update keys
           const { error } = await this.supabase
             .from(targetTable)
-            .upsert(data, { onConflict: 'id' })
+            .upsert(data, { onConflict: conflictColumns })
 
           if (error) {
             console.error(`❌ Database error for ${targetAppType} ${record.$id.value}:`, error)

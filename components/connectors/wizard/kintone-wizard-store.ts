@@ -16,6 +16,7 @@ export type DestinationAppLite = { key: string; name: string }
 export type DraftFieldMapping = {
   source_field_code: string
   destination_field_key: string
+  is_update_key?: boolean
   transform?: unknown
 }
 

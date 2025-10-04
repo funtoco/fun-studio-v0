@@ -28,6 +28,7 @@ export interface MappingField {
   target_field_type?: string // Field type in our system
   is_required: boolean
   is_active: boolean
+  is_update_key: boolean // Whether this field should be used as an update key for Supabase operations
   sort_order?: number
   created_at: string
   updated_at: string
