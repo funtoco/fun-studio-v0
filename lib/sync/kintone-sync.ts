@@ -10,7 +10,7 @@ import { getCredential } from '@/lib/db/connectors'
 import { decryptJson } from '@/lib/security/crypto'
 // import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
 import { SyncLogger, createSyncLogger } from './sync-logger'
-import { getUpdateKeysByConnector, buildConflictColumns } from './update-key-utils'
+import { getUpdateKeysByConnector, buildConflictColumns, buildUpdateCondition } from './update-key-utils'
 // import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
 
 // Types for field mappings
@@ -51,23 +51,56 @@ async function getFieldMappings(
 }
 
 /**
- * Get app mapping configuration from database
+ * Get app mapping configurations from database
  */
-async function getAppMapping(
+async function getAppMappings(
   supabase: any,
   connectorId: string,
   targetAppType: string
-): Promise<AppMapping | null> {
+): Promise<AppMapping[]> {
   const { data, error } = await supabase
     .from('connector_app_mappings')
     .select('id, source_app_id, target_app_type')
     .eq('connector_id', connectorId)
     .eq('target_app_type', targetAppType)
     .eq('is_active', true)
+
+  if (error || !data) {
+    console.error('Error fetching app mappings:', error)
+    return []
+  }
+
+  // Process each mapping and get field mappings
+  const mappings: AppMapping[] = []
+  for (const mapping of data) {
+    const fieldMappings = await getFieldMappings(supabase, mapping.id)
+    mappings.push({
+      id: mapping.id,
+      source_app_id: mapping.source_app_id,
+      target_app_type: mapping.target_app_type,
+      field_mappings: fieldMappings
+    })
+  }
+  
+  return mappings
+}
+
+/**
+ * Get specific app mapping by ID
+ */
+async function getAppMappingById(
+  supabase: any,
+  appMappingId: string
+): Promise<AppMapping | null> {
+  const { data, error } = await supabase
+    .from('connector_app_mappings')
+    .select('id, source_app_id, target_app_type, connector_id')
+    .eq('id', appMappingId)
+    .eq('is_active', true)
     .single()
 
   if (error || !data) {
-    console.error('Error fetching app mapping:', error)
+    console.error('Error fetching app mapping by ID:', error)
     return null
   }
 
@@ -176,42 +209,61 @@ export class KintoneDataSync {
   /**
    * Build Kintone query from filter conditions
    */
-  private async buildFilterQuery(appType: 'people' | 'visas'): Promise<string> {
+  private async buildFilterQuery(appType: 'people' | 'visas', appMappingId?: string): Promise<string> {
     try {
-      // Get active mappings for this connector
-      const { data: mappings, error: mappingsError } = await this.supabase
-        .from('connector_app_mappings')
-        .select('id, target_app_type')
-        .eq('connector_id', this.connectorId)
-        .eq('is_active', true)
+      let mappingId: string
 
-      if (mappingsError || !mappings || mappings.length === 0) {
-        return ''
-      }
+      if (appMappingId) {
+        // Use specific mapping ID if provided
+        mappingId = appMappingId
+        console.log(`🔍 Using specific mapping ID: ${mappingId}`)
+      } else {
+        // Get active mappings for this connector
+        const { data: mappings, error: mappingsError } = await this.supabase
+          .from('connector_app_mappings')
+          .select('id, target_app_type, source_app_id')
+          .eq('connector_id', this.connectorId)
+          .eq('is_active', true)
 
-      // Find mapping for the target app type
-      const mapping = mappings.find(m => m.target_app_type === appType)
-      if (!mapping) {
-        return ''
+        if (mappingsError || !mappings || mappings.length === 0) {
+          console.log('🔍 No active mappings found, using empty query')
+          return ''
+        }
+
+        // Find mapping for the target app type
+        const mapping = mappings.find(m => m.target_app_type === appType)
+        if (!mapping) {
+          console.log(`🔍 No mapping found for ${appType}, using empty query`)
+          return ''
+        }
+
+        mappingId = mapping.id
       }
 
       // Get filter conditions for this mapping
       const { data: filters, error: filtersError } = await this.supabase
         .from('connector_app_filters')
         .select('field_code, filter_value')
-        .eq('app_mapping_id', mapping.id)
+        .eq('app_mapping_id', mappingId)
         .eq('is_active', true)
 
-      if (filtersError || !filters || filters.length === 0) {
+      if (filtersError) {
+        console.error('Error fetching filters:', filtersError)
         return ''
       }
 
-      // Build query conditions
+      if (!filters || filters.length === 0) {
+        console.log(`🔍 No filter conditions found for mapping ${mappingId}, using empty query`)
+        return ''
+      }
+
+      // Build query conditions (simple approach without validation)
       const conditions = filters
         .filter(f => f.field_code && f.filter_value)
         .map(f => `${f.field_code} = "${f.filter_value}"`)
         .join(' AND ')
 
+      console.log(`🔍 Built filter query: ${conditions || 'No valid filters'}`)
       return conditions
     } catch (error) {
       console.error('Error building filter query:', error)
@@ -277,7 +329,7 @@ export class KintoneDataSync {
       // Sync each app mapping
       for (const appMapping of appMappings) {
         try {
-          const syncedCount = await this.syncAppData(appMapping.target_app_type, appMapping.source_app_id)
+          const syncedCount = await this.syncAppData(appMapping.target_app_type, appMapping.source_app_id, appMapping.id)
           synced[appMapping.target_app_type] = syncedCount
         } catch (err) {
           const error = `${appMapping.target_app_type} sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
@@ -333,7 +385,7 @@ export class KintoneDataSync {
   /**
    * Sync app data from Kintone based on app mapping configuration
    */
-  private async syncAppData(targetAppType: string, sourceAppId: string): Promise<number> {
+  private async syncAppData(targetAppType: string, sourceAppId: string, appMappingId?: string): Promise<number> {
     console.log(`🔄 Starting sync for ${targetAppType} from app ${sourceAppId}`)
     
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
@@ -349,100 +401,146 @@ export class KintoneDataSync {
     }
 
     try {
-      // Get mapping configuration from database
-      const appMapping = await getAppMapping(this.supabase, this.connectorId, targetAppType)
-      if (!appMapping) {
-        console.error(`❌ No active ${targetAppType} mapping found`)
-        return 0
-      }
+      let appMappings: AppMapping[]
       
-      console.log(`📋 Found mapping for ${targetAppType}:`, {
-        sourceAppId: appMapping.source_app_id,
-        fieldMappingsCount: appMapping.field_mappings.length,
-        fieldMappings: appMapping.field_mappings.map(fm => ({
-          source: fm.source_field_code,
-          target: fm.target_field_id,
-          required: fm.is_required
-        }))
-      })
-      
-      // Build query using only database filter conditions
-      const filterQuery = await this.buildFilterQuery(targetAppType as 'people' | 'visas')
-      const query = filterQuery || ''
-      
-      console.log(`🔍 Query for ${targetAppType}:`, query || 'No filters')
-      
-      // Get records from Kintone
-      const records = await this.kintoneClient.getRecords(sourceAppId, query, [])
-      console.log(`📊 Retrieved ${records.length} records from Kintone for ${targetAppType}`)
-    
-      let syncedCount = 0
-      
-      for (const record of records) {
-        const itemId = `k_${record.$id.value}`
-        console.log(`🔄 Processing record ${record.$id.value} for ${targetAppType}`)
-        
-        try {
-          // Transform Kintone record to our format using database field mappings
-          const data: any = {
-            id: itemId, // Prefix with 'k_' for Kintone origin
-            tenant_id: this.tenantId, // Set tenant_id from connector
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-
-          // Map fields using database configuration
-          for (const fieldMapping of appMapping.field_mappings) {
-            const sourceValue = record[fieldMapping.source_field_code]?.value
-            data[fieldMapping.target_field_id] = sourceValue || null
-            console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
-          }
-
-          // Determine target table based on app type
-          const targetTable = this.getTargetTable(targetAppType)
-          if (!targetTable) {
-            throw new Error(`Unknown target app type: ${targetAppType}`)
-          }
-
-          // Get dynamic update keys for this connector and target app type
-          const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType)
-          const conflictColumns = buildConflictColumns(updateKeys)
-          
-          console.log(`💾 Upserting to ${targetTable} with update keys: ${conflictColumns}`, data)
-
-          // Upsert to Supabase with dynamic update keys
-          const { error } = await this.supabase
-            .from(targetTable)
-            .upsert(data, { onConflict: conflictColumns })
-
-          if (error) {
-            console.error(`❌ Database error for ${targetAppType} ${record.$id.value}:`, error)
-            throw error
-          }
-
-          console.log(`✅ Successfully synced ${targetAppType} ${record.$id.value}`)
-
-          // Log successful item sync (for manual syncs only)
-          if (this.syncType === 'manual') {
-            await this.syncLogger.logItem(targetAppType as 'people' | 'visas', itemId, 'success')
-          }
-
-          syncedCount++
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-          console.error(`❌ Failed to sync ${targetAppType} ${record.$id.value}:`, err)
-          
-          // Log failed item sync (for manual syncs only)
-          if (this.syncType === 'manual') {
-            await this.syncLogger.logItem(targetAppType as 'people' | 'visas', itemId, 'failed', errorMessage)
-          }
-          
-          // Continue with other records
+      // If specific app mapping ID is provided, get only that mapping
+      if (appMappingId) {
+        const appMapping = await getAppMappingById(this.supabase, appMappingId)
+        if (!appMapping) {
+          console.error(`❌ No active mapping found with ID: ${appMappingId}`)
+          return 0
         }
+        appMappings = [appMapping]
+        console.log(`📋 Found specific mapping ${appMappingId} for ${targetAppType}`)
+      } else {
+        // Get all mappings for the target app type
+        appMappings = await getAppMappings(this.supabase, this.connectorId, targetAppType)
+        if (!appMappings || appMappings.length === 0) {
+          console.error(`❌ No active ${targetAppType} mappings found`)
+          return 0
+        }
+        console.log(`📋 Found ${appMappings.length} mapping(s) for ${targetAppType}`)
+      }
+      
+      let totalSyncedCount = 0
+      
+      // Process each mapping
+      for (const appMapping of appMappings) {
+        console.log(`🔄 Processing mapping ${appMapping.id} for app ${appMapping.source_app_id}:`, {
+          sourceAppId: appMapping.source_app_id,
+          fieldMappingsCount: appMapping.field_mappings.length,
+          fieldMappings: appMapping.field_mappings.map(fm => ({
+            source: fm.source_field_code,
+            target: fm.target_field_id,
+            required: fm.is_required
+          }))
+        })
+        
+        // Build query using only database filter conditions
+        const filterQuery = await this.buildFilterQuery(targetAppType as 'people' | 'visas', appMappingId)
+        const query = filterQuery || ''
+        
+        console.log(`🔍 Query for ${targetAppType} (app ${appMapping.source_app_id}):`, query || 'No filters')
+        
+        // Get records from Kintone
+        const records = await this.kintoneClient.getRecords(appMapping.source_app_id, query, [])
+        console.log(`📊 Retrieved ${records.length} records from Kintone for ${targetAppType} (app ${appMapping.source_app_id})`)
+      
+        let syncedCount = 0
+      
+        for (const record of records) {
+          const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType)
+          console.log(`🔄 Processing record ${record.$id.value} for ${targetAppType}`)
+        
+          try {
+            // Transform Kintone record to our format using database field mappings
+            const data: any = {
+              tenant_id: this.tenantId, // Set tenant_id from connector
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+
+            // Map fields using database configuration
+            for (const fieldMapping of appMapping.field_mappings) {
+              const sourceValue = record[fieldMapping.source_field_code]?.value
+              data[fieldMapping.target_field_id] = sourceValue || null
+              console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
+            }
+
+            // Determine target table based on app type
+            const targetTable = this.getTargetTable(targetAppType)
+            if (!targetTable) {
+              throw new Error(`Unknown target app type: ${targetAppType}`)
+            }
+
+            // Get dynamic update keys for this connector and target app type
+            const id = record[updateKeys[0]].value
+            
+            // Check if record exists using update keys
+            const whereCondition = buildUpdateCondition(data, updateKeys)
+            const { data: existingRecord, error: selectError } = await this.supabase
+              .from(targetTable)
+              .select('id')
+              .match(whereCondition)
+              .single()
+
+            let error: any = null
+
+            if (selectError && selectError.code !== 'PGRST116') {
+              // PGRST116 means no rows found, which is expected for new records
+              console.error(`❌ Error checking existing record:`, selectError)
+              throw selectError
+            }
+
+            if (existingRecord) {
+              // Record exists, update it
+              console.log(`🔄 Updating existing record in ${targetTable}`, whereCondition)
+              const { error: updateError } = await this.supabase
+                .from(targetTable)
+                .update(data)
+                .match(whereCondition)
+              error = updateError
+            } else {
+              // Record doesn't exist, insert it
+              console.log(`➕ Inserting new record to ${targetTable}`)
+              const { error: insertError } = await this.supabase
+                .from(targetTable)
+                .insert(data)
+              error = insertError
+            }
+
+            if (error) {
+              console.error(`❌ Database error for ${targetAppType} ${record.$id.value}:`, error)
+              throw error
+            }
+
+            console.log(`✅ Successfully synced ${targetAppType} ${record.$id.value}`)
+
+            // Log successful item sync (for manual syncs only)
+            if (this.syncType === 'manual') {
+              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', id, 'success')
+            }
+
+            syncedCount++
+          } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+            console.error(`❌ Failed to sync ${targetAppType} ${record.$id.value}:`, err)
+            
+            // Log failed item sync (for manual syncs only)
+            if (this.syncType === 'manual') {
+              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', id, 'failed', errorMessage)
+            }
+            
+            // Continue with other records
+          }
+        }
+        
+        console.log(`✅ Completed sync for ${targetAppType} (app ${appMapping.source_app_id}): ${syncedCount} records synced`)
+        totalSyncedCount += syncedCount
       }
 
-      console.log(`✅ Completed sync for ${targetAppType}: ${syncedCount} records synced`)
-      return syncedCount
+      console.log(`✅ Completed sync for ${targetAppType}: ${totalSyncedCount} total records synced across ${appMappings.length} mapping(s)`)
+      return totalSyncedCount
     } catch (error) {
       console.error(`❌ Error in syncAppData for ${targetAppType}:`, error)
       throw error

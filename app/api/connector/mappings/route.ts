@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       source_app_id,
       destination_app_key,
       field_mappings,
+      app_mapping_id, // Optional: if provided, update existing mapping
     } = body || {}
 
     if (!connector_id || !source_type || !source_app_id || !destination_app_key) {
@@ -50,25 +51,53 @@ export async function POST(request: NextRequest) {
     if (Number.isNaN(appIdNum)) {
       return NextResponse.json({ error: 'source_app_id must be numeric' }, { status: 400 })
     }
-    // Always create new mapping
-    const { data: inserted, error: insErr } = await supabase
-      .from('connector_app_mappings')
-      .insert({
-        connector_id,
-        target_app_type: destination_app_key,
-        source_app_id: String(source_app_id),
-        source_app_name: `Kintone app ${source_app_id}`,
-        is_active: false, // draft status
-      })
-      .select()
-      .single()
-    
-    if (insErr || !inserted) {
-      console.error('insert mapping error', insErr)
-      return NextResponse.json({ error: 'Failed to create mapping' }, { status: 500 })
+    let mappingId: string
+    let upserted: any
+
+    if (app_mapping_id) {
+      // Update existing mapping using provided app_mapping_id
+      console.log('Updating existing mapping:', app_mapping_id)
+      const { data: updated, error: updateErr } = await supabase
+        .from('connector_app_mappings')
+        .update({
+          source_app_id: String(source_app_id),
+          source_app_name: `Kintone app ${source_app_id}`,
+          is_active: false, // draft status
+        })
+        .eq('id', app_mapping_id)
+        .select()
+        .single()
+      
+      if (updateErr || !updated) {
+        console.error('update mapping error', updateErr)
+        return NextResponse.json({ error: 'Failed to update mapping' }, { status: 500 })
+      }
+      
+      mappingId = app_mapping_id
+      upserted = updated
+    } else {
+      // Create new mapping
+      console.log('Creating new mapping')
+      const { data: inserted, error: insErr } = await supabase
+        .from('connector_app_mappings')
+        .insert({
+          connector_id,
+          target_app_type: destination_app_key,
+          source_app_id: String(source_app_id),
+          source_app_name: `Kintone app ${source_app_id}`,
+          is_active: false, // draft status
+        })
+        .select()
+        .single()
+      
+      if (insErr || !inserted) {
+        console.error('insert mapping error', insErr)
+        return NextResponse.json({ error: 'Failed to create mapping' }, { status: 500 })
+      }
+      
+      mappingId = inserted.id
+      upserted = inserted
     }
-    
-    const upserted = inserted
 
     // Save draft field mappings if provided
     if (Array.isArray(field_mappings) && field_mappings.length > 0) {
@@ -123,7 +152,7 @@ export async function POST(request: NextRequest) {
       }
 
       // replace existing field mappings for this mapping
-      await supabase.from('connector_field_mappings').delete().eq('app_mapping_id', upserted.id)
+      await supabase.from('connector_field_mappings').delete().eq('app_mapping_id', mappingId)
 
       const toInsert = field_mappings
         .filter((f: any) => f.source_field_code && f.destination_field_key)
@@ -133,7 +162,7 @@ export async function POST(request: NextRequest) {
           
           return {
             connector_id,
-            app_mapping_id: upserted.id,
+            app_mapping_id: mappingId,
             source_field_id: f.source_field_code,
             source_field_code: f.source_field_code,
             source_field_name: kintoneField?.label || f.source_field_code,

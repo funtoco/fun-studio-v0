@@ -21,7 +21,7 @@ export async function getUpdateKeys(appMappingId: string): Promise<string[]> {
     return ['id'] // Fallback to default id field
   }
   
-  const updateKeys = fieldMappings?.map(fm => fm.target_field_id) || []
+  const updateKeys = fieldMappings?.map((fm: any) => fm.target_field_id) || []
   
   // If no update keys are configured, fallback to 'id'
   if (updateKeys.length === 0) {
@@ -45,19 +45,20 @@ export async function getUpdateKeysByConnector(
   const supabase = createClient()
   
   // First get the app mapping for this connector and target type
-  const { data: appMapping, error: appError } = await supabase
+  const { data: appMappings, error: appError } = await supabase
     .from('connector_app_mappings')
     .select('id')
     .eq('connector_id', connectorId)
     .eq('target_app_type', targetAppType)
     .eq('is_active', true)
-    .single()
   
-  if (appError || !appMapping) {
-    console.error('Error fetching app mapping:', appError)
+  if (appError || !appMappings || appMappings.length === 0) {
+    console.error('Error fetching app mappings:', appError)
     return ['id'] // Fallback to default id field
   }
   
+  // Use the first mapping found
+  const appMapping = appMappings[0]
   return getUpdateKeys(appMapping.id)
 }
 

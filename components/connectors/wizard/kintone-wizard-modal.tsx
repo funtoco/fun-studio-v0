@@ -516,16 +516,23 @@ function MappingFields() {
     setIsSaving(true)
     try {
       // First save the mapping
+      const requestBody: any = {
+        connector_id: connectorId,
+        source_type: 'kintone',
+        source_app_id: selectedKintoneApp.id,
+        destination_app_key: selectedDestinationApp.key,
+        field_mappings: draftFieldMappings,
+      }
+      
+      // If in edit mode, include the existing mapping ID
+      if (editMode && existingMapping?.id) {
+        requestBody.app_mapping_id = existingMapping.id
+      }
+      
       const res = await fetch(`/api/connector/mappings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          connector_id: connectorId,
-          source_type: 'kintone',
-          source_app_id: selectedKintoneApp.id,
-          destination_app_key: selectedDestinationApp.key,
-          field_mappings: draftFieldMappings,
-        }),
+        body: JSON.stringify(requestBody),
       })
       
       if (!res.ok) {
