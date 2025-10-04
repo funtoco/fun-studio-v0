@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { KintoneApiClient } from '@/lib/kintone/api-client'
+import { decryptJson } from '@/lib/crypto/secretStore'
 
 const updateFieldsSchema = z.object({
   fields: z.array(z.object({
@@ -118,6 +120,70 @@ export async function POST(
       )
     }
     
+    // Get app mapping to find source app ID
+    const { data: appMapping, error: appMappingError } = await supabase
+      .from('connector_app_mappings')
+      .select('source_app_id')
+      .eq('id', mappingId)
+      .single()
+    
+    if (appMappingError || !appMapping) {
+      return NextResponse.json(
+        { error: 'App mapping not found' },
+        { status: 404 }
+      )
+    }
+
+    // Get Kintone field information to populate source_field_type and source_field_name
+    let kintoneFields: any[] = []
+    try {
+      // Get Kintone config and token
+      const { data: configCreds } = await supabase
+        .from('credentials')
+        .select('*')
+        .eq('connector_id', connectorId)
+        .eq('type', 'kintone_config')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      const { data: tokenCreds } = await supabase
+        .from('credentials')
+        .select('*')
+        .eq('connector_id', connectorId)
+        .eq('type', 'kintone_token')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (configCreds && tokenCreds) {
+        let kintoneConfig
+        if (configCreds.payload) {
+          kintoneConfig = JSON.parse(configCreds.payload)
+        } else if (configCreds.payload_encrypted) {
+          kintoneConfig = decryptJson(configCreds.payload_encrypted)
+        }
+
+        let tokenData
+        if (tokenCreds.payload) {
+          tokenData = JSON.parse(tokenCreds.payload)
+        } else if (tokenCreds.payload_encrypted) {
+          tokenData = decryptJson(tokenCreds.payload_encrypted)
+        }
+
+        if (kintoneConfig?.domain && tokenData?.access_token) {
+          const kintoneClient = new KintoneApiClient({ 
+            domain: kintoneConfig.domain, 
+            accessToken: tokenData.access_token 
+          })
+          kintoneFields = await kintoneClient.getAppFields(String(appMapping.source_app_id))
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch Kintone fields for field mapping:', error)
+      // Continue without field type information
+    }
+
     // Delete existing field mappings for this mapping
     const { error: deleteError } = await supabase
       .from('connector_field_mappings')
@@ -132,18 +198,25 @@ export async function POST(
       )
     }
     
-    // Insert new field mappings
-    const fieldMappings = validatedData.fields.map(field => ({
-      connector_id: connectorId,
-      app_mapping_id: mappingId,
-      source_field_id: field.source_field_code,
-      source_field_code: field.source_field_code,
-      target_field_id: field.target_field_id,
-      is_required: false,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }))
+    // Insert new field mappings with Kintone field information
+    const fieldMappings = validatedData.fields.map(field => {
+      // Find corresponding Kintone field information
+      const kintoneField = kintoneFields.find(f => f.code === field.source_field_code)
+      
+      return {
+        connector_id: connectorId,
+        app_mapping_id: mappingId,
+        source_field_id: field.source_field_code,
+        source_field_code: field.source_field_code,
+        source_field_name: kintoneField?.label || field.source_field_code,
+        source_field_type: kintoneField?.type || 'UNKNOWN',
+        target_field_id: field.target_field_id,
+        is_required: false,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    })
     
     const { error: insertError } = await supabase
       .from('connector_field_mappings')

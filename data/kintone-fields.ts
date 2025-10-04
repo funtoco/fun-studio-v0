@@ -4,6 +4,7 @@ export interface KintoneField {
   label: string
   code: string
   type:
+    | "RECORD_NUMBER"
     | "SINGLE_LINE_TEXT"
     | "MULTI_LINE_TEXT"
     | "NUMBER"

@@ -10,6 +10,7 @@ import { getCredential } from '@/lib/db/connectors'
 import { decryptJson } from '@/lib/security/crypto'
 // import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
 import { SyncLogger, createSyncLogger } from './sync-logger'
+import { getUpdateKeysByConnector, buildConflictColumns } from './update-key-utils'
 // import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
 
 // Types for field mappings
@@ -141,10 +142,7 @@ function getServerClient() {
 
 export interface SyncResult {
   success: boolean
-  synced: {
-    people: number
-    visas: number
-  }
+  synced: Record<string, number> // app_type -> count
   errors: string[]
   duration: number
   sessionId?: string
@@ -222,9 +220,10 @@ export class KintoneDataSync {
   }
 
   /**
-   * Sync all data from Kintone to Supabase
+   * Sync all data from Kintone to Supabase based on connector_app_mappings
+   * @param appMappingId Optional specific app mapping ID to sync. If not provided, syncs all active mappings.
    */
-  async syncAll(): Promise<SyncResult> {
+  async syncAll(appMappingId?: string): Promise<SyncResult> {
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       // Check active mapping exists for this connector
       const { data: activeMappings } = await this.supabase
@@ -235,12 +234,12 @@ export class KintoneDataSync {
 
       if (!activeMappings || activeMappings.length === 0) {
         console.log('[GUARD] reject write: no active mapping')
-        return { success: false, synced: { people: 0, visas: 0 }, errors: ['no active mapping'], duration: 0 }
+        return { success: false, synced: {}, errors: ['no active mapping'], duration: 0 }
       }
     }
+
     const startTime = Date.now()
-    let syncedPeople = 0
-    let syncedVisas = 0
+    const synced: Record<string, number> = {}
     const errors: string[] = []
     let sessionId: string | undefined
 
@@ -253,62 +252,56 @@ export class KintoneDataSync {
         this.runBy
       )
 
-      // Temporarily disable logging for testing
-      // await addLog(this.connectorId, 'info', 'sync_started', {
-      //   timestamp: new Date().toISOString(),
-      //   sessionId
-      // })
+      // Get app mappings for this connector
+      let query = this.supabase
+        .from('connector_app_mappings')
+        .select('id, target_app_type, source_app_id')
+        .eq('connector_id', this.connectorId)
+        .eq('is_active', true)
 
-      // Sync people data
-      try {
-        syncedPeople = await this.syncPeople()
-        // await addLog(this.connectorId, 'info', 'people_synced', {
-        //   count: syncedPeople,
-        //   sessionId
-        // })
-      } catch (err) {
-        const error = `People sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-        errors.push(error)
-        // await addLog(this.connectorId, 'error', 'people_sync_failed', { error, sessionId })
+      // If specific app mapping ID is provided, filter by it
+      if (appMappingId) {
+        query = query.eq('id', appMappingId)
       }
 
-        // Sync visa data (temporarily disabled for testing)
-        // try {
-        //   syncedVisas = await this.syncVisas()
-        // // await addLog(this.connectorId, 'info', 'visas_synced', {
-        // //   count: syncedVisas,
-        // //   sessionId
-        // // })
-        // } catch (err) {
-        //   const error = `Visa sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
-        //   errors.push(error)
-        //   // await addLog(this.connectorId, 'error', 'visa_sync_failed', { error, sessionId })
-        // }
+      const { data: appMappings, error: mappingsError } = await query
+
+      if (mappingsError || !appMappings || appMappings.length === 0) {
+        const error = appMappingId 
+          ? `No active app mapping found with ID: ${appMappingId}`
+          : 'No active app mappings found'
+        errors.push(error)
+        return { success: false, synced: {}, errors, duration: Date.now() - startTime, sessionId }
+      }
+
+      // Sync each app mapping
+      for (const appMapping of appMappings) {
+        try {
+          const syncedCount = await this.syncAppData(appMapping.target_app_type, appMapping.source_app_id)
+          synced[appMapping.target_app_type] = syncedCount
+        } catch (err) {
+          const error = `${appMapping.target_app_type} sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`
+          errors.push(error)
+          synced[appMapping.target_app_type] = 0
+        }
+      }
 
       const duration = Date.now() - startTime
       const success = errors.length === 0
-      const totalCount = syncedPeople + syncedVisas
+      const totalCount = Object.values(synced).reduce((sum, count) => sum + count, 0)
 
       // Complete sync session
       await this.syncLogger.completeSession(
         success ? 'success' : 'failed',
         totalCount,
-        syncedPeople + syncedVisas,
+        totalCount,
         0, // failedCount - individual failures are logged separately
         success ? undefined : errors.join('; ')
       )
 
-      // await addLog(this.connectorId, success ? 'info' : 'warn', 'sync_completed', {
-      //   success,
-      //   synced: { people: syncedPeople, visas: syncedVisas },
-      //   errors: errors.length,
-      //   duration,
-      //   sessionId
-      // })
-
       return {
         success,
-        synced: { people: syncedPeople, visas: syncedVisas },
+        synced,
         errors,
         duration,
         sessionId
@@ -326,16 +319,10 @@ export class KintoneDataSync {
           console.error('Failed to complete sync session:', logError)
         }
       }
-      
-      // await addLog(this.connectorId, 'error', 'sync_failed', {
-      //   error,
-      //   duration,
-      //   sessionId
-      // })
 
       return {
         success: false,
-        synced: { people: syncedPeople, visas: syncedVisas },
+        synced,
         errors: [error],
         duration,
         sessionId
@@ -344,9 +331,11 @@ export class KintoneDataSync {
   }
 
   /**
-   * Sync people data from Kintone
+   * Sync app data from Kintone based on app mapping configuration
    */
-  private async syncPeople(): Promise<number> {
+  private async syncAppData(targetAppType: string, sourceAppId: string): Promise<number> {
+    console.log(`🔄 Starting sync for ${targetAppType} from app ${sourceAppId}`)
+    
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       const { data: active } = await this.supabase
         .from('connector_app_mappings')
@@ -358,218 +347,123 @@ export class KintoneDataSync {
         return 0
       }
     }
+
     try {
       // Get mapping configuration from database
-      const appMapping = await getAppMapping(this.supabase, this.connectorId, 'people')
+      const appMapping = await getAppMapping(this.supabase, this.connectorId, targetAppType)
       if (!appMapping) {
-        console.error('No active people mapping found')
+        console.error(`❌ No active ${targetAppType} mapping found`)
         return 0
       }
       
+      console.log(`📋 Found mapping for ${targetAppType}:`, {
+        sourceAppId: appMapping.source_app_id,
+        fieldMappingsCount: appMapping.field_mappings.length,
+        fieldMappings: appMapping.field_mappings.map(fm => ({
+          source: fm.source_field_code,
+          target: fm.target_field_id,
+          required: fm.is_required
+        }))
+      })
+      
       // Build query using only database filter conditions
-      const filterQuery = await this.buildFilterQuery('people')
+      const filterQuery = await this.buildFilterQuery(targetAppType as 'people' | 'visas')
       const query = filterQuery || ''
       
-      // Get records from Kintone
-      const records = await this.kintoneClient.getRecords(appMapping.source_app_id, query, [])
-    
-    let syncedCount = 0
-    
-    for (const record of records) {
-      const itemId = `k_${record.$id.value}`
+      console.log(`🔍 Query for ${targetAppType}:`, query || 'No filters')
       
-      try {
-        // Transform Kintone record to our format using database field mappings
-        const person: any = {
-          id: itemId, // Prefix with 'k_' for Kintone origin
-          tenant_id: this.tenantId, // Set tenant_id from connector
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-
-        // Map fields using database configuration
-        for (const fieldMapping of appMapping.field_mappings) {
-          const sourceValue = record[fieldMapping.source_field_code]?.value
-          person[fieldMapping.target_field_id] = sourceValue || null
-        }
-
-        // Upsert to Supabase
-        const { error } = await this.supabase
-          .from('people')
-          .upsert(person, { onConflict: 'id' })
-
-        if (error) {
-          throw error
-        }
-
-        // Log successful item sync (for manual syncs only)
-        if (this.syncType === 'manual') {
-          await this.syncLogger.logItem('people', itemId, 'success')
-        }
-
-        syncedCount++
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        console.error(`Failed to sync person ${record.$id.value}:`, err)
+      // Get records from Kintone
+      const records = await this.kintoneClient.getRecords(sourceAppId, query, [])
+      console.log(`📊 Retrieved ${records.length} records from Kintone for ${targetAppType}`)
+    
+      let syncedCount = 0
+      
+      for (const record of records) {
+        const itemId = `k_${record.$id.value}`
+        console.log(`🔄 Processing record ${record.$id.value} for ${targetAppType}`)
         
-        // Log failed item sync (for manual syncs only)
-        if (this.syncType === 'manual') {
-          await this.syncLogger.logItem('people', itemId, 'failed', errorMessage)
+        try {
+          // Transform Kintone record to our format using database field mappings
+          const data: any = {
+            id: itemId, // Prefix with 'k_' for Kintone origin
+            tenant_id: this.tenantId, // Set tenant_id from connector
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+
+          // Map fields using database configuration
+          for (const fieldMapping of appMapping.field_mappings) {
+            const sourceValue = record[fieldMapping.source_field_code]?.value
+            data[fieldMapping.target_field_id] = sourceValue || null
+            console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
+          }
+
+          // Determine target table based on app type
+          const targetTable = this.getTargetTable(targetAppType)
+          if (!targetTable) {
+            throw new Error(`Unknown target app type: ${targetAppType}`)
+          }
+
+          // Get dynamic update keys for this connector and target app type
+          const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType)
+          const conflictColumns = buildConflictColumns(updateKeys)
+          
+          console.log(`💾 Upserting to ${targetTable} with update keys: ${conflictColumns}`, data)
+
+          // Upsert to Supabase with dynamic update keys
+          const { error } = await this.supabase
+            .from(targetTable)
+            .upsert(data, { onConflict: conflictColumns })
+
+          if (error) {
+            console.error(`❌ Database error for ${targetAppType} ${record.$id.value}:`, error)
+            throw error
+          }
+
+          console.log(`✅ Successfully synced ${targetAppType} ${record.$id.value}`)
+
+          // Log successful item sync (for manual syncs only)
+          if (this.syncType === 'manual') {
+            await this.syncLogger.logItem(targetAppType as 'people' | 'visas', itemId, 'success')
+          }
+
+          syncedCount++
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          console.error(`❌ Failed to sync ${targetAppType} ${record.$id.value}:`, err)
+          
+          // Log failed item sync (for manual syncs only)
+          if (this.syncType === 'manual') {
+            await this.syncLogger.logItem(targetAppType as 'people' | 'visas', itemId, 'failed', errorMessage)
+          }
+          
+          // Continue with other records
         }
-        
-        // Continue with other records
       }
-    }
 
-    return syncedCount
+      console.log(`✅ Completed sync for ${targetAppType}: ${syncedCount} records synced`)
+      return syncedCount
     } catch (error) {
+      console.error(`❌ Error in syncAppData for ${targetAppType}:`, error)
       throw error
     }
   }
 
   /**
-   * Sync visa data from Kintone
+   * Get target table name for app type
    */
-  private async syncVisas(): Promise<number> {
-    if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
-      const { data: active } = await this.supabase
-        .from('connector_app_mappings')
-        .select('id')
-        .eq('connector_id', this.connectorId)
-        .eq('is_active', true)
-      if (!active || active.length === 0) {
-        console.log('[GUARD] reject write: no active mapping')
-        return 0
-      }
+  private getTargetTable(targetAppType: string): string | null {
+    const tableMap: Record<string, string> = {
+      'people': 'people',
+      'visas': 'visas',
+      'meetings': 'meetings'
     }
-    try {
-      // Use hardcoded configuration
-      const mapping = FIELD_MAPPINGS.visas
-      
-      // Build query
-      let query = ''
-      if (mapping.coid) {
-        query = `COID = "${mapping.coid}"`
-      }
-      
-      // Get filter conditions from database
-      const filterQuery = await this.buildFilterQuery('visas')
-      if (filterQuery) {
-        query = query ? `${query} AND ${filterQuery}` : filterQuery
-      }
-      
-      // Get records from Kintone
-      const records = await this.kintoneClient.getRecords(mapping.kintoneAppId, query, [])
-    
-    let syncedCount = 0
-    
-    for (const record of records) {
-      const itemId = `k_${record.$id.value}`
-      
-      try {
-        // Transform Kintone record to our format using hardcoded field mappings
-        const personIdValue = record[mapping.fields.person_id]?.value
-        const personId = personIdValue ? `k_${personIdValue}` : null
-        
-        // Map status field to valid database values using the provided mapping
-        const fullStatus = record[mapping.fields.status]?.value || '書類準備中'
-        let mappedStatus = '書類準備中' // default
-        
-        // Status mapping from Kintone to database
-        const statusMapping = {
-          書類準備中: [
-            '営業_企業情報待ち', //過去のステータス
-            '新規_企業情報待ち', 
-            '既存_企業情報待ち', 
-            '支援_更新案内・人材情報更新待ち'
-          ],
-          書類作成中: ['OP_企業書類作成中'],
-          書類確認中: [
-            '営業_企業に確認してください', //過去のステータス
-            '新規_企業に確認してください',
-            '既存_企業に確認してください',
-            'OP_企業に確認してください', //過去のステータス
-            '新規_企業_書類確認待ち',
-            '既存_企業_書類確認待ち',
-            '企業_書類確認待ち（新規）',
-            '企業_書類確認待ち（更新）',
-            'OP_書類修正中',
-          ],
-          申請準備中: [
-            'OP_押印書類送付準備中',
-            'OP_押印書類受取待ち',
-            'OP_申請人サイン書類準備中',
-            '支援_申請人サイン待ち',
-            'OP_申請人サイン書類受取待ち',
-          ],
-          ビザ申請準備中: ['ビザ申請準備中','ビザ申請待ち'],
-          申請中: ['申請中'],
-          '(追加書類)': ['追加修正対応中'],
-          ビザ取得済み: ['許可'],
-        }
-        
-        // Find matching status
-        for (const [dbStatus, kintoneStatuses] of Object.entries(statusMapping)) {
-          if (kintoneStatuses.includes(fullStatus)) {
-            mappedStatus = dbStatus
-            break
-          }
-        }
-        
-        
-        // Handle manager field (USER_SELECT type)
-        const managerValue = record[mapping.fields.manager]?.value
-        const managerName = Array.isArray(managerValue) && managerValue.length > 0 
-          ? managerValue[0].name 
-          : null
-        
-        const visa = {
-          id: itemId, // Prefix with 'k_' for Kintone origin
-          person_id: personId,
-          tenant_id: this.tenantId, // Set tenant_id from connector
-          type: record[mapping.fields.type]?.value || '認定申請',
-          status: mappedStatus,
-          expiry_date: record[mapping.fields.expiry_date]?.value || null,
-          submitted_at: record[mapping.fields.submitted_at]?.value || null,
-          result_at: record[mapping.fields.result_at]?.value || null,
-          manager: managerName,
-          updated_at: new Date().toISOString()
-        }
-
-        // Upsert to Supabase
-        const { error } = await this.supabase
-          .from('visas')
-          .upsert(visa, { onConflict: 'id' })
-
-        if (error) {
-          throw error
-        }
-
-        // Log successful item sync (for manual syncs only)
-        if (this.syncType === 'manual') {
-          await this.syncLogger.logItem('visa', itemId, 'success')
-        }
-
-        syncedCount++
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        console.error(`Failed to sync visa ${record.$id.value}:`, err)
-        
-        // Log failed item sync (for manual syncs only)
-        if (this.syncType === 'manual') {
-          await this.syncLogger.logItem('visa', itemId, 'failed', errorMessage)
-        }
-        
-        // Continue with other records
-      }
-    }
-
-    return syncedCount
-    } catch (error) {
-      console.error('Error in syncVisas:', error)
-      throw error
-    }
+    return tableMap[targetAppType] || null
   }
+
+
+
+
 }
 
 /**

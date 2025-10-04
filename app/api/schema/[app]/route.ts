@@ -21,7 +21,9 @@ export async function GET(
     }
 
     const supabase = getAdminClient()
-    const { data, error } = await supabase.rpc('get_public_table_columns', { p_table: table })
+    
+    // 動的取得: 新しいRPC関数を使用
+    const { data, error } = await supabase.rpc('get_table_columns_raw', { p_table: table })
 
     if (error || !data) {
       console.error('[SCHEMA] RPC failed', { table, error })

@@ -34,7 +34,7 @@ export interface SyncSession {
 export interface SyncItemLog {
   id: string
   session_id: string
-  item_type: 'people' | 'visa'
+  item_type: 'people' | 'visas'
   item_id: string
   status: 'success' | 'failed'
   timestamp: string
@@ -82,7 +82,7 @@ export class SyncLogger {
    * Log individual item sync result (for manual syncs only)
    */
   async logItem(
-    itemType: 'people' | 'visa',
+    itemType: 'people' | 'visas',
     itemId: string,
     status: 'success' | 'failed',
     errorDetails?: string

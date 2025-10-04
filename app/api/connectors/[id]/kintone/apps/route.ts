@@ -582,67 +582,28 @@ export async function POST(
         )
       }
 
-      // Check if mapping already exists
-      const { data: existingMapping, error: findError } = await supabase
+      // Always create new mapping
+      const { data: newMapping, error: insertError } = await supabase
         .from('connector_app_mappings')
-        .select('id')
-        .eq('connector_id', connectorId)
-        .eq('target_app_type', serviceFeature)
+        .insert({
+          connector_id: connectorId,
+          target_app_type: serviceFeature,
+          source_app_id: String(appId),
+          source_app_name: appName,
+          is_active: true
+        })
+        .select()
         .single()
 
-      let mapping
-      if (findError && findError.code !== 'PGRST116') {
-        console.error('Error finding existing mapping:', findError)
+      if (insertError) {
+        console.error('Error inserting app mapping:', insertError)
         return NextResponse.json(
-          { error: 'Failed to check existing mapping' },
+          { error: 'Failed to create app mapping' },
           { status: 500 }
         )
       }
 
-      if (existingMapping) {
-        // Update existing mapping
-        const { data: updatedMapping, error: updateError } = await supabase
-          .from('connector_app_mappings')
-          .update({
-            source_app_id: String(appId),
-            source_app_name: appName,
-            is_active: true
-          })
-          .eq('id', existingMapping.id)
-          .select()
-          .single()
-
-        if (updateError) {
-          console.error('Error updating app mapping:', updateError)
-          return NextResponse.json(
-            { error: 'Failed to update app mapping' },
-            { status: 500 }
-          )
-        }
-        mapping = updatedMapping
-      } else {
-        // Insert new mapping
-        const { data: newMapping, error: insertError } = await supabase
-          .from('connector_app_mappings')
-          .insert({
-            connector_id: connectorId,
-            target_app_type: serviceFeature,
-            source_app_id: String(appId),
-            source_app_name: appName,
-            is_active: true
-          })
-          .select()
-          .single()
-
-        if (insertError) {
-          console.error('Error inserting app mapping:', insertError)
-          return NextResponse.json(
-            { error: 'Failed to insert app mapping' },
-            { status: 500 }
-          )
-        }
-        mapping = newMapping
-      }
+      const mapping = newMapping
 
       return NextResponse.json({
         success: true,

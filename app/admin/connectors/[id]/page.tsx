@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ConnectorDetailClient } from "./connector-detail-client"
 import { StatusDot } from "@/components/ui/status-dot"
 import { KeyValueList } from "@/components/ui/key-value-list"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -318,194 +318,175 @@ export default async function ConnectorDetailPage({
         </div>
       ) : (
         /* Connected State - Show Full Details with Tabs */
-        <Tabs defaultValue={tab === 'app-mapping' ? 'app-mapping' : 'overview'} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview" className="flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
-              <span>概要</span>
-            </TabsTrigger>
-            <TabsTrigger value="app-mapping" className="flex items-center space-x-2">
-              <Database className="h-4 w-4" />
-              <span>アプリ＆マッピング</span>
-              <Badge variant="outline">{stats.connectedApps + stats.fieldMappings}</Badge>
-            </TabsTrigger>
-          </TabsList>
+        <ConnectorDetailClient
+          connector={connector}
+          tenantId={tenantId}
+          connectionStatus={connectionStatus}
+          tab={tab}
+        >
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Main Configuration */}
+            <div className="lg:col-span-2 space-y-6">
+          {/* OAuth Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="h-5 w-5" />
+                <span>OAuth 設定</span>
+              </CardTitle>
+              <CardDescription>
+                認証設定の詳細情報（参照のみ）
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <KeyValueList
+                items={[
+                  {
+                    key: "クライアント ID",
+                    value: kintoneConfig?.clientId ? redactClientId(kintoneConfig.clientId) : "未設定",
+                    icon: <Settings className="h-4 w-4" />
+                  },
+                  {
+                    key: "リダイレクト URI",
+                    value: redirectUri || "未設定",
+                    icon: <Zap className="h-4 w-4" />
+                  },
+                  {
+                    key: "スコープ",
+                    value: kintoneConfig?.scope ? kintoneConfig.scope.join(" ") : "未設定",
+                    icon: <Shield className="h-4 w-4" />
+                  },
+                  {
+                    key: "ドメイン",
+                    value: kintoneConfig?.domain ? redactDomain(kintoneConfig.domain) : "未設定",
+                    icon: <Database className="h-4 w-4" />
+                  }
+                ]}
+              />
+            </CardContent>
+          </Card>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Main Configuration */}
-              <div className="lg:col-span-2 space-y-6">
-            {/* OAuth Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5" />
-                  <span>OAuth 設定</span>
-                </CardTitle>
-                <CardDescription>
-                  認証設定の詳細情報（参照のみ）
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <KeyValueList
-                  items={[
-                    {
-                      key: "クライアント ID",
-                      value: kintoneConfig?.clientId ? redactClientId(kintoneConfig.clientId) : "未設定",
-                      icon: <Settings className="h-4 w-4" />
-                    },
-                    {
-                      key: "リダイレクト URI",
-                      value: redirectUri || "未設定",
-                      icon: <Zap className="h-4 w-4" />
-                    },
-                    {
-                      key: "スコープ",
-                      value: kintoneConfig?.scope ? kintoneConfig.scope.join(" ") : "未設定",
-                      icon: <Shield className="h-4 w-4" />
-                    },
-                    {
-                      key: "ドメイン",
-                      value: kintoneConfig?.domain ? redactDomain(kintoneConfig.domain) : "未設定",
-                      icon: <Database className="h-4 w-4" />
-                    }
-                  ]}
-                />
-              </CardContent>
-            </Card>
+          {/* Connection Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                {getProviderIcon(connector.provider)}
+                <span>接続先情報</span>
+              </CardTitle>
+              <CardDescription>
+                {connector.provider.charAt(0).toUpperCase() + connector.provider.slice(1)} 接続の詳細
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <KeyValueList
+                items={[
+                  {
+                    key: 'プロバイダー',
+                    value: connector.provider,
+                    icon: <Database className="h-4 w-4" />
+                  },
+                  {
+                    key: '表示名',
+                    value: connector.display_name,
+                    icon: <Database className="h-4 w-4" />
+                  },
+                  {
+                    key: 'テナント名',
+                    value: tenant?.name || 'Unknown Tenant',
+                    icon: <Database className="h-4 w-4" />
+                  },
+                  {
+                    key: '作成日',
+                    value: new Date(connector.created_at).toLocaleDateString('ja-JP'),
+                    icon: <Database className="h-4 w-4" />
+                  }
+                ]}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Connection Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  {getProviderIcon(connector.provider)}
-                  <span>接続先情報</span>
-                </CardTitle>
-                <CardDescription>
-                  {connector.provider.charAt(0).toUpperCase() + connector.provider.slice(1)} 接続の詳細
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <KeyValueList
-                  items={[
-                    {
-                      key: 'プロバイダー',
-                      value: connector.provider,
-                      icon: <Database className="h-4 w-4" />
-                    },
-                    {
-                      key: '表示名',
-                      value: connector.display_name,
-                      icon: <Database className="h-4 w-4" />
-                    },
-                    {
-                      key: 'テナント名',
-                      value: tenant?.name || 'Unknown Tenant',
-                      icon: <Database className="h-4 w-4" />
-                    },
-                    {
-                      key: '作成日',
-                      value: new Date(connector.created_at).toLocaleDateString('ja-JP'),
-                      icon: <Database className="h-4 w-4" />
-                    }
-                  ]}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Statistics */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Database className="h-5 w-5" />
-                  <span>統計情報</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">接続アプリ数</span>
-                    <Badge variant="outline">{stats.connectedApps}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">アクティブマッピング</span>
-                    <Badge variant="outline">{stats.activeMappings}</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">フィールドマッピング</span>
-                    <Badge variant="outline">{stats.fieldMappings}</Badge>
-                  </div>
-                  {stats.lastSync && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">最終同期</span>
-                      <span className="text-sm">
-                        {new Date(stats.lastSync).toLocaleDateString('ja-JP')}
-                      </span>
-                    </div>
-                  )}
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* Statistics */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="h-5 w-5" />
+                <span>統計情報</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">接続アプリ数</span>
+                  <Badge variant="outline">{stats.connectedApps}</Badge>
                 </div>
-              </CardContent>
-            </Card>
-
-
-            {/* Recent Logs */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5" />
-                  <span>最近のログ</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {logs.length === 0 ? (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    ログがありません
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {logs.slice(0, 5).map((log) => (
-                      <div key={log.id} className="flex items-start space-x-2 text-sm">
-                        <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                          log.level === 'error' ? 'bg-red-500' :
-                          log.level === 'warn' ? 'bg-yellow-500' : 'bg-green-500'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{log.event}</div>
-                          <div className="text-muted-foreground text-xs">
-                            {new Date(log.created_at).toLocaleString('ja-JP')}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {logs.length > 5 && (
-                      <Link href={`/admin/connectors/${connectorId}/logs?tenantId=${tenantId}`}>
-                        <Button variant="ghost" size="sm" className="w-full mt-2">
-                          すべてのログを表示
-                        </Button>
-                      </Link>
-                    )}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">アクティブマッピング</span>
+                  <Badge variant="outline">{stats.activeMappings}</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">フィールドマッピング</span>
+                  <Badge variant="outline">{stats.fieldMappings}</Badge>
+                </div>
+                {stats.lastSync && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">最終同期</span>
+                    <span className="text-sm">
+                      {new Date(stats.lastSync).toLocaleDateString('ja-JP')}
+                    </span>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-            </div>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="app-mapping">
-            <ConnectorAppMappingTab 
-              connector={connector} 
-              tenantId={tenantId} 
-              connectionStatus={{ 
-                status: connectionStatus?.status === 'connected' || connector.status === 'connected' ? 'connected' : 'disconnected' 
-              }} 
-            />
-          </TabsContent>
-        </Tabs>
+
+          {/* Recent Logs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Activity className="h-5 w-5" />
+                <span>最近のログ</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {logs.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground text-sm">
+                  ログがありません
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {logs.slice(0, 5).map((log) => (
+                    <div key={log.id} className="flex items-start space-x-2 text-sm">
+                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                        log.level === 'error' ? 'bg-red-500' :
+                        log.level === 'warn' ? 'bg-yellow-500' : 'bg-green-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{log.event}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {new Date(log.created_at).toLocaleString('ja-JP')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {logs.length > 5 && (
+                    <Link href={`/admin/connectors/${connectorId}/logs?tenantId=${tenantId}`}>
+                      <Button variant="ghost" size="sm" className="w-full mt-2">
+                        すべてのログを表示
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+          </div>
+        </ConnectorDetailClient>
       )}
     </div>
   )

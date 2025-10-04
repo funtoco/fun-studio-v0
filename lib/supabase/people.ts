@@ -27,7 +27,7 @@ export async function getPeople(): Promise<Person[]> {
   }
   
   // SupabaseのデータをPerson型に変換
-  return data.map(person => ({
+  return data.map((person: any) => ({
     id: person.id,
     name: person.name,
     kana: person.kana,
@@ -45,6 +45,7 @@ export async function getPeople(): Promise<Person[]> {
     tenantName: person.tenant?.name,
     note: person.note,
     visaId: person.visa_id,
+    externalId: person.external_id,
     createdAt: person.created_at,
     updatedAt: person.updated_at
   }))
@@ -89,6 +90,7 @@ export async function getPersonById(id: string): Promise<Person | null> {
     tenantName: data.tenant?.name,
     note: data.note,
     visaId: data.visa_id,
+    externalId: data.external_id,
     createdAt: data.created_at,
     updatedAt: data.updated_at
   }
@@ -115,7 +117,8 @@ export async function createPerson(person: Omit<Person, 'createdAt' | 'updatedAt
       email: person.email,
       address: person.address,
       note: person.note,
-      visa_id: person.visaId
+      visa_id: person.visaId,
+      external_id: person.externalId
     })
     .select(`
       *,
@@ -146,6 +149,7 @@ export async function createPerson(person: Omit<Person, 'createdAt' | 'updatedAt
     tenantName: data.tenant?.name,
     note: data.note,
     visaId: data.visa_id,
+    externalId: data.external_id,
     createdAt: data.created_at,
     updatedAt: data.updated_at
   }
@@ -171,7 +175,8 @@ export async function updatePerson(id: string, updates: Partial<Omit<Person, 'id
       email: updates.email,
       address: updates.address,
       note: updates.note,
-      visa_id: updates.visaId
+      visa_id: updates.visaId,
+      external_id: updates.externalId
     })
     .eq('id', id)
     .select(`
@@ -203,10 +208,58 @@ export async function updatePerson(id: string, updates: Partial<Omit<Person, 'id
     tenantName: data.tenant?.name,
     note: data.note,
     visaId: data.visa_id,
+    externalId: data.external_id,
     createdAt: data.created_at,
     updatedAt: data.updated_at
   }
 }
+
+export async function getPersonByExternalId(externalId: string): Promise<Person | null> {
+  const supabase = createClient()
+  
+  console.log('Fetching person with external_id:', externalId)
+  
+  const { data, error } = await supabase
+    .from('people')
+    .select(`
+      *,
+      tenant:tenant_id (id, name)
+    `)
+    .eq('external_id', externalId)
+    .single()
+  
+  console.log('Query result:', { data, error })
+  
+  if (error) {
+    console.error('Error fetching person by external_id:', error)
+    return null
+  }
+  
+  return {
+    id: data.id,
+    name: data.name,
+    kana: data.kana,
+    nationality: data.nationality,
+    dob: data.dob,
+    specificSkillField: data.specific_skill_field,
+    phone: data.phone,
+    employeeNumber: data.employee_number,
+    workingStatus: data.working_status,
+    residenceCardNo: data.residence_card_no,
+    residenceCardExpiryDate: data.residence_card_expiry_date,
+    residenceCardIssuedDate: data.residence_card_issued_date,
+    email: data.email,
+    address: data.address,
+    tenantName: data.tenant?.name,
+    note: data.note,
+    visaId: data.visa_id,
+    externalId: data.external_id,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at
+  }
+}
+
+// updatePersonByExternalId is deprecated - use KintoneDataSync for data synchronization
 
 export async function deletePerson(id: string): Promise<void> {
   const supabase = createClient()
