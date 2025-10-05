@@ -1,3 +1,16 @@
+export type PersonImage = {
+  id: string
+  personId: string
+  fileName: string
+  filePath: string
+  fileSize?: number
+  mimeType?: string
+  kintoneFileKey?: string
+  tenantId: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type Person = {
   id: string
   name: string
@@ -17,6 +30,7 @@ export type Person = {
   note?: string
   visaId?: string
   externalId?: string
+  images?: PersonImage[]
   createdAt: string
   updatedAt: string
 }
