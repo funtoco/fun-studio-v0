@@ -7,7 +7,8 @@ import { decryptJson } from '@/lib/crypto/secretStore'
 const updateFieldsSchema = z.object({
   fields: z.array(z.object({
     source_field_code: z.string(),
-    target_field_id: z.string()
+    target_field_id: z.string(),
+    is_update_key: z.boolean().optional().default(false)
   }))
 })
 
@@ -213,6 +214,7 @@ export async function POST(
         target_field_id: field.target_field_id,
         is_required: false,
         is_active: true,
+        is_update_key: field.is_update_key || false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }

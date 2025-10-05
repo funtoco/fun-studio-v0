@@ -458,7 +458,8 @@ function MappingFields() {
             console.log('[DEBUG] Existing mappings data', data)
             const mappings = data.fields.map((field: any) => ({
               source_field_code: field.source_field_code,
-              destination_field_key: field.target_field_id
+              destination_field_key: field.target_field_id,
+              is_update_key: field.is_update_key || false
             }))
             console.log('[DEBUG] Mapped field mappings', mappings)
             setDraftFieldMappings(mappings)
@@ -716,7 +717,8 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
           body: JSON.stringify({
             fields: draftFieldMappings.map(m => ({
               source_field_code: m.source_field_code,
-              target_field_id: m.destination_field_key
+              target_field_id: m.destination_field_key,
+              is_update_key: m.is_update_key || false
             }))
           })
         })
