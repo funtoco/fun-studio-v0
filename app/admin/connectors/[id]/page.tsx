@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ConnectorDetailClient } from "./connector-detail-client"
 import { StatusDot } from "@/components/ui/status-dot"
 import { KeyValueList } from "@/components/ui/key-value-list"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -56,7 +55,6 @@ async function getConnectionStatusFromCredentials(connectorId: string) {
 }
 import { getConfigAndToken, computeRedirectUri } from "@/lib/connectors/kintoneClient"
 import { ConnectorActions } from "../connector-actions"
-import { ConnectorAppMappingTab } from "./connector-app-mapping-tab"
 import { OAuthSetupInfo } from "@/components/connectors/oauth-setup-info"
 
 interface ConnectorDetailPageProps {
@@ -67,7 +65,6 @@ interface ConnectorDetailPageProps {
     tenantId?: string
     connected?: string
     error?: string
-    tab?: string
   }
 }
 
@@ -78,15 +75,6 @@ export default async function ConnectorDetailPage({
   const connectorId = params.id
   const tenantId = searchParams.tenantId
   
-  // Handle redirects from old tab URLs
-  const tab = searchParams.tab
-  if (tab === 'apps' || tab === 'mappings') {
-    // Redirect to the new unified tab
-    const redirectUrl = tenantId 
-      ? `/admin/connectors/${connectorId}?tenantId=${tenantId}`
-      : `/admin/connectors/${connectorId}`
-    redirect(redirectUrl)
-  }
   
   // Get connector data from new system
   const connector = await getConnector(connectorId)
@@ -317,13 +305,41 @@ export default async function ConnectorDetailPage({
           </div>
         </div>
       ) : (
-        /* Connected State - Show Full Details with Tabs */
-        <ConnectorDetailClient
-          connector={connector}
-          tenantId={tenantId}
-          connectionStatus={connectionStatus}
-          tab={tab}
-        >
+        /* Connected State - Show Full Details */
+        <div className="space-y-6">
+          {/* Navigation to App Mappings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Database className="h-5 w-5" />
+                <span>アプリ&マッピング</span>
+              </CardTitle>
+              <CardDescription>
+                コネクターのアプリマッピング設定と管理
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    接続されたアプリのマッピング設定を管理できます
+                  </p>
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <span>接続アプリ数: <Badge variant="outline">{stats.connectedApps}</Badge></span>
+                    <span>アクティブマッピング: <Badge variant="outline">{stats.activeMappings}</Badge></span>
+                    <span>フィールドマッピング: <Badge variant="outline">{stats.fieldMappings}</Badge></span>
+                  </div>
+                </div>
+                <Link href={tenantId ? `/admin/connectors/${connectorId}/mappings?tenantId=${tenantId}` : `/admin/connectors/${connectorId}/mappings`}>
+                  <Button>
+                    <Database className="h-4 w-4 mr-2" />
+                    アプリ&マッピングを管理
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Configuration */}
             <div className="lg:col-span-2 space-y-6">
@@ -486,7 +502,7 @@ export default async function ConnectorDetailPage({
           </Card>
         </div>
           </div>
-        </ConnectorDetailClient>
+        </div>
       )}
     </div>
   )
