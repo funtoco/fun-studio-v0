@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { MappingFilter, MappingFiltersListResponse } from '@/lib/types/mappings'
+
+// Server-side Supabase client with service role key
+function getServerClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error('Missing Supabase configuration')
+  }
+  
+  return createClient(supabaseUrl, serviceKey)
+}
 
 // GET /api/connectors/[id]/mappings/[mappingId]/filters
 export async function GET(
@@ -8,12 +20,7 @@ export async function GET(
   { params }: { params: { id: string; mappingId: string } }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const supabase = getServerClient()
 
     const { id: connectorId, mappingId } = params
 
@@ -59,12 +66,9 @@ export async function POST(
   { params }: { params: { id: string; mappingId: string } }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('[FILTERS API] Starting POST request', { params })
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const supabase = getServerClient()
 
     const { id: connectorId, mappingId } = params
     const body = await request.json()
@@ -156,12 +160,7 @@ export async function DELETE(
   { params }: { params: { id: string; mappingId: string } }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const supabase = getServerClient()
 
     const { id: connectorId, mappingId } = params
 

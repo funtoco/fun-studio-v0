@@ -33,7 +33,7 @@ export function buildKintoneAuthUrl(config: KintoneConfig, state: string): strin
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
     response_type: 'code',
-    scope: 'k:app_record:read k:app_settings:read', // Valid Kintone scopes
+    scope: 'k:app_record:read k:app_settings:read k:file:read', // Valid Kintone scopes
     state
   })
   

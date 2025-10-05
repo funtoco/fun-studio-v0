@@ -11,11 +11,13 @@ import { decryptJson } from '@/lib/security/crypto'
 // import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
 import { SyncLogger, createSyncLogger } from './sync-logger'
 import { getUpdateKeysByConnector, buildConflictColumns, buildUpdateCondition } from './update-key-utils'
+import { uploadFileToStorage, generateFilePath } from '@/lib/storage/file-uploader'
 // import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
 
 // Types for field mappings
 interface FieldMapping {
   source_field_code: string
+  source_field_type?: string
   target_field_id: string
   is_required: boolean
   sort_order: number
@@ -29,6 +31,70 @@ interface AppMapping {
 }
 
 /**
+ * Process FILE type field - download from Kintone and upload to Supabase Storage
+ */
+async function processFileField(
+  kintoneClient: KintoneApiClient,
+  record: KintoneRecord,
+  fieldMapping: FieldMapping,
+  tenantId: string
+): Promise<string | null> {
+  try {
+    const sourceValue = record[fieldMapping.source_field_code]?.value
+    
+    if (!sourceValue || !Array.isArray(sourceValue) || sourceValue.length === 0) {
+      console.log(`  📁 No file data found for field ${fieldMapping.source_field_code}`)
+      return null
+    }
+
+    // Get the first file (Kintone FILE fields can have multiple files)
+    const fileInfo = sourceValue[0]
+    if (!fileInfo || !fileInfo.fileKey) {
+      console.log(`  📁 No file key found for field ${fieldMapping.source_field_code}`)
+      return null
+    }
+
+    console.log(`  📁 Processing file for field ${fieldMapping.source_field_code}:`, {
+      fileKey: fileInfo.fileKey,
+      name: fileInfo.name,
+      contentType: fileInfo.contentType
+    })
+
+    // Download file from Kintone
+    const fileData = await kintoneClient.downloadFile(fileInfo.fileKey)
+    
+    // Generate unique file path
+    const filePath = generateFilePath(
+      tenantId,
+      record.$id.value,
+      fieldMapping.source_field_code,
+      fileData.fileName
+    )
+
+    // Upload to Supabase Storage
+    const uploadResult = await uploadFileToStorage(
+      'people-images', // Use the configured bucket
+      filePath,
+      fileData.data,
+      fileData.contentType,
+      { upsert: true }
+    )
+
+    if (!uploadResult.success) {
+      console.error(`  ❌ Failed to upload file for field ${fieldMapping.source_field_code}:`, uploadResult.error)
+      return null
+    }
+
+    console.log(`  ✅ File uploaded successfully: ${uploadResult.path}`)
+    return uploadResult.path || null
+
+  } catch (error) {
+    console.error(`  ❌ Error processing file field ${fieldMapping.source_field_code}:`, error)
+    return null
+  }
+}
+
+/**
  * Get field mappings from database for a specific app mapping
  */
 async function getFieldMappings(
@@ -37,7 +103,7 @@ async function getFieldMappings(
 ): Promise<FieldMapping[]> {
   const { data, error } = await supabase
     .from('connector_field_mappings')
-    .select('source_field_code, target_field_id, is_required, sort_order')
+    .select('source_field_code, source_field_type, target_field_id, is_required, sort_order')
     .eq('app_mapping_id', appMappingId)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
@@ -467,9 +533,18 @@ export class KintoneDataSync {
 
             // Map fields using database configuration
             for (const fieldMapping of appMapping.field_mappings) {
-              const sourceValue = record[fieldMapping.source_field_code]?.value
-              data[fieldMapping.target_field_id] = sourceValue || null
-              console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
+              if (fieldMapping.source_field_type === 'FILE') {
+                // Special handling for FILE type fields
+                console.log(`  📁 Processing FILE field: ${fieldMapping.source_field_code}`)
+                const filePath = await processFileField(this.kintoneClient, record, fieldMapping, this.tenantId)
+                data[fieldMapping.target_field_id] = filePath
+                console.log(`  📝 Mapping FILE ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${filePath || 'null'}`)
+              } else {
+                // Regular field mapping
+                const sourceValue = record[fieldMapping.source_field_code]?.value
+                data[fieldMapping.target_field_id] = sourceValue || null
+                console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
+              }
             }
 
             // Determine target table based on app type

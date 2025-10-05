@@ -547,14 +547,26 @@ function MappingFields() {
       
       // Then save filters if any
       if (draftFilters.length > 0) {
+        console.log('[FLOW] Saving filters', { 
+          mappingId: data.mapping_id, 
+          connectorId, 
+          filterCount: draftFilters.length 
+        })
+        
         const filterRes = await fetch(`/api/connectors/${connectorId}/mappings/${data.mapping_id}/filters`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filters: draftFilters }),
         })
         
+        console.log('[FLOW] Filter API response', { 
+          status: filterRes.status, 
+          ok: filterRes.ok 
+        })
+        
         if (!filterRes.ok) {
-          console.error('Failed to save filters:', await filterRes.json())
+          const errorData = await filterRes.json()
+          console.error('Failed to save filters:', errorData)
           return
         }
         

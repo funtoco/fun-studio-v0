@@ -39,7 +39,7 @@ export function OAuthSetupInfo({ provider, subdomain }: OAuthSetupInfoProps) {
   }
 
   const requiredScopes = provider === 'kintone' 
-    ? ['k:app_record:read', 'k:app_settings:read', 'k:app_record:write']
+    ? ['k:app_record:read', 'k:app_settings:read', 'k:app_record:write', 'k:file:read']
     : ['crm.objects.contacts.read', 'crm.objects.companies.read']
 
   return (
