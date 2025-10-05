@@ -46,6 +46,7 @@ export async function getPeople(): Promise<Person[]> {
     note: person.note,
     visaId: person.visa_id,
     externalId: person.external_id,
+    imagePath: person.image_path,
     createdAt: person.created_at,
     updatedAt: person.updated_at
   }))
@@ -91,6 +92,7 @@ export async function getPersonById(id: string): Promise<Person | null> {
     note: data.note,
     visaId: data.visa_id,
     externalId: data.external_id,
+    imagePath: data.image_path,
     createdAt: data.created_at,
     updatedAt: data.updated_at
   }
@@ -150,6 +152,7 @@ export async function createPerson(person: Omit<Person, 'createdAt' | 'updatedAt
     note: data.note,
     visaId: data.visa_id,
     externalId: data.external_id,
+    imagePath: data.image_path,
     createdAt: data.created_at,
     updatedAt: data.updated_at
   }
@@ -209,6 +212,7 @@ export async function updatePerson(id: string, updates: Partial<Omit<Person, 'id
     note: data.note,
     visaId: data.visa_id,
     externalId: data.external_id,
+    imagePath: data.image_path,
     createdAt: data.created_at,
     updatedAt: data.updated_at
   }
@@ -254,6 +258,7 @@ export async function getPersonByExternalId(externalId: string): Promise<Person 
     note: data.note,
     visaId: data.visa_id,
     externalId: data.external_id,
+    imagePath: data.image_path,
     createdAt: data.created_at,
     updatedAt: data.updated_at
   }
