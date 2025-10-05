@@ -448,8 +448,13 @@ export class KintoneDataSync {
       
         let syncedCount = 0
       
+        const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType, appMapping.id)
+        console.log(`🔍 Update keys for ${targetAppType}:`, updateKeys.map(fm => ({
+          source: fm.source_field_code,
+          target: fm.target_field_id,
+          required: fm.is_required
+        })))
         for (const record of records) {
-          const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType)
           console.log(`🔄 Processing record ${record.$id.value} for ${targetAppType}`)
         
           try {
@@ -476,12 +481,18 @@ export class KintoneDataSync {
             // Get dynamic update keys for this connector and target app type
             
             // Check if record exists using update keys
-            const whereCondition = buildUpdateCondition(data, updateKeys)
+            const whereCondition = buildUpdateCondition(record, updateKeys)
+            console.log(`🔍 Search condition for existing record:`, whereCondition)
+            console.log(`🔍 Data object keys:`, Object.keys(data))
+            console.log(`🔍 Data object values:`, data)
+            
             const { data: existingRecord, error: selectError } = await this.supabase
               .from(targetTable)
               .select('id')
               .match(whereCondition)
               .single()
+
+            console.log(`🔍 Existing record search result:`, { existingRecord, selectError })
 
             let error: any = null
 
@@ -502,6 +513,7 @@ export class KintoneDataSync {
             } else {
               // Record doesn't exist, insert it
               console.log(`➕ Inserting new record to ${targetTable}`)
+              console.log(`➕ Insert data:`, data)
               const { error: insertError } = await this.supabase
                 .from(targetTable)
                 .insert(data)
