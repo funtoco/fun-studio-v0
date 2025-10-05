@@ -10,6 +10,7 @@ export interface MappingApp {
   source_app_name: string // Kintone app name (e.g., "就労_就労管理")
   target_app_type: string // Target app type (people, visas, meetings, etc.)
   is_active: boolean
+  skip_if_no_update_target: boolean // Whether to skip records when no update target is found
   created_at: string
   updated_at: string
 }

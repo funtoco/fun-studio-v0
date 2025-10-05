@@ -41,6 +41,7 @@ export type WizardState = {
   selectedDestinationApp: DestinationAppLite | null
   draftFilters: DraftFilter[]
   draftFieldMappings: DraftFieldMapping[]
+  skipIfNoUpdateTarget: boolean
   mappingIdDraft: string | null
   editMode: boolean
   existingMapping: any | null
@@ -59,6 +60,7 @@ export type WizardState = {
   setSelectedDestinationApp: (app: DestinationAppLite) => void
   setDraftFilters: (f: DraftFilter[]) => void
   setDraftFieldMappings: (m: DraftFieldMapping[]) => void
+  setSkipIfNoUpdateTarget: (skip: boolean) => void
   setMappingIdDraft: (id: string | null) => void
   next: () => void
   back: () => void
@@ -81,6 +83,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   selectedDestinationApp: null,
   draftFilters: [],
   draftFieldMappings: [],
+  skipIfNoUpdateTarget: false,
   mappingIdDraft: null,
   editMode: false,
   existingMapping: null,
@@ -117,6 +120,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
       set({
         selectedKintoneApp: kintoneApp,
         selectedDestinationApp: destinationApp,
+        skipIfNoUpdateTarget: mapping.skip_if_no_update_target || false,
         mappingIdDraft: mapping.id
       })
       console.log("[FLOW] → mappingFields (edit mode)")
@@ -136,6 +140,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
       selectedDestinationApp: null,
       draftFilters: [],
       draftFieldMappings: [],
+      skipIfNoUpdateTarget: false,
       mappingIdDraft: null,
       editMode: false,
       existingMapping: null,
@@ -156,6 +161,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   },
   setDraftFilters: (f) => set({ draftFilters: f }),
   setDraftFieldMappings: (m) => set({ draftFieldMappings: m }),
+  setSkipIfNoUpdateTarget: (skip) => set({ skipIfNoUpdateTarget: skip }),
   setMappingIdDraft: (id) => set({ mappingIdDraft: id }),
 
   next: () => {
@@ -170,7 +176,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
     if (state === "selectingDestinationApp") set({ uiFlowState: "selectingKintoneApp" })
     else if (state === "settingFilters") set({ uiFlowState: "selectingDestinationApp" })
     else if (state === "mappingFields") set({ uiFlowState: "settingFilters" })
-    else if (state === "reviewAndSave") set({ uiFlowState: "mappingFields" })
+    else if (state === "done") set({ uiFlowState: "mappingFields" })
   },
 
   setAppsCache: (payload) => {

@@ -358,6 +358,8 @@ function MappingFields() {
     draftFilters,
     draftFieldMappings,
     setDraftFieldMappings,
+    skipIfNoUpdateTarget,
+    setSkipIfNoUpdateTarget,
     connectorId,
     getFieldsCacheValid,
     setFieldsCache,
@@ -523,6 +525,7 @@ function MappingFields() {
         source_app_id: selectedKintoneApp.id,
         destination_app_key: selectedDestinationApp.key,
         field_mappings: draftFieldMappings,
+        skip_if_no_update_target: skipIfNoUpdateTarget,
       }
       
       // If in edit mode, include the existing mapping ID
@@ -637,6 +640,26 @@ function MappingFields() {
           </Button>
         </div>
       </div>
+      
+      {/* Skip option */}
+      <div className="border-t pt-4">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="skip-if-no-update-target"
+            checked={skipIfNoUpdateTarget}
+            onChange={(e) => setSkipIfNoUpdateTarget(e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="skip-if-no-update-target" className="text-sm text-gray-700">
+            更新対象がない場合はスキップする
+          </label>
+        </div>
+        <p className="text-xs text-gray-500 mt-1 ml-6">
+          チェックを入れると、既存のレコードが見つからない場合は新規作成せずにスキップします
+        </p>
+      </div>
+      
       <div className="flex justify-end">
         <Button type="button" onClick={onSaveDraft} disabled={!canSave || isSaving}>
           {isSaving ? '保存中...' : '下書きを保存'}

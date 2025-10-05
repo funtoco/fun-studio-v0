@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       source_app_id,
       destination_app_key,
       field_mappings,
+      skip_if_no_update_target,
       app_mapping_id, // Optional: if provided, update existing mapping
     } = body || {}
 
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
         .update({
           source_app_id: String(source_app_id),
           source_app_name: `Kintone app ${source_app_id}`,
+          skip_if_no_update_target: skip_if_no_update_target || false,
           is_active: false, // draft status
         })
         .eq('id', app_mapping_id)
@@ -85,6 +87,7 @@ export async function POST(request: NextRequest) {
           target_app_type: destination_app_key,
           source_app_id: String(source_app_id),
           source_app_name: `Kintone app ${source_app_id}`,
+          skip_if_no_update_target: skip_if_no_update_target || false,
           is_active: false, // draft status
         })
         .select()

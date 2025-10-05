@@ -27,6 +27,7 @@ interface AppMapping {
   id: string
   source_app_id: string
   target_app_type: string
+  skip_if_no_update_target: boolean
   field_mappings: FieldMapping[]
 }
 
@@ -126,7 +127,7 @@ async function getAppMappings(
 ): Promise<AppMapping[]> {
   const { data, error } = await supabase
     .from('connector_app_mappings')
-    .select('id, source_app_id, target_app_type')
+    .select('id, source_app_id, target_app_type, skip_if_no_update_target')
     .eq('connector_id', connectorId)
     .eq('target_app_type', targetAppType)
     .eq('is_active', true)
@@ -140,12 +141,22 @@ async function getAppMappings(
   const mappings: AppMapping[] = []
   for (const mapping of data) {
     const fieldMappings = await getFieldMappings(supabase, mapping.id)
-    mappings.push({
+    const appMapping = {
       id: mapping.id,
       source_app_id: mapping.source_app_id,
       target_app_type: mapping.target_app_type,
+      skip_if_no_update_target: mapping.skip_if_no_update_target || false,
       field_mappings: fieldMappings
+    }
+    
+    console.log(`📋 Loaded app mapping:`, {
+      id: appMapping.id,
+      source_app_id: appMapping.source_app_id,
+      target_app_type: appMapping.target_app_type,
+      skip_if_no_update_target: appMapping.skip_if_no_update_target
     })
+    
+    mappings.push(appMapping)
   }
   
   return mappings
@@ -160,7 +171,7 @@ async function getAppMappingById(
 ): Promise<AppMapping | null> {
   const { data, error } = await supabase
     .from('connector_app_mappings')
-    .select('id, source_app_id, target_app_type, connector_id')
+    .select('id, source_app_id, target_app_type, connector_id, skip_if_no_update_target')
     .eq('id', appMappingId)
     .eq('is_active', true)
     .single()
@@ -176,6 +187,7 @@ async function getAppMappingById(
     id: data.id,
     source_app_id: data.source_app_id,
     target_app_type: data.target_app_type,
+    skip_if_no_update_target: data.skip_if_no_update_target || false,
     field_mappings: fieldMappings
   }
 }
@@ -525,6 +537,47 @@ export class KintoneDataSync {
         
           try {
             // Transform Kintone record to our format using database field mappings
+            // Determine target table based on app type
+            const targetTable = this.getTargetTable(targetAppType)
+            if (!targetTable) {
+              throw new Error(`Unknown target app type: ${targetAppType}`)
+            }
+
+            // Get dynamic update keys for this connector and target app type
+            const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType, appMapping.id)
+            
+            // Check if record exists using update keys
+            const whereCondition = buildUpdateCondition(record, updateKeys)
+            console.log(`🔍 Search condition for existing record:`, whereCondition)
+            
+            const { data: existingRecord, error: selectError } = await this.supabase
+              .from(targetTable)
+              .select('id')
+              .match(whereCondition)
+              .single()
+
+            console.log(`🔍 Existing record search result:`, { existingRecord, selectError })
+
+            if (selectError && selectError.code !== 'PGRST116') {
+              // PGRST116 means no rows found, which is expected for new records
+              console.error(`❌ Error checking existing record:`, selectError)
+              throw selectError
+            }
+
+            // Check if we should skip this record
+            if (!existingRecord && appMapping.skip_if_no_update_target) {
+              // Skip this record if no update target found
+              console.log(`⏭️ Skipping record ${record.$id.value} - no update target found and skip_if_no_update_target is enabled`)
+              
+              // Log skipped item sync (for manual syncs only)
+              if (this.syncType === 'manual') {
+                await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'failed', 'Skipped: No update target found')
+              }
+              
+              continue // Skip to next record
+            }
+
+            // Only process data if we're going to insert or update
             const data: any = {
               tenant_id: this.tenantId, // Set tenant_id from connector
               created_at: new Date().toISOString(),
@@ -547,35 +600,10 @@ export class KintoneDataSync {
               }
             }
 
-            // Determine target table based on app type
-            const targetTable = this.getTargetTable(targetAppType)
-            if (!targetTable) {
-              throw new Error(`Unknown target app type: ${targetAppType}`)
-            }
-
-            // Get dynamic update keys for this connector and target app type
-            
-            // Check if record exists using update keys
-            const whereCondition = buildUpdateCondition(record, updateKeys)
-            console.log(`🔍 Search condition for existing record:`, whereCondition)
             console.log(`🔍 Data object keys:`, Object.keys(data))
             console.log(`🔍 Data object values:`, data)
-            
-            const { data: existingRecord, error: selectError } = await this.supabase
-              .from(targetTable)
-              .select('id')
-              .match(whereCondition)
-              .single()
-
-            console.log(`🔍 Existing record search result:`, { existingRecord, selectError })
 
             let error: any = null
-
-            if (selectError && selectError.code !== 'PGRST116') {
-              // PGRST116 means no rows found, which is expected for new records
-              console.error(`❌ Error checking existing record:`, selectError)
-              throw selectError
-            }
 
             if (existingRecord) {
               // Record exists, update it
@@ -586,7 +614,7 @@ export class KintoneDataSync {
                 .match(whereCondition)
               error = updateError
             } else {
-              // Record doesn't exist, insert it
+              // Insert new record
               console.log(`➕ Inserting new record to ${targetTable}`)
               console.log(`➕ Insert data:`, data)
               const { error: insertError } = await this.supabase
