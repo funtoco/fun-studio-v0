@@ -474,7 +474,6 @@ export class KintoneDataSync {
             }
 
             // Get dynamic update keys for this connector and target app type
-            const id = record[updateKeys[0]].value
             
             // Check if record exists using update keys
             const whereCondition = buildUpdateCondition(data, updateKeys)
@@ -518,7 +517,7 @@ export class KintoneDataSync {
 
             // Log successful item sync (for manual syncs only)
             if (this.syncType === 'manual') {
-              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', id, 'success')
+              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'success')
             }
 
             syncedCount++
@@ -528,7 +527,7 @@ export class KintoneDataSync {
             
             // Log failed item sync (for manual syncs only)
             if (this.syncType === 'manual') {
-              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', id, 'failed', errorMessage)
+              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'failed', errorMessage)
             }
             
             // Continue with other records
