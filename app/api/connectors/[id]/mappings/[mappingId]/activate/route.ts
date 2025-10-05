@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 // POST /api/connectors/[id]/mappings/[mappingId]/activate
 export async function POST(
@@ -7,37 +7,11 @@ export async function POST(
   { params }: { params: { id: string; mappingId: string } }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { id: connectorId, mappingId } = params
-
-    // Verify connector belongs to user's tenant
-    const { data: connector, error: connectorError } = await supabase
-      .from('connectors')
-      .select('tenant_id')
-      .eq('id', connectorId)
-      .single()
-
-    if (connectorError || !connector) {
-      return NextResponse.json({ error: 'Connector not found' }, { status: 404 })
-    }
-
-    // Verify mapping exists and belongs to the connector
-    const { data: mapping, error: mappingError } = await supabase
-      .from('connector_app_mappings')
-      .select('id, is_active')
-      .eq('id', mappingId)
-      .eq('connector_id', connectorId)
-      .single()
-
-    if (mappingError || !mapping) {
-      return NextResponse.json({ error: 'Mapping not found' }, { status: 404 })
-    }
+    const { mappingId } = params
 
     // Activate the mapping
     const { error: updateError } = await supabase
