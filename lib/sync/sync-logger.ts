@@ -31,15 +31,6 @@ export interface SyncSession {
   run_by?: string
 }
 
-export interface SyncItemLog {
-  id: string
-  session_id: string
-  item_type: 'people' | 'visas'
-  item_id: string
-  status: 'success' | 'failed'
-  timestamp: string
-  error_details?: string
-}
 
 export class SyncLogger {
   private supabase: ReturnType<typeof getServerClient>
@@ -78,34 +69,6 @@ export class SyncLogger {
     return data.id
   }
 
-  /**
-   * Log individual item sync result (for manual syncs only)
-   */
-  async logItem(
-    itemType: 'people' | 'visas',
-    itemId: string,
-    status: 'success' | 'failed',
-    errorDetails?: string
-  ): Promise<void> {
-    if (!this.sessionId) {
-      throw new Error('Sync session not started')
-    }
-
-    const { error } = await this.supabase
-      .from('sync_item_logs')
-      .insert({
-        session_id: this.sessionId,
-        item_type: itemType,
-        item_id: itemId,
-        status,
-        error_details: errorDetails
-      })
-
-    if (error) {
-      console.error('Failed to log sync item:', error)
-      // Don't throw error to avoid breaking sync process
-    }
-  }
 
   /**
    * Update session with final results
@@ -160,60 +123,25 @@ export class SyncLogger {
     return data || []
   }
 
-  /**
-   * Get item logs for a specific session
-   */
-  async getItemLogs(
-    sessionId: string,
-    limit: number = 100,
-    offset: number = 0
-  ): Promise<SyncItemLog[]> {
-    const { data, error } = await this.supabase
-      .from('sync_item_logs')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('timestamp', { ascending: false })
-      .range(offset, offset + limit - 1)
-
-    if (error) {
-      throw new Error(`Failed to fetch item logs: ${error.message}`)
-    }
-
-    return data || []
-  }
 
   /**
    * Get real-time sync progress for a running session
    */
   async getSessionProgress(sessionId: string): Promise<{
     session: SyncSession | null
-    itemLogs: SyncItemLog[]
   }> {
-    const [sessionResult, itemLogsResult] = await Promise.all([
-      this.supabase
-        .from('sync_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single(),
-      this.supabase
-        .from('sync_item_logs')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('timestamp', { ascending: false })
-        .limit(100)
-    ])
+    const { data, error } = await this.supabase
+      .from('sync_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single()
 
-    if (sessionResult.error) {
-      throw new Error(`Failed to fetch session: ${sessionResult.error.message}`)
-    }
-
-    if (itemLogsResult.error) {
-      throw new Error(`Failed to fetch item logs: ${itemLogsResult.error.message}`)
+    if (error) {
+      throw new Error(`Failed to fetch session: ${error.message}`)
     }
 
     return {
-      session: sessionResult.data,
-      itemLogs: itemLogsResult.data || []
+      session: data
     }
   }
 }

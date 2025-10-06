@@ -632,20 +632,12 @@ export class KintoneDataSync {
 
             console.log(`✅ Successfully synced ${targetAppType} ${record.$id.value}`)
 
-            // Log successful item sync (for manual syncs only)
-            if (this.syncType === 'manual') {
-              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'success')
-            }
 
             syncedCount++
           } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
             console.error(`❌ Failed to sync ${targetAppType} ${record.$id.value}:`, err)
             
-            // Log failed item sync (for manual syncs only)
-            if (this.syncType === 'manual') {
-              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'failed', errorMessage)
-            }
             
             // Continue with other records
           }
