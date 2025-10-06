@@ -27,29 +27,32 @@ export async function getPeople(): Promise<Person[]> {
   }
   
   // SupabaseのデータをPerson型に変換
-  return data.map((person: any) => ({
-    id: person.id,
-    name: person.name,
-    kana: person.kana,
-    nationality: person.nationality,
-    dob: person.dob,
-    specificSkillField: person.specific_skill_field,
-    phone: person.phone,
-    employeeNumber: person.employee_number,
-    workingStatus: person.working_status,
-    residenceCardNo: person.residence_card_no,
-    residenceCardExpiryDate: person.residence_card_expiry_date,
-    residenceCardIssuedDate: person.residence_card_issued_date,
-    email: person.email,
-    address: person.address,
-    tenantName: person.tenant?.name,
-    note: person.note,
-    visaId: person.visa_id,
-    externalId: person.external_id,
-    imagePath: person.image_path,
-    createdAt: person.created_at,
-    updatedAt: person.updated_at
-  }))
+  return data.map((person: any) => {
+    console.log(`Person ${person.name} imagePath from DB:`, person.image_path)
+    return {
+      id: person.id,
+      name: person.name,
+      kana: person.kana,
+      nationality: person.nationality,
+      dob: person.dob,
+      specificSkillField: person.specific_skill_field,
+      phone: person.phone,
+      employeeNumber: person.employee_number,
+      workingStatus: person.working_status,
+      residenceCardNo: person.residence_card_no,
+      residenceCardExpiryDate: person.residence_card_expiry_date,
+      residenceCardIssuedDate: person.residence_card_issued_date,
+      email: person.email,
+      address: person.address,
+      tenantName: person.tenant?.name,
+      note: person.note,
+      visaId: person.visa_id,
+      externalId: person.external_id,
+      imagePath: person.image_path,
+      createdAt: person.created_at,
+      updatedAt: person.updated_at
+    }
+  })
 }
 
 export async function getPersonById(id: string): Promise<Person | null> {

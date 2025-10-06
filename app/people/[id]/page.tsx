@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PersonDetailTabs } from "@/components/person-detail-tabs"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
@@ -35,9 +35,11 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
       <Card>
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="text-2xl">{person.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+            <PersonAvatar 
+              name={person.name} 
+              imagePath={person.imagePath}
+              size="xl"
+            />
             <div className="flex-1">
               <div className="flex items-start justify-between">
                 <div>

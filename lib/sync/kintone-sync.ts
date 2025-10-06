@@ -568,6 +568,8 @@ export class KintoneDataSync {
             if (!existingRecord && appMapping.skip_if_no_update_target) {
               // Skip this record if no update target found
               console.log(`⏭️ Skipping record ${record.$id.value} - no update target found and skip_if_no_update_target is enabled`)
+              console.log(`⏭️ App mapping skip setting:`, appMapping.skip_if_no_update_target)
+              console.log(`⏭️ Existing record check result:`, existingRecord)
               
               // Log skipped item sync (for manual syncs only)
               if (this.syncType === 'manual') {

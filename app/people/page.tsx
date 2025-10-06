@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { DataTable, type Column } from "@/components/ui/data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { getPeople } from "@/lib/supabase/people"
 import { getVisas } from "@/lib/supabase/visas"
 import type { Person } from "@/lib/models"
@@ -76,9 +76,11 @@ export default function PeoplePage() {
       sortable: true,
       render: (value, row) => (
         <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">{value?.charAt(0) || "?"}</AvatarFallback>
-          </Avatar>
+          <PersonAvatar 
+            name={value || ""} 
+            imagePath={row.imagePath}
+            size="md"
+          />
           <div>
             <div className="font-medium">{value}</div>
             {row.kana && <div className="text-xs text-muted-foreground">{row.kana}</div>}
