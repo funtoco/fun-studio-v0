@@ -16,6 +16,8 @@ export type Person = {
   tenantName?: string
   note?: string
   visaId?: string
+  externalId?: string
+  imagePath?: string
   createdAt: string
   updatedAt: string
 }

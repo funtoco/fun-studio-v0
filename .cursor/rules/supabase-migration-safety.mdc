@@ -1,0 +1,68 @@
+---
+alwaysApply: true
+description: Supabase migration safety rules and best practices
+---
+
+# Supabase Migration Safety Rules
+
+## Database Operations Safety
+
+### NEVER Execute Without Explicit User Permission
+The following commands should NEVER be executed without explicit user permission:
+
+- `npx supabase db reset` - Database reset (destroys all data)
+- `npx supabase db reset --linked` - Remote database reset (destroys production data)
+- `npx supabase db push` - Push migrations to remote database
+- `DROP TABLE` - Table deletion
+- `DELETE FROM` - Data deletion
+- `TRUNCATE` - Table truncation
+
+### Always Ask Before Database Operations
+When suggesting database operations:
+
+1. **Explain the operation** - What will happen
+2. **Show the impact** - What data will be affected
+3. **Ask for explicit permission** - Wait for user confirmation
+4. **Provide alternatives** - Suggest safer options when possible
+
+### Safe Operations (Can Execute Without Permission)
+- `npx supabase migration list` - List migrations
+- `npx supabase status` - Check status
+- `npx supabase db diff` - Show schema differences
+- Reading migration files
+- Analyzing database schema
+
+## Migration Best Practices
+
+### File Naming Convention
+- Use format: `YYYYMMDDHHMMSS_description.sql`
+- Use current date/time when creating migrations
+- Be descriptive in the filename
+
+### Migration Content
+- Always include rollback instructions in comments
+- Test migrations locally before suggesting remote push
+- Include proper error handling
+- Add indexes for performance when needed
+
+### User Interaction
+- Never assume user wants to push to production
+- Always explain what migrations will do
+- Provide step-by-step instructions
+- Offer to test locally first
+
+## Example Safe Workflow
+
+```
+1. Create migration file with proper naming
+2. Explain what the migration does
+3. Ask: "Would you like me to apply this migration locally first?"
+4. If local test successful, ask: "Ready to push to remote database?"
+5. Wait for explicit "yes" before executing push command
+```
+
+## Remember
+- **Data safety first** - Always prioritize data protection
+- **User control** - User decides when to apply changes
+- **Transparency** - Always explain what will happen
+- **Alternatives** - Offer safer options when possible

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// POST /api/connectors/[id]/mappings/[mappingId]/activate
+// POST /api/connectors/[id]/mappings/[mappingId]/deactivate
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string; mappingId: string } }
@@ -13,25 +13,25 @@ export async function POST(
     
     const { mappingId } = params
 
-    // Activate the mapping
+    // Deactivate the mapping
     const { error: updateError } = await supabase
       .from('connector_app_mappings')
-      .update({ is_active: true })
+      .update({ is_active: false })
       .eq('id', mappingId)
 
     if (updateError) {
-      console.error('Error activating mapping:', updateError)
-      return NextResponse.json({ error: 'Failed to activate mapping' }, { status: 500 })
+      console.error('Error deactivating mapping:', updateError)
+      return NextResponse.json({ error: 'Failed to deactivate mapping' }, { status: 500 })
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Mapping activated successfully',
+      message: 'Mapping deactivated successfully',
       mappingId: mappingId,
-      isActive: true
+      isActive: false
     })
   } catch (error) {
-    console.error('Error in POST /api/connectors/[id]/mappings/[mappingId]/activate:', error)
+    console.error('Error in POST /api/connectors/[id]/mappings/[mappingId]/deactivate:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

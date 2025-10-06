@@ -295,6 +295,44 @@ export class KintoneApiClient {
       recordCount: parseInt(countResponse.totalCount)
     }
   }
+
+  /**
+   * Download file from Kintone
+   */
+  async downloadFile(fileKey: string): Promise<{
+    data: ArrayBuffer
+    contentType: string
+    fileName: string
+  }> {
+    const endpoint = `/k/v1/file.json?fileKey=${encodeURIComponent(fileKey)}`
+    
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Accept': '*/*'
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Failed to download file: ${response.status} ${errorText}`)
+    }
+
+    const data = await response.arrayBuffer()
+    const contentType = response.headers.get('content-type') || 'application/octet-stream'
+    const contentDisposition = response.headers.get('content-disposition') || ''
+    
+    // Extract filename from Content-Disposition header
+    const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+    const fileName = fileNameMatch ? fileNameMatch[1].replace(/['"]/g, '') : `file_${fileKey}`
+
+    return {
+      data,
+      contentType,
+      fileName
+    }
+  }
 }
 
 /**

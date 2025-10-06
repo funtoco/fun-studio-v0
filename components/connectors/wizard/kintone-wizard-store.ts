@@ -8,7 +8,6 @@ export type UiFlowState =
   | "selectingDestinationApp"
   | "settingFilters"
   | "mappingFields"
-  | "reviewAndSave"
   | "done"
 
 export type KintoneAppLite = { id: string; name: string }
@@ -17,6 +16,7 @@ export type DestinationAppLite = { key: string; name: string }
 export type DraftFieldMapping = {
   source_field_code: string
   destination_field_key: string
+  is_update_key?: boolean
   transform?: unknown
 }
 
@@ -41,6 +41,7 @@ export type WizardState = {
   selectedDestinationApp: DestinationAppLite | null
   draftFilters: DraftFilter[]
   draftFieldMappings: DraftFieldMapping[]
+  skipIfNoUpdateTarget: boolean
   mappingIdDraft: string | null
   editMode: boolean
   existingMapping: any | null
@@ -59,6 +60,7 @@ export type WizardState = {
   setSelectedDestinationApp: (app: DestinationAppLite) => void
   setDraftFilters: (f: DraftFilter[]) => void
   setDraftFieldMappings: (m: DraftFieldMapping[]) => void
+  setSkipIfNoUpdateTarget: (skip: boolean) => void
   setMappingIdDraft: (id: string | null) => void
   next: () => void
   back: () => void
@@ -81,6 +83,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   selectedDestinationApp: null,
   draftFilters: [],
   draftFieldMappings: [],
+  skipIfNoUpdateTarget: false,
   mappingIdDraft: null,
   editMode: false,
   existingMapping: null,
@@ -88,6 +91,8 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   schemaCacheByAppKey: {},
 
   open: (ctx) => {
+    console.log('[DEBUG] Opening wizard with context', ctx)
+    
     set({ 
       isOpen: true, 
       connectorId: ctx?.connectorId, 
@@ -99,15 +104,23 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
     if (ctx?.editMode && ctx?.existingMapping) {
       // 編集モードの場合、既存のマッピング情報をセット
       const mapping = ctx.existingMapping
+      console.log('[DEBUG] Setting up edit mode with mapping', mapping)
+      
+      const kintoneApp = {
+        id: mapping.source_app_id || mapping.kintone_app_id,
+        name: mapping.source_app_name || mapping.kintone_app_name
+      }
+      const destinationApp = {
+        key: mapping.target_app_type,
+        name: mapping.target_app_type
+      }
+      
+      console.log('[DEBUG] Setting selected apps', { kintoneApp, destinationApp })
+      
       set({
-        selectedKintoneApp: {
-          id: mapping.source_app_id || mapping.kintone_app_id,
-          name: mapping.source_app_name || mapping.kintone_app_name
-        },
-        selectedDestinationApp: {
-          key: mapping.target_app_type,
-          name: mapping.target_app_type
-        },
+        selectedKintoneApp: kintoneApp,
+        selectedDestinationApp: destinationApp,
+        skipIfNoUpdateTarget: mapping.skip_if_no_update_target || false,
         mappingIdDraft: mapping.id
       })
       console.log("[FLOW] → mappingFields (edit mode)")
@@ -127,6 +140,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
       selectedDestinationApp: null,
       draftFilters: [],
       draftFieldMappings: [],
+      skipIfNoUpdateTarget: false,
       mappingIdDraft: null,
       editMode: false,
       existingMapping: null,
@@ -147,6 +161,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   },
   setDraftFilters: (f) => set({ draftFilters: f }),
   setDraftFieldMappings: (m) => set({ draftFieldMappings: m }),
+  setSkipIfNoUpdateTarget: (skip) => set({ skipIfNoUpdateTarget: skip }),
   setMappingIdDraft: (id) => set({ mappingIdDraft: id }),
 
   next: () => {
@@ -154,15 +169,14 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
     if (state === "selectingKintoneApp") set({ uiFlowState: "selectingDestinationApp" })
     else if (state === "selectingDestinationApp") set({ uiFlowState: "settingFilters" })
     else if (state === "settingFilters") set({ uiFlowState: "mappingFields" })
-    else if (state === "mappingFields") set({ uiFlowState: "reviewAndSave" })
-    else if (state === "reviewAndSave") set({ uiFlowState: "done" })
+    else if (state === "mappingFields") set({ uiFlowState: "done" })
   },
   back: () => {
     const state = get().uiFlowState
     if (state === "selectingDestinationApp") set({ uiFlowState: "selectingKintoneApp" })
     else if (state === "settingFilters") set({ uiFlowState: "selectingDestinationApp" })
     else if (state === "mappingFields") set({ uiFlowState: "settingFilters" })
-    else if (state === "reviewAndSave") set({ uiFlowState: "mappingFields" })
+    else if (state === "done") set({ uiFlowState: "mappingFields" })
   },
 
   setAppsCache: (payload) => {

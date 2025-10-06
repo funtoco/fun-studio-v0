@@ -9,7 +9,8 @@ export const runtime = 'nodejs'
 
 // Validation schema
 const syncRequestSchema = z.object({
-  force: z.boolean().optional()
+  force: z.boolean().optional(),
+  appMappingId: z.string().optional()
 })
 
 export async function POST(
@@ -21,7 +22,7 @@ export async function POST(
     const body = await request.json()
     
     // Validate input
-    const { force } = syncRequestSchema.parse(body)
+    const { force, appMappingId } = syncRequestSchema.parse(body)
     
     // Get and validate connector
     const connector = await getConnector(connectorId)
@@ -59,7 +60,7 @@ export async function POST(
         'manual',
         request.headers.get('x-user-id') || undefined
       )
-      const result = await syncService.syncAll()
+      const result = await syncService.syncAll(appMappingId)
       
       // Update connector status if there were errors
       if (result.errors.length > 0) {
@@ -96,7 +97,7 @@ export async function POST(
         { 
           success: false,
           error: errorMessage,
-          synced: { people: 0, visas: 0 },
+          synced: {},
           errors: [errorMessage],
           duration: 0
         },

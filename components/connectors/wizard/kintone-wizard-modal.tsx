@@ -15,7 +15,6 @@ function Stepper() {
     { key: "selectingDestinationApp", label: "②Funstudioアプリ" },
     { key: "settingFilters", label: "③フィルター設定" },
     { key: "mappingFields", label: "④フィールド対応" },
-    { key: "reviewAndSave", label: "⑤確認" },
   ]
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -359,6 +358,8 @@ function MappingFields() {
     draftFilters,
     draftFieldMappings,
     setDraftFieldMappings,
+    skipIfNoUpdateTarget,
+    setSkipIfNoUpdateTarget,
     connectorId,
     getFieldsCacheValid,
     setFieldsCache,
@@ -368,6 +369,7 @@ function MappingFields() {
     next,
     editMode,
     existingMapping,
+    close,
   } = useKintoneWizardStore()
 
   const fieldsCache = selectedKintoneApp ? getFieldsCacheValid(selectedKintoneApp.id) : null
@@ -376,40 +378,96 @@ function MappingFields() {
   useEffect(() => {
     let active = true
     if (!selectedKintoneApp || fieldsCache) return
+    
+    console.log('[DEBUG] Loading Kintone fields for edit mode', {
+      selectedKintoneApp,
+      fieldsCache,
+      editMode,
+      existingMapping
+    })
+    
     ;(async () => {
       let id = connectorId
       if (!id && typeof window !== 'undefined') {
         const m = window.location.pathname.match(/\/admin\/connectors\/([^/]+)/)
         if (m && m[1]) id = m[1]
       }
-      if (!id) return
+      if (!id) {
+        console.error('[DEBUG] No connector ID found')
+        return
+      }
+      
+      console.log('[DEBUG] Fetching fields from API', {
+        connectorId: id,
+        appId: selectedKintoneApp.id,
+        url: `/api/connectors/${id}/kintone/apps/${selectedKintoneApp.id}/fields`
+      })
+      
       const res = await fetch(`/api/connectors/${id}/kintone/apps/${selectedKintoneApp.id}/fields`)
       if (!active) return
+      
+      console.log('[DEBUG] API response status', res.status)
+      
       if (res.ok) {
         const data = await res.json()
+        console.log('[DEBUG] API response data', data)
         setFieldsCache(selectedKintoneApp.id, { fields: data.fields || [] })
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        console.error('[DEBUG] API error', errorData)
       }
     })()
     return () => {
       active = false
     }
-  }, [connectorId, selectedKintoneApp, fieldsCache, setFieldsCache])
+  }, [connectorId, selectedKintoneApp, fieldsCache, setFieldsCache, editMode, existingMapping])
 
   const kintoneFields = fieldsCache?.data.fields || []
+  
+  // レコードIDを手動で追加（Kintone APIでは取得されないため）
+  const kintoneFieldsWithRecordId = [
+    {
+      code: '$id',
+      label: 'レコードID',
+      type: '__ID__'
+    },
+    ...kintoneFields
+  ]
+  
+  console.log('[DEBUG] Kintone fields for select', {
+    kintoneFields: kintoneFieldsWithRecordId,
+    fieldsCache,
+    selectedKintoneApp
+  })
 
   // Load existing field mappings in edit mode
   useEffect(() => {
     if (editMode && existingMapping && existingMapping.id && draftFieldMappings.length === 0) {
+      console.log('[DEBUG] Loading existing field mappings', {
+        editMode,
+        existingMapping,
+        connectorId,
+        draftFieldMappingsLength: draftFieldMappings.length
+      })
+      
       const loadExistingMappings = async () => {
         try {
           const response = await fetch(`/api/connectors/${connectorId}/mappings/${existingMapping.id}/fields`)
+          console.log('[DEBUG] Existing mappings API response status', response.status)
+          
           if (response.ok) {
             const data = await response.json()
+            console.log('[DEBUG] Existing mappings data', data)
             const mappings = data.fields.map((field: any) => ({
               source_field_code: field.source_field_code,
-              destination_field_key: field.target_field_id
+              destination_field_key: field.target_field_id,
+              is_update_key: field.is_update_key || false
             }))
+            console.log('[DEBUG] Mapped field mappings', mappings)
             setDraftFieldMappings(mappings)
+          } else {
+            const errorData = await response.json().catch(() => ({}))
+            console.error('[DEBUG] Existing mappings API error', errorData)
           }
         } catch (error) {
           console.error('Failed to load existing field mappings:', error)
@@ -461,16 +519,24 @@ function MappingFields() {
     setIsSaving(true)
     try {
       // First save the mapping
+      const requestBody: any = {
+        connector_id: connectorId,
+        source_type: 'kintone',
+        source_app_id: selectedKintoneApp.id,
+        destination_app_key: selectedDestinationApp.key,
+        field_mappings: draftFieldMappings,
+        skip_if_no_update_target: skipIfNoUpdateTarget,
+      }
+      
+      // If in edit mode, include the existing mapping ID
+      if (editMode && existingMapping?.id) {
+        requestBody.app_mapping_id = existingMapping.id
+      }
+      
       const res = await fetch(`/api/connector/mappings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          connector_id: connectorId,
-          source_type: 'kintone',
-          source_app_id: selectedKintoneApp.id,
-          destination_app_key: selectedDestinationApp.key,
-          field_mappings: draftFieldMappings,
-        }),
+        body: JSON.stringify(requestBody),
       })
       
       if (!res.ok) {
@@ -484,21 +550,33 @@ function MappingFields() {
       
       // Then save filters if any
       if (draftFilters.length > 0) {
+        console.log('[FLOW] Saving filters', { 
+          mappingId: data.mapping_id, 
+          connectorId, 
+          filterCount: draftFilters.length 
+        })
+        
         const filterRes = await fetch(`/api/connectors/${connectorId}/mappings/${data.mapping_id}/filters`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filters: draftFilters }),
         })
         
+        console.log('[FLOW] Filter API response', { 
+          status: filterRes.status, 
+          ok: filterRes.ok 
+        })
+        
         if (!filterRes.ok) {
-          console.error('Failed to save filters:', await filterRes.json())
+          const errorData = await filterRes.json()
+          console.error('Failed to save filters:', errorData)
           return
         }
         
         console.log(`[FLOW] Filters saved for mappingId=${data.mapping_id}`)
       }
       
-      next()
+      close()
     } catch (error) {
       console.error('Error in onSaveDraft:', error)
     } finally {
@@ -511,7 +589,7 @@ function MappingFields() {
       <div className="text-sm text-muted-foreground">フィールドの対応関係を設定してください（最低1件必須）</div>
       <div className="space-y-2">
         {draftFieldMappings.map((m, idx) => (
-          <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border rounded">
+          <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border rounded">
             <KintoneFieldSelect
               value={m.source_field_code}
               onChange={(value) => {
@@ -519,7 +597,7 @@ function MappingFields() {
                 copy[idx] = { ...copy[idx], source_field_code: value }
                 setDraftFieldMappings(copy)
               }}
-              options={kintoneFields}
+              options={kintoneFieldsWithRecordId}
             />
             <FunstudioFieldSelect
               value={m.destination_field_key}
@@ -534,18 +612,54 @@ function MappingFields() {
                 type: df.type ?? ''
               }))}
             />
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id={`update-key-${idx}`}
+                checked={m.is_update_key || false}
+                onChange={(e) => {
+                  const copy = [...draftFieldMappings]
+                  copy[idx] = { ...copy[idx], is_update_key: e.target.checked }
+                  setDraftFieldMappings(copy)
+                }}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor={`update-key-${idx}`} className="text-sm text-gray-700">
+                更新キー
+              </label>
+            </div>
           </div>
         ))}
         <div>
           <Button
             type="button"
             variant="outline"
-            onClick={() => setDraftFieldMappings([...draftFieldMappings, { source_field_code: '', destination_field_key: '' }])}
+            onClick={() => setDraftFieldMappings([...draftFieldMappings, { source_field_code: '', destination_field_key: '', is_update_key: false }])}
           >
             追加
           </Button>
         </div>
       </div>
+      
+      {/* Skip option */}
+      <div className="border-t pt-4">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="skip-if-no-update-target"
+            checked={skipIfNoUpdateTarget}
+            onChange={(e) => setSkipIfNoUpdateTarget(e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="skip-if-no-update-target" className="text-sm text-gray-700">
+            更新対象がない場合はスキップする
+          </label>
+        </div>
+        <p className="text-xs text-gray-500 mt-1 ml-6">
+          チェックを入れると、既存のレコードが見つからない場合は新規作成せずにスキップします
+        </p>
+      </div>
+      
       <div className="flex justify-end">
         <Button type="button" onClick={onSaveDraft} disabled={!canSave || isSaving}>
           {isSaving ? '保存中...' : '下書きを保存'}
@@ -555,35 +669,6 @@ function MappingFields() {
   )
 }
 
-function ReviewAndSave() {
-  const { selectedKintoneApp, selectedDestinationApp, draftFilters, draftFieldMappings, mappingIdDraft } = useKintoneWizardStore()
-  return (
-    <div className="space-y-4 text-sm">
-      <div>アプリ: {selectedKintoneApp?.name} → {selectedDestinationApp?.name}</div>
-      
-      {draftFilters.length > 0 && (
-        <div>
-          <div className="font-medium mb-2">フィルター条件:</div>
-          <div className="border rounded p-3 space-y-1">
-            {draftFilters.map((f, i) => (
-              <div key={i} className="text-xs">
-                {f.field_name} ({f.field_code}) = "{f.filter_value}"
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      <div>ペア数: {draftFieldMappings.length}</div>
-      <div className="border rounded p-3">
-        {draftFieldMappings.map((m, i) => (
-          <div key={i}>{m.source_field_code} → {m.destination_field_key}</div>
-        ))}
-      </div>
-      <div className="text-xs text-muted-foreground">mappingId: {mappingIdDraft || '-'}</div>
-    </div>
-  )
-}
 
 function DoneStep() {
   return <div className="text-sm">接続が有効になりました。ウィザードを閉じることができます。</div>
@@ -632,16 +717,12 @@ export function KintoneWizardModal() {
             {uiFlowState === "selectingDestinationApp" && <SelectingDestinationApp />}
             {uiFlowState === "settingFilters" && <SettingFilters />}
             {uiFlowState === "mappingFields" && <MappingFields />}
-            {uiFlowState === "reviewAndSave" && <ReviewAndSave />}
             {uiFlowState === "done" && <DoneStep />}
           </div>
           <div className="p-4 border-t flex items-center justify-end gap-2">
             {uiFlowState === "selectingKintoneApp" && <Button type="button" onClick={next}>Next</Button>}
             {uiFlowState === "selectingDestinationApp" && <Button type="button" onClick={next}>Next</Button>}
             {uiFlowState === "mappingFields" && null}
-            {uiFlowState === "reviewAndSave" && (
-              <ActivateButton mappingId={mappingIdDraft} />
-            )}
             {uiFlowState === "done" && <Button type="button" onClick={close}>Close</Button>}
           </div>
         </div>
@@ -671,7 +752,8 @@ function ActivateButton({ mappingId }: { mappingId: string | null }) {
           body: JSON.stringify({
             fields: draftFieldMappings.map(m => ({
               source_field_code: m.source_field_code,
-              target_field_id: m.destination_field_key
+              target_field_id: m.destination_field_key,
+              is_update_key: m.is_update_key || false
             }))
           })
         })

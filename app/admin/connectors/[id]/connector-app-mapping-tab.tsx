@@ -19,9 +19,10 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Database, Settings, ExternalLink, RefreshCw, Loader2, Plus, Edit, Trash2, Search, X, GitBranch, AlertCircle } from "lucide-react"
+import { Database, Settings, ExternalLink, RefreshCw, Loader2, Plus, Edit, Trash2, Search, X, GitBranch, AlertCircle, ToggleLeft, ToggleRight } from "lucide-react"
 import { type Connector } from "@/lib/types/connector"
 import { toast } from "sonner"
+import { StatusToggleDialog } from "@/components/ui/status-toggle-dialog"
 
 interface AppMapping {
   id: string
@@ -73,6 +74,7 @@ interface ConnectorAppMappingTabProps {
   connector: Connector
   tenantId: string
   connectionStatus?: { status: string } | null
+  onMappingsCountChange?: (count: number) => void
 }
 
 // Service field definitions for different features
@@ -111,7 +113,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }: ConnectorAppMappingTabProps) {
+export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, onMappingsCountChange }: ConnectorAppMappingTabProps) {
   // Dev logging
   if (process.env.NODE_ENV === 'development') {
     console.debug('[apps-mapping] mount', { connectorId: connector.id, isConnected: connectionStatus?.status === 'connected' })
@@ -134,10 +136,24 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   const [currentOffset, setCurrentOffset] = useState(0)
   const [addingApp, setAddingApp] = useState<string | null>(null)
   
+  // Status toggle dialog state
+  const [statusToggleDialog, setStatusToggleDialog] = useState<{
+    isOpen: boolean
+    mapping: AppMapping | null
+  }>({ isOpen: false, mapping: null })
+  const [togglingStatus, setTogglingStatus] = useState<string | null>(null)
+  
   // Reset addingApp state on component mount
   useEffect(() => {
     setAddingApp(null)
   }, [])
+
+  // Notify parent component when appMappings count changes
+  useEffect(() => {
+    if (onMappingsCountChange) {
+      onMappingsCountChange(appMappings.length)
+    }
+  }, [appMappings.length, onMappingsCountChange])
   const [showDestinationSelector, setShowDestinationSelector] = useState(false)
   
   // Debug showDestinationSelector state changes
@@ -223,7 +239,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       
       if (process.env.NODE_ENV === 'development') {
         console.debug('[apps-mapping] loaded mappings:', mappings.length, mappings)
-        console.debug('[apps-mapping] mapping details:', mappings.map(m => ({
+        console.debug('[apps-mapping] mapping details:', mappings.map((m: any) => ({
           id: m.id,
           service_feature: m.service_feature,
           target_app_type: m.target_app_type,
@@ -407,7 +423,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
         description: `${selectedApp.name} を${serviceFields[selectedDestination as keyof typeof serviceFields].label}に追加しました`
       })
       
-      setAppMapping(data.mapping)
+      setSelectedMapping(data.mapping)
       setShowAppPicker(false)
       setShowDestinationSelector(false)
       setSelectedApp(null)
@@ -429,12 +445,12 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
   }
 
   const handleSaveFieldMappings = async () => {
-    if (!appMapping) return
+    if (!selectedMapping) return
     
     try {
       setSavingMappings(true)
       
-      const response = await fetch(`/api/connectors/${connector.id}/mappings/${appMapping.id}/fields`, {
+      const response = await fetch(`/api/connectors/${connector.id}/mappings/${selectedMapping.id}/fields`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -445,7 +461,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
             kintone_field_code: kintoneField,
             kintone_field_label: kintoneFields.find(f => f.code === kintoneField)?.label || '',
             kintone_field_type: kintoneFields.find(f => f.code === kintoneField)?.type || '',
-            is_required: serviceFields[appMapping.service_feature as keyof typeof serviceFields]?.required.find(f => f.name === internalField) !== undefined
+            is_required: serviceFields[selectedMapping.service_feature as keyof typeof serviceFields]?.required.find(f => f.name === internalField) !== undefined
           }))
         })
       })
@@ -456,7 +472,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       }
       
       toast.success('フィールドマッピングを保存しました')
-      await loadFieldMappings(appMapping.id)
+      await loadFieldMappings(selectedMapping.id)
     } catch (error) {
       console.error('Error saving field mappings:', error)
       toast.error('フィールドマッピングの保存に失敗しました', {
@@ -506,7 +522,8 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
         },
         body: JSON.stringify({
           tenantId,
-          force: true
+          force: true,
+          appMappingId: mappingId
         })
       })
       
@@ -528,6 +545,58 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       })
     } finally {
       setSyncingMapping(null)
+    }
+  }
+
+  const handleStatusToggle = (mapping: AppMapping) => {
+    setStatusToggleDialog({ isOpen: true, mapping })
+  }
+
+  const handleConfirmStatusToggle = async () => {
+    const { mapping } = statusToggleDialog
+    if (!mapping) return
+
+    try {
+      setTogglingStatus(mapping.id)
+      
+      const endpoint = mapping.is_active 
+        ? `/api/connectors/${connector.id}/mappings/${mapping.id}/deactivate`
+        : `/api/connectors/${connector.id}/mappings/${mapping.id}/activate`
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to toggle status')
+      }
+      
+      // Update local state
+      setAppMappings(prev => 
+        prev.map(m => 
+          m.id === mapping.id 
+            ? { ...m, is_active: !m.is_active }
+            : m
+        )
+      )
+      
+      const action = mapping.is_active ? '無効化' : '有効化'
+      toast.success(`マッピングを${action}しました`, {
+        description: `${mapping.source_app_name || mapping.kintone_app_name} のマッピングが${action}されました`
+      })
+      
+    } catch (error) {
+      console.error('Error toggling status:', error)
+      const action = mapping.is_active ? '無効化' : '有効化'
+      toast.error(`マッピングの${action}に失敗しました`, {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setTogglingStatus(null)
     }
   }
 
@@ -1038,9 +1107,25 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={mapping.is_active ? "default" : "secondary"}>
-                      {mapping.is_active ? "有効" : "無効"}
-                    </Badge>
+                    <Button
+                      variant={mapping.is_active ? "default" : "secondary"}
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleStatusToggle(mapping)
+                      }}
+                      disabled={togglingStatus === mapping.id}
+                      className="flex items-center space-x-1"
+                    >
+                      {togglingStatus === mapping.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : mapping.is_active ? (
+                        <ToggleRight className="h-4 w-4" />
+                      ) : (
+                        <ToggleLeft className="h-4 w-4" />
+                      )}
+                      <span>{mapping.is_active ? "有効" : "無効"}</span>
+                    </Button>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(mapping.created_at).toLocaleDateString('ja-JP')}
@@ -1180,6 +1265,16 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus }
       </Dialog>
 
       <KintoneWizardModal />
+      
+      {/* Status Toggle Dialog */}
+      <StatusToggleDialog
+        isOpen={statusToggleDialog.isOpen}
+        onClose={() => setStatusToggleDialog({ isOpen: false, mapping: null })}
+        onConfirm={handleConfirmStatusToggle}
+        currentStatus={statusToggleDialog.mapping?.is_active ?? false}
+        appName={statusToggleDialog.mapping?.source_app_name || statusToggleDialog.mapping?.kintone_app_name || ''}
+        isLoading={togglingStatus === statusToggleDialog.mapping?.id}
+      />
     </div>
   )
 }
