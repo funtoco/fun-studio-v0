@@ -576,6 +576,9 @@ function MappingFields() {
         console.log(`[FLOW] Filters saved for mappingId=${data.mapping_id}`)
       }
       
+      // UI更新イベントを送信してマッピング画面をリロード
+      window.dispatchEvent(new CustomEvent('mapping:updated'))
+      
       close()
     } catch (error) {
       console.error('Error in onSaveDraft:', error)
