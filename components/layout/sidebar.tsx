@@ -22,21 +22,21 @@ const navigation = [
     href: "/visas",
     icon: FileText,
   },
-  {
-    name: "面談記録",
-    href: "/meetings",
-    icon: Calendar,
-  },
-  {
-    name: "タイムライン",
-    href: "/timeline",
-    icon: Clock,
-  },
-  {
-    name: "サポート記録",
-    href: "/actions",
-    icon: CheckSquare,
-  },
+  // {
+  //   name: "面談記録",
+  //   href: "/meetings",
+  //   icon: Calendar,
+  // },
+  // {
+  //   name: "タイムライン",
+  //   href: "/timeline",
+  //   icon: Clock,
+  // },
+  // {
+  //   name: "サポート記録",
+  //   href: "/actions",
+  //   icon: CheckSquare,
+  // },
 ]
 
 export function Sidebar() {
