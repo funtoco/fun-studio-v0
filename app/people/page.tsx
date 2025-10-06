@@ -101,18 +101,6 @@ export default function PeoplePage() {
       filterable: true,
     },
     {
-      key: "email",
-      label: "メール",
-      sortable: true,
-    },
-    {
-      key: "expiryDate",
-      label: "在留期限",
-      sortable: true,
-      render: (value) =>
-        value ? <DeadlineChip date={value} label="期限" /> : <span className="text-muted-foreground">-</span>,
-    },
-    {
       key: "employeeNumber",
       label: "従業員番号",
       sortable: true,
@@ -146,17 +134,6 @@ export default function PeoplePage() {
         value: tenantName!,
         label: tenantName!,
       })),
-      multiple: true,
-    },
-    {
-      key: "visaStatus",
-      label: "ビザ進捗",
-      options: ["書類準備中", "書類作成中", "書類確認中", "申請準備中", "ビザ申請準備中", "申請中", "ビザ取得済み"].map(
-        (status) => ({
-          value: status,
-          label: status,
-        }),
-      ),
       multiple: true,
     },
     {
@@ -220,7 +197,7 @@ export default function PeoplePage() {
         data={peopleWithVisas}
         columns={columns}
         filters={filters}
-        searchKeys={["name", "tenantName", "email", "nationality"]}
+        searchKeys={["name", "tenantName", "nationality"]}
         onRowClick={handleRowClick}
       />
     </div>
