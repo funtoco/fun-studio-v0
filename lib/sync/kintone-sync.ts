@@ -12,6 +12,7 @@ import { decryptJson } from '@/lib/security/crypto'
 import { SyncLogger, createSyncLogger } from './sync-logger'
 import { getUpdateKeysByConnector, buildConflictColumns, buildUpdateCondition } from './update-key-utils'
 import { uploadFileToStorage, generateFilePath } from '@/lib/storage/file-uploader'
+import { getDataMappings, mapFieldValues, type DataMapping } from '@/lib/mappings/value-mapper'
 // import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
 
 // Types for field mappings
@@ -602,6 +603,25 @@ export class KintoneDataSync {
               }
             }
 
+            // Apply value mappings if configured
+            try {
+              const dataMappings = await getDataMappings(appMapping.id)
+              if (dataMappings.length > 0) {
+                console.log(`  🔄 Applying value mappings for ${dataMappings.length} fields`)
+                const mappedData = mapFieldValues(data, dataMappings)
+                
+                // Update data with mapped values
+                for (const [key, value] of Object.entries(mappedData)) {
+                  if (data[key] !== value) {
+                    console.log(`  🔄 Value mapping applied: ${key} "${data[key]}" -> "${value}"`)
+                    data[key] = value
+                  }
+                }
+              }
+            } catch (valueMappingError) {
+              console.warn(`  ⚠️ Value mapping failed (continuing with original values):`, valueMappingError)
+            }
+
             console.log(`🔍 Data object keys:`, Object.keys(data))
             console.log(`🔍 Data object values:`, data)
 
@@ -632,20 +652,12 @@ export class KintoneDataSync {
 
             console.log(`✅ Successfully synced ${targetAppType} ${record.$id.value}`)
 
-            // Log successful item sync (for manual syncs only)
-            if (this.syncType === 'manual') {
-              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'success')
-            }
 
             syncedCount++
           } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
             console.error(`❌ Failed to sync ${targetAppType} ${record.$id.value}:`, err)
             
-            // Log failed item sync (for manual syncs only)
-            if (this.syncType === 'manual') {
-              await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'failed', errorMessage)
-            }
             
             // Continue with other records
           }
