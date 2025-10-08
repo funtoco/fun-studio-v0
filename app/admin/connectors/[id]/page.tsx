@@ -340,6 +340,38 @@ export default async function ConnectorDetailPage({
             </CardContent>
           </Card>
 
+          {/* Data Value Mappings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <GitBranch className="h-5 w-5" />
+                <span>データマッピング</span>
+              </CardTitle>
+              <CardDescription>
+                Kintoneフィールドの値とサービスフィールドの値のマッピング設定
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    Kintoneから取得した値とサービス側の値の対応関係を設定できます
+                  </p>
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <span>設定済みマッピング: <Badge variant="outline">0</Badge></span>
+                    <span>アクティブルール: <Badge variant="outline">0</Badge></span>
+                  </div>
+                </div>
+                <Link href={tenantId ? `/admin/connectors/${connectorId}/data-mappings?tenantId=${tenantId}` : `/admin/connectors/${connectorId}/data-mappings`}>
+                  <Button>
+                    <GitBranch className="h-4 w-4 mr-2" />
+                    データマッピングを管理
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Main Configuration */}
             <div className="lg:col-span-2 space-y-6">

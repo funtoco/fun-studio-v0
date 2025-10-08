@@ -12,6 +12,7 @@ import { decryptJson } from '@/lib/security/crypto'
 import { SyncLogger, createSyncLogger } from './sync-logger'
 import { getUpdateKeysByConnector, buildConflictColumns, buildUpdateCondition } from './update-key-utils'
 import { uploadFileToStorage, generateFilePath } from '@/lib/storage/file-uploader'
+import { getDataMappings, mapFieldValues, type DataMapping } from '@/lib/mappings/value-mapper'
 // import { getKintoneMapping, type KintoneMapping } from './mapping-loader'
 
 // Types for field mappings
@@ -600,6 +601,25 @@ export class KintoneDataSync {
                 data[fieldMapping.target_field_id] = sourceValue || null
                 console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
               }
+            }
+
+            // Apply value mappings if configured
+            try {
+              const dataMappings = await getDataMappings(appMapping.id)
+              if (dataMappings.length > 0) {
+                console.log(`  🔄 Applying value mappings for ${dataMappings.length} fields`)
+                const mappedData = mapFieldValues(data, dataMappings)
+                
+                // Update data with mapped values
+                for (const [key, value] of Object.entries(mappedData)) {
+                  if (data[key] !== value) {
+                    console.log(`  🔄 Value mapping applied: ${key} "${data[key]}" -> "${value}"`)
+                    data[key] = value
+                  }
+                }
+              }
+            } catch (valueMappingError) {
+              console.warn(`  ⚠️ Value mapping failed (continuing with original values):`, valueMappingError)
             }
 
             console.log(`🔍 Data object keys:`, Object.keys(data))
