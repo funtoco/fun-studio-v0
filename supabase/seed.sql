@@ -4,7 +4,7 @@ SET session_replication_role = replica;
 -- PostgreSQL database dump
 --
 
--- \restrict p2M3bpvSyy1ftldakSgtpPzlueG2IX2KEgMYegwHSUneApI834pEcO1qD8dGgyd
+-- \restrict 4jVLdFLqKRBGfsr7FpkOeeuVCIEb2Y1LiehSCOa0LQwfUjgDu6JiR0QGt0RBhTp
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -35,7 +35,18 @@ INSERT INTO "auth"."audit_log_entries" ("instance_id", "id", "payload", "created
 	('00000000-0000-0000-0000-000000000000', '5c7bfded-8528-4edf-807e-ce34462d0582', '{"action":"login","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}', '2025-10-05 00:56:41.017457+00', ''),
 	('00000000-0000-0000-0000-000000000000', '75f6e5fc-74c3-4d3b-97f4-f19262f00c37', '{"action":"login","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}', '2025-10-05 06:45:02.53671+00', ''),
 	('00000000-0000-0000-0000-000000000000', 'e658fbc1-a8af-417a-adca-dfe68b6af077', '{"action":"login","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}', '2025-10-06 07:51:39.371444+00', ''),
-	('00000000-0000-0000-0000-000000000000', '44749398-1fec-40f1-b093-48aeca21431d', '{"action":"user_modified","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"user"}', '2025-10-06 07:52:02.636795+00', '');
+	('00000000-0000-0000-0000-000000000000', '44749398-1fec-40f1-b093-48aeca21431d', '{"action":"user_modified","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"user"}', '2025-10-06 07:52:02.636795+00', ''),
+	('00000000-0000-0000-0000-000000000000', 'cb9bff1c-d33b-4653-a60b-9df87cc7d3b4', '{"action":"login","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}', '2025-10-17 03:04:52.947599+00', ''),
+	('00000000-0000-0000-0000-000000000000', '56e15513-4a13-4373-8eba-7a0fd71e0d3f', '{"action":"user_invited","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"raffi@funtoco.jp","user_id":"ffa61251-d7a9-4044-92ae-bf0f65caeb4c"}}', '2025-10-17 03:07:34.24577+00', ''),
+	('00000000-0000-0000-0000-000000000000', '065ebfd0-c1b8-4dbe-bdd8-a990e989f445', '{"action":"user_signedup","actor_id":"ffa61251-d7a9-4044-92ae-bf0f65caeb4c","actor_username":"raffi@funtoco.jp","actor_via_sso":false,"log_type":"team","traits":{"provider":"email"}}', '2025-10-17 03:07:42.441007+00', ''),
+	('00000000-0000-0000-0000-000000000000', 'a14daf52-6940-422f-acfb-83d921f79050', '{"action":"user_updated_password","actor_id":"ffa61251-d7a9-4044-92ae-bf0f65caeb4c","actor_username":"raffi@funtoco.jp","actor_via_sso":false,"log_type":"user"}', '2025-10-17 03:07:55.488869+00', ''),
+	('00000000-0000-0000-0000-000000000000', 'cf5c950b-6985-4be9-ad3b-87308f0d954d', '{"action":"user_modified","actor_id":"ffa61251-d7a9-4044-92ae-bf0f65caeb4c","actor_username":"raffi@funtoco.jp","actor_via_sso":false,"log_type":"user"}', '2025-10-17 03:07:55.48926+00', ''),
+	('00000000-0000-0000-0000-000000000000', '5a6c81ec-2cda-4e14-8b4e-d7f83dba8629', '{"action":"logout","actor_id":"ffa61251-d7a9-4044-92ae-bf0f65caeb4c","actor_username":"raffi@funtoco.jp","actor_via_sso":false,"log_type":"account"}', '2025-10-17 03:08:13.217661+00', ''),
+	('00000000-0000-0000-0000-000000000000', 'b81e6d50-8660-4b64-9e08-dea508c08cd7', '{"action":"login","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}', '2025-10-17 03:08:18.333672+00', ''),
+	('00000000-0000-0000-0000-000000000000', '236b7d14-c6f5-45bb-8482-31c8ac55065a', '{"action":"token_refreshed","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"token"}', '2025-10-20 01:30:27.072756+00', ''),
+	('00000000-0000-0000-0000-000000000000', '7d2cbe4f-e2e2-442f-81ea-ec6c00ef0574', '{"action":"token_revoked","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"token"}', '2025-10-20 01:30:27.073605+00', ''),
+	('00000000-0000-0000-0000-000000000000', '63b45d29-3b1d-4ffa-b3b3-765f8309a687', '{"action":"logout","actor_id":"8e655bd3-a6fd-430e-8301-d6e842d997e6","actor_username":"tomoaki.nishimura@funtoco.jp","actor_via_sso":false,"log_type":"account"}', '2025-10-20 01:30:35.81326+00', ''),
+	('00000000-0000-0000-0000-000000000000', 'fce8b7db-fe27-464e-bf3a-bfc99ecdf393', '{"action":"login","actor_id":"ffa61251-d7a9-4044-92ae-bf0f65caeb4c","actor_username":"raffi@funtoco.jp","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}', '2025-10-20 01:30:44.334269+00', '');
 
 
 --
@@ -49,7 +60,8 @@ INSERT INTO "auth"."audit_log_entries" ("instance_id", "id", "payload", "created
 --
 
 INSERT INTO "auth"."users" ("instance_id", "id", "aud", "role", "email", "encrypted_password", "email_confirmed_at", "invited_at", "confirmation_token", "confirmation_sent_at", "recovery_token", "recovery_sent_at", "email_change_token_new", "email_change", "email_change_sent_at", "last_sign_in_at", "raw_app_meta_data", "raw_user_meta_data", "is_super_admin", "created_at", "updated_at", "phone", "phone_confirmed_at", "phone_change", "phone_change_token", "phone_change_sent_at", "email_change_token_current", "email_change_confirm_status", "banned_until", "reauthentication_token", "reauthentication_sent_at", "is_sso_user", "deleted_at", "is_anonymous") VALUES
-	('00000000-0000-0000-0000-000000000000', '8e655bd3-a6fd-430e-8301-d6e842d997e6', 'authenticated', 'authenticated', 'tomoaki.nishimura@funtoco.jp', '$2a$10$e0Gu/gitGrBm2g3BCWCy0OPc2mBKYX55ftJU6CXMsuaQgZbnHijsS', '2025-10-04 11:55:12.491398+00', NULL, '', '2025-10-04 11:55:02.636605+00', '', NULL, '', '', NULL, '2025-10-06 07:51:39.372616+00', '{"provider": "email", "providers": ["email"]}', '{"sub": "8e655bd3-a6fd-430e-8301-d6e842d997e6", "email": "tomoaki.nishimura@funtoco.jp", "tenant_id": "2eca3362-a925-455c-8542-35698084eabb", "tenant_name": "滋賀マルタマフーズ株式会社", "email_verified": true, "phone_verified": false}', NULL, '2025-10-04 11:55:02.625646+00', '2025-10-06 07:52:02.634781+00', NULL, NULL, '', '', NULL, '', 0, NULL, '', NULL, false, NULL, false);
+	('00000000-0000-0000-0000-000000000000', '8e655bd3-a6fd-430e-8301-d6e842d997e6', 'authenticated', 'authenticated', 'tomoaki.nishimura@funtoco.jp', '$2a$10$e0Gu/gitGrBm2g3BCWCy0OPc2mBKYX55ftJU6CXMsuaQgZbnHijsS', '2025-10-04 11:55:12.491398+00', NULL, '', '2025-10-04 11:55:02.636605+00', '', NULL, '', '', NULL, '2025-10-17 03:08:18.334294+00', '{"provider": "email", "providers": ["email"]}', '{"sub": "8e655bd3-a6fd-430e-8301-d6e842d997e6", "email": "tomoaki.nishimura@funtoco.jp", "tenant_id": "2eca3362-a925-455c-8542-35698084eabb", "tenant_name": "滋賀マルタマフーズ株式会社", "email_verified": true, "phone_verified": false}', NULL, '2025-10-04 11:55:02.625646+00', '2025-10-20 01:30:27.074965+00', NULL, NULL, '', '', NULL, '', 0, NULL, '', NULL, false, NULL, false),
+	('00000000-0000-0000-0000-000000000000', 'ffa61251-d7a9-4044-92ae-bf0f65caeb4c', 'authenticated', 'authenticated', 'raffi@funtoco.jp', '$2a$10$nbDU14XJJIx0huHRhsShB.Ny7UhnbhgcVcNY6CqQ9CZtsPIvRZ.Ry', '2025-10-17 03:07:42.441256+00', '2025-10-17 03:07:34.246592+00', '', NULL, '', NULL, '', '', NULL, '2025-10-20 01:30:44.334632+00', '{"provider": "email", "providers": ["email"]}', '{"role": "admin", "tenant_id": "1c5a22c7-ca7c-4db7-9509-d91aff15aee0", "invited_by": "8e655bd3-a6fd-430e-8301-d6e842d997e6", "email_verified": true}', NULL, '2025-10-17 03:07:34.238859+00', '2025-10-20 01:30:44.336494+00', NULL, NULL, '', '', NULL, '', 0, NULL, '', NULL, false, NULL, false);
 
 
 --
@@ -57,7 +69,8 @@ INSERT INTO "auth"."users" ("instance_id", "id", "aud", "role", "email", "encryp
 --
 
 INSERT INTO "auth"."identities" ("provider_id", "user_id", "identity_data", "provider", "last_sign_in_at", "created_at", "updated_at", "id") VALUES
-	('8e655bd3-a6fd-430e-8301-d6e842d997e6', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '{"sub": "8e655bd3-a6fd-430e-8301-d6e842d997e6", "email": "tomoaki.nishimura@funtoco.jp", "tenant_name": "柏原マルタマフーズ株式会社", "email_verified": true, "phone_verified": false}', 'email', '2025-10-04 11:55:02.632545+00', '2025-10-04 11:55:02.632577+00', '2025-10-04 11:55:02.632577+00', 'fccac7f4-81af-4ad2-9658-2a8710ef0cdd');
+	('8e655bd3-a6fd-430e-8301-d6e842d997e6', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '{"sub": "8e655bd3-a6fd-430e-8301-d6e842d997e6", "email": "tomoaki.nishimura@funtoco.jp", "tenant_name": "柏原マルタマフーズ株式会社", "email_verified": true, "phone_verified": false}', 'email', '2025-10-04 11:55:02.632545+00', '2025-10-04 11:55:02.632577+00', '2025-10-04 11:55:02.632577+00', 'fccac7f4-81af-4ad2-9658-2a8710ef0cdd'),
+	('ffa61251-d7a9-4044-92ae-bf0f65caeb4c', 'ffa61251-d7a9-4044-92ae-bf0f65caeb4c', '{"sub": "ffa61251-d7a9-4044-92ae-bf0f65caeb4c", "email": "raffi@funtoco.jp", "email_verified": true, "phone_verified": false}', 'email', '2025-10-17 03:07:34.244692+00', '2025-10-17 03:07:34.244733+00', '2025-10-17 03:07:34.244733+00', '3dc541de-657a-4053-8d5d-50937f2ddb8b');
 
 
 --
@@ -67,14 +80,17 @@ INSERT INTO "auth"."identities" ("provider_id", "user_id", "identity_data", "pro
 
 
 --
+-- Data for Name: oauth_clients; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+
+
+--
 -- Data for Name: sessions; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
 --
 
-INSERT INTO "auth"."sessions" ("id", "user_id", "created_at", "updated_at", "factor_id", "aal", "not_after", "refreshed_at", "user_agent", "ip", "tag") VALUES
-	('ab70a677-b613-422d-af08-eb5d1d4e4249', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '2025-10-04 11:55:12.981216+00', '2025-10-04 23:37:49.377172+00', NULL, 'aal1', NULL, '2025-10-04 23:37:49.377127', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '172.18.0.1', NULL),
-	('a329eea5-3d39-4a61-86e1-fe6efd50daab', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '2025-10-05 00:56:41.018885+00', '2025-10-05 00:56:41.018885+00', NULL, 'aal1', NULL, NULL, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '172.18.0.1', NULL),
-	('7009db5c-9182-4526-b7c3-d350363c4ee0', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '2025-10-05 06:45:02.538484+00', '2025-10-05 06:45:02.538484+00', NULL, 'aal1', NULL, NULL, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '172.18.0.1', NULL),
-	('26998759-6d39-46c3-a68b-8fcce71e1c84', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '2025-10-06 07:51:39.372721+00', '2025-10-06 07:51:39.372721+00', NULL, 'aal1', NULL, NULL, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '172.18.0.1', NULL);
+INSERT INTO "auth"."sessions" ("id", "user_id", "created_at", "updated_at", "factor_id", "aal", "not_after", "refreshed_at", "user_agent", "ip", "tag", "oauth_client_id") VALUES
+	('b2cca2d5-79e3-4211-9783-60fdb43c1db2', 'ffa61251-d7a9-4044-92ae-bf0f65caeb4c', '2025-10-20 01:30:44.334665+00', '2025-10-20 01:30:44.334665+00', NULL, 'aal1', NULL, NULL, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', '172.18.0.1', NULL, NULL);
 
 
 --
@@ -82,10 +98,7 @@ INSERT INTO "auth"."sessions" ("id", "user_id", "created_at", "updated_at", "fac
 --
 
 INSERT INTO "auth"."mfa_amr_claims" ("session_id", "created_at", "updated_at", "authentication_method", "id") VALUES
-	('ab70a677-b613-422d-af08-eb5d1d4e4249', '2025-10-04 11:55:12.984724+00', '2025-10-04 11:55:12.984724+00', 'email/signup', 'd0da480b-145c-408d-8b76-ea4f14ff9452'),
-	('a329eea5-3d39-4a61-86e1-fe6efd50daab', '2025-10-05 00:56:41.023658+00', '2025-10-05 00:56:41.023658+00', 'password', '20aa6639-193c-4e88-bf84-462677cc9f85'),
-	('7009db5c-9182-4526-b7c3-d350363c4ee0', '2025-10-05 06:45:02.541896+00', '2025-10-05 06:45:02.541896+00', 'password', '7a0b05fa-3934-4d49-a1d4-8001a44e2b85'),
-	('26998759-6d39-46c3-a68b-8fcce71e1c84', '2025-10-06 07:51:39.381687+00', '2025-10-06 07:51:39.381687+00', 'password', '0f28603a-8a74-492f-8889-25099e0436af');
+	('b2cca2d5-79e3-4211-9783-60fdb43c1db2', '2025-10-20 01:30:44.336608+00', '2025-10-20 01:30:44.336608+00', 'password', '2fe8dbea-a782-4a59-bbba-a07a48e4188c');
 
 
 --
@@ -101,7 +114,13 @@ INSERT INTO "auth"."mfa_amr_claims" ("session_id", "created_at", "updated_at", "
 
 
 --
--- Data for Name: oauth_clients; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+-- Data for Name: oauth_authorizations; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
+--
+
+
+
+--
+-- Data for Name: oauth_consents; Type: TABLE DATA; Schema: auth; Owner: supabase_auth_admin
 --
 
 
@@ -117,11 +136,7 @@ INSERT INTO "auth"."mfa_amr_claims" ("session_id", "created_at", "updated_at", "
 --
 
 INSERT INTO "auth"."refresh_tokens" ("instance_id", "id", "token", "user_id", "revoked", "created_at", "updated_at", "parent", "session_id") VALUES
-	('00000000-0000-0000-0000-000000000000', 1, 'poqejd5bbf2q', '8e655bd3-a6fd-430e-8301-d6e842d997e6', true, '2025-10-04 11:55:12.982547+00', '2025-10-04 23:37:49.374081+00', NULL, 'ab70a677-b613-422d-af08-eb5d1d4e4249'),
-	('00000000-0000-0000-0000-000000000000', 2, 'd557xor37twa', '8e655bd3-a6fd-430e-8301-d6e842d997e6', false, '2025-10-04 23:37:49.375041+00', '2025-10-04 23:37:49.375041+00', 'poqejd5bbf2q', 'ab70a677-b613-422d-af08-eb5d1d4e4249'),
-	('00000000-0000-0000-0000-000000000000', 3, 'qtwdmv2zydy6', '8e655bd3-a6fd-430e-8301-d6e842d997e6', false, '2025-10-05 00:56:41.020499+00', '2025-10-05 00:56:41.020499+00', NULL, 'a329eea5-3d39-4a61-86e1-fe6efd50daab'),
-	('00000000-0000-0000-0000-000000000000', 4, 'gvfasryvr5xx', '8e655bd3-a6fd-430e-8301-d6e842d997e6', false, '2025-10-05 06:45:02.539656+00', '2025-10-05 06:45:02.539656+00', NULL, '7009db5c-9182-4526-b7c3-d350363c4ee0'),
-	('00000000-0000-0000-0000-000000000000', 5, 'et7bn4va2c7g', '8e655bd3-a6fd-430e-8301-d6e842d997e6', false, '2025-10-06 07:51:39.375587+00', '2025-10-06 07:51:39.375587+00', NULL, '26998759-6d39-46c3-a68b-8fcce71e1c84');
+	('00000000-0000-0000-0000-000000000000', 10, 'i4yeyf7ehdha', 'ffa61251-d7a9-4044-92ae-bf0f65caeb4c', false, '2025-10-20 01:30:44.336135+00', '2025-10-20 01:30:44.336135+00', NULL, 'b2cca2d5-79e3-4211-9783-60fdb43c1db2');
 
 
 --
@@ -174,7 +189,8 @@ INSERT INTO "public"."connector_app_mappings" ("id", "connector_id", "source_app
 	('1f91fd9b-37ea-4b3b-9f66-78a0d5d9b516', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', '13', 'Kintone app 13', 'people', true, '2025-10-05 06:47:37.74174+00', '2025-10-05 06:47:45.462378+00', false),
 	('072e9120-19a5-4fd4-8ef0-722a9d9cedc5', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', '30', 'Kintone app 30', 'people', true, '2025-10-05 06:49:04.489284+00', '2025-10-05 06:49:10.688443+00', false),
 	('1e6e930b-d84a-4b37-859e-39ba141c9677', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '13', 'Kintone app 13', 'people', true, '2025-10-06 07:53:09.113871+00', '2025-10-06 07:53:14.740091+00', false),
-	('06bb2e04-b838-4d9f-a850-3db680078883', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '30', 'Kintone app 30', 'people', true, '2025-10-06 07:53:43.091056+00', '2025-10-06 07:53:46.504858+00', true);
+	('06bb2e04-b838-4d9f-a850-3db680078883', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '30', 'Kintone app 30', 'people', true, '2025-10-06 07:53:43.091056+00', '2025-10-06 07:53:46.504858+00', true),
+	('d1cbc087-1620-4745-a8b0-7bc4594c1e69', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', '50', 'Kintone app 50', 'visas', true, '2025-10-20 01:36:21.854643+00', '2025-10-20 01:37:54.211156+00', false);
 
 
 --
@@ -184,7 +200,8 @@ INSERT INTO "public"."connector_app_mappings" ("id", "connector_id", "source_app
 INSERT INTO "public"."connector_app_filters" ("id", "connector_id", "app_mapping_id", "field_code", "field_name", "field_type", "filter_value", "is_active", "created_at", "updated_at") VALUES
 	('cf522fa1-95c6-4bf0-85b0-ea8ea89409d8', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', '1f91fd9b-37ea-4b3b-9f66-78a0d5d9b516', 'COID', '法人ID', 'NUMBER', '2787', true, '2025-10-05 06:47:38.791029+00', '2025-10-05 06:47:38.791029+00'),
 	('bc297a6f-836e-4c23-89e8-65dfbd607a6b', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', '072e9120-19a5-4fd4-8ef0-722a9d9cedc5', 'HRID', '人材ID', 'RECORD_NUMBER', '884', true, '2025-10-05 06:49:04.992907+00', '2025-10-05 06:49:04.992907+00'),
-	('64db75f6-9915-419b-8451-50b76b1cd623', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '1e6e930b-d84a-4b37-859e-39ba141c9677', 'COID', '法人ID', 'NUMBER', '2787', true, '2025-10-06 07:53:09.980193+00', '2025-10-06 07:53:09.980193+00');
+	('64db75f6-9915-419b-8451-50b76b1cd623', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '1e6e930b-d84a-4b37-859e-39ba141c9677', 'COID', '法人ID', 'NUMBER', '2787', true, '2025-10-06 07:53:09.980193+00', '2025-10-06 07:53:09.980193+00'),
+	('1d39ed33-ce21-4854-a159-05ca574fca5a', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', 'COID', '法人ID', 'NUMBER', '2787', true, '2025-10-20 01:36:22.734417+00', '2025-10-20 01:36:22.734417+00');
 
 
 --
@@ -209,7 +226,13 @@ INSERT INTO "public"."connector_field_mappings" ("id", "connector_id", "app_mapp
 	('a4be10bb-986e-4fd0-9ccc-8a4f4ce21bd3', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '1e6e930b-d84a-4b37-859e-39ba141c9677', 'name', 'name', '人材名', 'SINGLE_LINE_TEXT', 'name', 'name', NULL, NULL, false, true, 1, '2025-10-06 07:53:09.666312+00', '2025-10-06 07:53:09.666312+00', false),
 	('fdcfc1f3-8455-4e26-b7d6-0e3d839e74e8', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '1e6e930b-d84a-4b37-859e-39ba141c9677', 'HRID', 'HRID', '人材ID', 'NUMBER', 'external_id', 'external_id', NULL, NULL, false, true, 2, '2025-10-06 07:53:09.666312+00', '2025-10-06 07:53:09.666312+00', false),
 	('908af110-c82a-40a7-b7ca-ad2ab61c3925', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '06bb2e04-b838-4d9f-a850-3db680078883', '$id', '$id', '$id', 'UNKNOWN', 'external_id', 'external_id', NULL, NULL, false, true, 0, '2025-10-06 07:53:43.425491+00', '2025-10-06 07:53:43.425491+00', true),
-	('65cb02e4-0a64-4381-b8a2-71ac08edf020', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '06bb2e04-b838-4d9f-a850-3db680078883', 'image', 'image', '写真 (営業 / CA)', 'FILE', 'image_path', 'image_path', NULL, NULL, false, true, 1, '2025-10-06 07:53:43.425491+00', '2025-10-06 07:53:43.425491+00', false);
+	('65cb02e4-0a64-4381-b8a2-71ac08edf020', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', '06bb2e04-b838-4d9f-a850-3db680078883', 'image', 'image', '写真 (営業 / CA)', 'FILE', 'image_path', 'image_path', NULL, NULL, false, true, 1, '2025-10-06 07:53:43.425491+00', '2025-10-06 07:53:43.425491+00', false),
+	('aa122d32-7984-4f14-9f93-b19c4d8832d4', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', '$id', '$id', '$id', 'UNKNOWN', 'id', 'id', NULL, NULL, false, true, 0, '2025-10-20 01:36:22.349654+00', '2025-10-20 01:36:22.349654+00', true),
+	('59681a4c-230f-4b37-9e84-0f879a870bd3', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', 'WOID', 'WOID', '就労管理ID', 'NUMBER', 'person_id', 'person_id', NULL, NULL, false, true, 1, '2025-10-20 01:36:22.349654+00', '2025-10-20 01:36:22.349654+00', false),
+	('dec04819-19c6-416c-80bd-8953fd5e305f', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', 'ステータス', 'ステータス', 'ステータス', 'STATUS', 'status', 'status', NULL, NULL, false, true, 2, '2025-10-20 01:36:22.349654+00', '2025-10-20 01:36:22.349654+00', false),
+	('90ca0fa8-4489-4041-ad10-5e3869087360', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', 'requestType', 'requestType', '申請種類 (営業)', 'DROP_DOWN', 'type', 'type', NULL, NULL, false, true, 3, '2025-10-20 01:36:22.349654+00', '2025-10-20 01:36:22.349654+00', false),
+	('87752aaf-6ce5-445d-b995-597a649df22a', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', 'latestResidenceCardExpirationDate', 'latestResidenceCardExpirationDate', '申請前：在留期限 (支援のみ)', 'DATE', 'expiry_date', 'expiry_date', NULL, NULL, false, true, 4, '2025-10-20 01:36:22.349654+00', '2025-10-20 01:36:22.349654+00', false),
+	('ff7cc3eb-ce6c-4dde-9195-653e27fff3c8', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', '更新日時', '更新日時', '更新日時', 'UPDATED_TIME', 'submitted_at', 'submitted_at', NULL, NULL, false, true, 5, '2025-10-20 01:36:22.349654+00', '2025-10-20 01:36:22.349654+00', false);
 
 
 --
@@ -218,9 +241,48 @@ INSERT INTO "public"."connector_field_mappings" ("id", "connector_id", "app_mapp
 
 INSERT INTO "public"."credentials" ("id", "connector_id", "type", "payload_encrypted", "created_at", "updated_at", "format", "payload") VALUES
 	('a6e09afb-5a2f-4d65-8c8b-15568e924a4d', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'kintone_config', NULL, '2025-10-05 06:45:24.142782+00', '2025-10-05 06:45:24.142782+00', 'plain', '{"domain":"https://funtoco.cybozu.com","clientId":"l.1.sjxcgeg6zxdo1i267m57ss4r8gzti2go","clientSecret":"max0pn4pwxxhun6rh7z76dv7360ai7dkz9fqg9nu07l9tk7n55z7jntnk4ko5alw","scope":["k:app_record:read","k:app_settings:read"]}'),
-	('af90e1ee-5ef7-49c8-a0ea-7f8b51f690c8', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'kintone_token', NULL, '2025-10-05 06:45:27.899137+00', '2025-10-05 06:45:35.406+00', NULL, '{"access_token":"1.XhQ5FjiG-BbCZjUMjMg6CFoyljObZedK_AFL-FVGc3k0mXJX","refresh_token":"1.Y8RnIXFE3aDEZUm4wD1yhm92q-V-oP9IqK7Lx-SdajbRgDae","expires_at":1759650335401,"scope":"k:app_record:read k:app_settings:read k:file:read"}'),
 	('5319af36-b308-4499-8fbc-95d0d56e638a', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', 'kintone_config', NULL, '2025-10-06 07:52:18.058423+00', '2025-10-06 07:52:18.058423+00', 'plain', '{"domain":"https://funtoco.cybozu.com","clientId":"l.1.sjxcgeg6zxdo1i267m57ss4r8gzti2go","clientSecret":"max0pn4pwxxhun6rh7z76dv7360ai7dkz9fqg9nu07l9tk7n55z7jntnk4ko5alw","scope":["k:app_record:read","k:app_settings:read"]}'),
-	('9adca7ce-84b0-444d-b102-ada0f69d7786', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', 'kintone_token', NULL, '2025-10-06 07:52:21.46895+00', '2025-10-06 07:52:26.316+00', NULL, '{"access_token":"1.t9UE8hEDfJt3S2yjtUGDbBxwdZ0jq-yT6WE_ApvPUD6aLaK2","refresh_token":"1.dfx43uV1NZ7-YPCbUeeM_6LZX5RmJ5ur5Ik-kabUjka0hRoZ","expires_at":1759740746311,"scope":"k:app_record:read k:app_settings:read k:file:read"}');
+	('9adca7ce-84b0-444d-b102-ada0f69d7786', 'a38e7649-f7e3-460f-9ee9-74ec27a229c1', 'kintone_token', NULL, '2025-10-06 07:52:21.46895+00', '2025-10-06 07:52:26.316+00', NULL, '{"access_token":"1.t9UE8hEDfJt3S2yjtUGDbBxwdZ0jq-yT6WE_ApvPUD6aLaK2","refresh_token":"1.dfx43uV1NZ7-YPCbUeeM_6LZX5RmJ5ur5Ik-kabUjka0hRoZ","expires_at":1759740746311,"scope":"k:app_record:read k:app_settings:read k:file:read"}'),
+	('af90e1ee-5ef7-49c8-a0ea-7f8b51f690c8', '01994ddf-c0f8-4dc9-9c73-cd63a11333f1', 'kintone_token', NULL, '2025-10-05 06:45:27.899137+00', '2025-10-20 01:33:24.543+00', NULL, '{"access_token":"1.Zm8ioX7YGQ-yaPkX_OoovB57HqKPlCAF0beOsNtbf0Ut1vq0","refresh_token":"1.Y8RnIXFE3aDEZUm4wD1yhm92q-V-oP9IqK7Lx-SdajbRgDae","expires_at":1760927604543,"scope":"k:app_record:read k:app_settings:read k:file:read"}');
+
+
+--
+-- Data for Name: data_mappings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO "public"."data_mappings" ("id", "app_mapping_id", "field_name", "field_type", "is_active", "created_at", "updated_at") VALUES
+	('02bf98a6-cce5-4075-9504-d4f88b25274a', 'd1cbc087-1620-4745-a8b0-7bc4594c1e69', 'status', 'string', true, '2025-10-20 01:38:03.820037+00', '2025-10-20 01:38:03.820037+00');
+
+
+--
+-- Data for Name: field_value_mappings; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+INSERT INTO "public"."field_value_mappings" ("id", "data_mapping_id", "source_value", "target_value", "is_active", "sort_order", "created_at", "updated_at") VALUES
+	('2b37e179-493e-4c61-af51-554f5a29aeb9', '02bf98a6-cce5-4075-9504-d4f88b25274a', '営業_企業情報待ち', '書類準備中', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('70f46135-1b98-46f4-b89f-f32b389d5680', '02bf98a6-cce5-4075-9504-d4f88b25274a', '新規_企業情報待ち', '書類準備中', true, 1, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('558ae31c-fe36-4d44-9055-0451be33ec3b', '02bf98a6-cce5-4075-9504-d4f88b25274a', '既存_企業情報待ち', '書類準備中', true, 2, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('848301f2-2fa2-4551-ac0e-f3dbae018e89', '02bf98a6-cce5-4075-9504-d4f88b25274a', '支援_更新案内・人材情報更新待ち', '書類準備中', true, 3, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('1e906efb-f396-47a6-8ebd-767060c58eca', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'OP_企業書類作成中', '書類作成中', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('99746b39-c552-4417-a2d1-3093b588d423', '02bf98a6-cce5-4075-9504-d4f88b25274a', '営業_企業に確認してください', '書類確認中', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('45b9a116-cade-45a7-8cd6-75297a7b5c34', '02bf98a6-cce5-4075-9504-d4f88b25274a', '新規_企業に確認してください', '書類確認中', true, 1, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('5a296076-2cc9-4ed2-9572-6d9b12408645', '02bf98a6-cce5-4075-9504-d4f88b25274a', '既存_企業に確認してください', '書類確認中', true, 2, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('9bf83890-fcca-44de-8c6e-6d5061274d6c', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'OP_企業に確認してください', '書類確認中', true, 3, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('fc25741e-2262-45a4-b065-21cde1693eb3', '02bf98a6-cce5-4075-9504-d4f88b25274a', '新規_企業_書類確認待ち', '書類確認中', true, 4, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('900b7362-598f-49fe-9eb9-c7d46baed8d7', '02bf98a6-cce5-4075-9504-d4f88b25274a', '既存_企業_書類確認待ち', '書類確認中', true, 5, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('12a85320-4c89-4128-ac54-0de2fd4c8110', '02bf98a6-cce5-4075-9504-d4f88b25274a', '企業_書類確認待ち（新規）', '書類確認中', true, 6, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('9ed86d52-24fb-4931-98e0-6a6c4f0d925b', '02bf98a6-cce5-4075-9504-d4f88b25274a', '企業_書類確認待ち（更新）', '書類確認中', true, 7, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('4d44611d-a8bf-4d5c-9159-febdb88e775c', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'OP_書類修正中', '書類確認中', true, 8, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('06b06dd7-41ca-4e89-8917-4f4fb4c9bb4b', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'OP_押印書類送付準備中', '申請準備中', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('d81741f1-5cc3-4c32-bc13-a909d9c4a0f6', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'OP_押印書類受取待ち', '申請準備中', true, 1, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('66bcadd0-3b51-4565-8563-9b0296618e78', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'OP_申請人サイン書類準備中', '申請準備中', true, 2, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('ba53404b-1626-43d4-b30c-efc55fd43f25', '02bf98a6-cce5-4075-9504-d4f88b25274a', '支援_申請人サイン待ち', '申請準備中', true, 3, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('a4af71b8-9fa9-44a1-b6b0-b58c947d03f5', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'OP_申請人サイン書類受取待ち', '申請準備中', true, 4, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('f40a899c-cd7a-4bc0-bbaa-0574c04ec275', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'ビザ申請準備中', 'ビザ申請準備中', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('11b6a3ad-b75e-4b3b-95ac-74f15e15df29', '02bf98a6-cce5-4075-9504-d4f88b25274a', 'ビザ申請待ち', 'ビザ申請準備中', true, 1, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('afb84f63-de59-43ca-8cba-65c2c86421d0', '02bf98a6-cce5-4075-9504-d4f88b25274a', '申請中', '申請中', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('3ee926ce-5ceb-45e3-bfdd-9333892d5ddf', '02bf98a6-cce5-4075-9504-d4f88b25274a', '追加修正対応中', '(追加書類)', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00'),
+	('d32fbdd2-cec0-4a47-a96e-40a18117c03a', '02bf98a6-cce5-4075-9504-d4f88b25274a', '許可', 'ビザ取得済み', true, 0, '2025-10-20 01:39:09.765778+00', '2025-10-20 01:39:09.765778+00');
 
 
 --
@@ -397,12 +459,14 @@ INSERT INTO "public"."sync_sessions" ("id", "tenant_id", "connector_id", "sync_t
 
 INSERT INTO "public"."user_tenants" ("id", "user_id", "tenant_id", "role", "status", "invited_by", "invited_at", "joined_at", "created_at", "updated_at", "email") VALUES
 	('f81dd2b1-39b1-4c77-acbb-2c32f5a04d96', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '1c5a22c7-ca7c-4db7-9509-d91aff15aee0', 'owner', 'active', NULL, NULL, NULL, '2025-10-04 11:55:03.250454+00', '2025-10-04 11:55:03.250454+00', 'tomoaki.nishimura@funtoco.jp'),
-	('1b74600f-6e3f-4bad-b3ab-38ec7bef8346', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '2eca3362-a925-455c-8542-35698084eabb', 'owner', 'active', NULL, NULL, '2025-10-06 07:52:02.612+00', '2025-10-06 07:52:02.626613+00', '2025-10-06 07:52:02.626613+00', 'tomoaki.nishimura@funtoco.jp');
+	('1b74600f-6e3f-4bad-b3ab-38ec7bef8346', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '2eca3362-a925-455c-8542-35698084eabb', 'owner', 'active', NULL, NULL, '2025-10-06 07:52:02.612+00', '2025-10-06 07:52:02.626613+00', '2025-10-06 07:52:02.626613+00', 'tomoaki.nishimura@funtoco.jp'),
+	('920ba1d1-30b6-4c6a-a292-4ad6e2b58cf6', 'ffa61251-d7a9-4044-92ae-bf0f65caeb4c', '1c5a22c7-ca7c-4db7-9509-d91aff15aee0', 'admin', 'pending', '8e655bd3-a6fd-430e-8301-d6e842d997e6', '2025-10-17 03:07:35.127+00', NULL, '2025-10-17 03:07:34.275482+00', '2025-10-17 03:07:34.275482+00', 'raffi@funtoco.jp');
 
 
 --
 -- Data for Name: visas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
+
 
 
 --
@@ -595,7 +659,7 @@ INSERT INTO "storage"."prefixes" ("bucket_id", "name", "created_at", "updated_at
 -- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: auth; Owner: supabase_auth_admin
 --
 
-SELECT pg_catalog.setval('"auth"."refresh_tokens_id_seq"', 5, true);
+SELECT pg_catalog.setval('"auth"."refresh_tokens_id_seq"', 10, true);
 
 
 --
@@ -616,6 +680,6 @@ SELECT pg_catalog.setval('"supabase_functions"."hooks_id_seq"', 1, false);
 -- PostgreSQL database dump complete
 --
 
--- \unrestrict p2M3bpvSyy1ftldakSgtpPzlueG2IX2KEgMYegwHSUneApI834pEcO1qD8dGgyd
+-- \unrestrict 4jVLdFLqKRBGfsr7FpkOeeuVCIEb2Y1LiehSCOa0LQwfUjgDu6JiR0QGt0RBhTp
 
 RESET ALL;
