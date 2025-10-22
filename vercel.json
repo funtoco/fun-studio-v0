@@ -1,8 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync",
-      "schedule": "0 1 * * *"
+      "path": "/api/cron/sync-by-type?type=people",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/sync-by-type?type=visas",
+      "schedule": "0 3 * * *"
     }
   ]
 }

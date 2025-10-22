@@ -353,8 +353,9 @@ export class KintoneDataSync {
   /**
    * Sync all data from Kintone to Supabase based on connector_app_mappings
    * @param appMappingId Optional specific app mapping ID to sync. If not provided, syncs all active mappings.
+   * @param targetAppType Optional target app type to filter mappings. If not provided, syncs all target app types.
    */
-  async syncAll(appMappingId?: string): Promise<SyncResult> {
+  async syncAll(appMappingId?: string, targetAppType?: string): Promise<SyncResult> {
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       // Check active mapping exists for this connector
       const { data: activeMappings } = await this.supabase
@@ -395,12 +396,22 @@ export class KintoneDataSync {
         query = query.eq('id', appMappingId)
       }
 
+      // If specific target app type is provided, filter by it
+      if (targetAppType) {
+        query = query.eq('target_app_type', targetAppType)
+      }
+
       const { data: appMappings, error: mappingsError } = await query
 
       if (mappingsError || !appMappings || appMappings.length === 0) {
-        const error = appMappingId 
-          ? `No active app mapping found with ID: ${appMappingId}`
-          : 'No active app mappings found'
+        let error: string
+        if (appMappingId) {
+          error = `No active app mapping found with ID: ${appMappingId}`
+        } else if (targetAppType) {
+          error = `No active app mappings found for target app type: ${targetAppType}`
+        } else {
+          error = 'No active app mappings found'
+        }
         errors.push(error)
         return { success: false, synced: {}, errors, duration: Date.now() - startTime, sessionId }
       }
@@ -573,9 +584,10 @@ export class KintoneDataSync {
               console.log(`⏭️ Existing record check result:`, existingRecord)
               
               // Log skipped item sync (for manual syncs only)
-              if (this.syncType === 'manual') {
-                await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'failed', 'Skipped: No update target found')
-              }
+              // Note: logItem method is not implemented in SyncLogger yet
+              // if (this.syncType === 'manual') {
+              //   await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'failed', 'Skipped: No update target found')
+              // }
               
               continue // Skip to next record
             }
