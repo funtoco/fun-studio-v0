@@ -30,15 +30,15 @@ begin
         (connector_id, source_app_id, source_app_name, target_app_type, is_active, created_at, 
         updated_at, skip_if_no_update_target) 
     values 
-        (connector_id, '30', 'Kintone app 30', 'people', TRUE, now(), now(), TRUE)
-    returning id into app_mapping_id_30;
+        (connector_id, '13', 'Kintone app 13', 'people', TRUE, now(), now(), FALSE)
+    returning id into app_mapping_id_13;
 
     insert into connector_app_mappings
         (connector_id, source_app_id, source_app_name, target_app_type, is_active, created_at, 
         updated_at, skip_if_no_update_target) 
     values 
-        (connector_id, '13', 'Kintone app 13', 'people', TRUE, now(), now(), FALSE)
-    returning id into app_mapping_id_13;
+        (connector_id, '30', 'Kintone app 30', 'people', TRUE, now(), now(), TRUE)
+    returning id into app_mapping_id_30;
 
     insert into connector_app_mappings
         (connector_id, source_app_id, source_app_name, target_app_type, is_active, created_at, 
