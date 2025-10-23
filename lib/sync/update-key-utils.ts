@@ -112,10 +112,16 @@ export function buildConflictColumns(updateKeys: FieldMapping[]): string {
  * Build update condition object for Supabase where clause
  * @param record - The Kintone record containing source field values
  * @param updateKeys - Array of field mappings to use as update keys
- * @returns Object with update key conditions
+ * @param tenantId - The tenant ID to include in the condition
+ * @returns Object with update key conditions including tenant_id
  */
-export function buildUpdateCondition(record: Record<string, any>, updateKeys: FieldMapping[]): Record<string, any> {
+export function buildUpdateCondition(record: Record<string, any>, updateKeys: FieldMapping[], tenantId?: string): Record<string, any> {
   const condition: Record<string, any> = {}
+  
+  // Always include tenant_id in the condition for proper tenant isolation
+  if (tenantId) {
+    condition.tenant_id = tenantId
+  }
   
   for (const fieldMapping of updateKeys) {
     const sourceValue = record[fieldMapping.source_field_code]?.value

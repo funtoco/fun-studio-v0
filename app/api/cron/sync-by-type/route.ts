@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
     // Sync each connector for the specific target app type
     for (const connector of connectors) {
       try {
-        console.log(`🔄 Starting scheduled sync for connector ${connector.id} (${connector.name}) - ${targetAppType}`)
         
         // Create sync service for scheduled sync
         const syncService = await createSyncService(
@@ -148,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
     
     const totalSynced = results.reduce((sum, r) => {
-      return sum + (r.synced[targetAppType] || 0)
+      return sum + ((r.synced as Record<string, number>)[targetAppType] || 0)
     }, 0)
     const successCount = results.filter(r => r.success).length
     const failedCount = results.length - successCount

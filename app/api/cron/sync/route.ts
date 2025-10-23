@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
     // Sync each connector
     for (const connector of connectors) {
       try {
-        console.log(`🔄 Starting scheduled sync for connector ${connector.id} (${connector.name})`)
         
         // Create sync service for scheduled sync
         const syncService = await createSyncService(
