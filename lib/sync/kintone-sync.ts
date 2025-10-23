@@ -56,12 +56,6 @@ async function processFileField(
       return null
     }
 
-    console.log(`  📁 Processing file for field ${fieldMapping.source_field_code}:`, {
-      fileKey: fileInfo.fileKey,
-      name: fileInfo.name,
-      contentType: fileInfo.contentType
-    })
-
     // Download file from Kintone
     const fileData = await kintoneClient.downloadFile(fileInfo.fileKey)
     
@@ -87,7 +81,6 @@ async function processFileField(
       return null
     }
 
-    console.log(`  ✅ File uploaded successfully: ${uploadResult.path}`)
     return uploadResult.path || null
 
   } catch (error) {
@@ -149,13 +142,6 @@ async function getAppMappings(
       skip_if_no_update_target: mapping.skip_if_no_update_target || false,
       field_mappings: fieldMappings
     }
-    
-    console.log(`📋 Loaded app mapping:`, {
-      id: appMapping.id,
-      source_app_id: appMapping.source_app_id,
-      target_app_type: appMapping.target_app_type,
-      skip_if_no_update_target: appMapping.skip_if_no_update_target
-    })
     
     mappings.push(appMapping)
   }
@@ -283,6 +269,7 @@ export class KintoneDataSync {
     this.tenantId = tenantId
     this.syncType = syncType
     this.runBy = runBy
+    
   }
 
   /**
@@ -295,7 +282,6 @@ export class KintoneDataSync {
       if (appMappingId) {
         // Use specific mapping ID if provided
         mappingId = appMappingId
-        console.log(`🔍 Using specific mapping ID: ${mappingId}`)
       } else {
         // Get active mappings for this connector
         const { data: mappings, error: mappingsError } = await this.supabase
@@ -342,7 +328,6 @@ export class KintoneDataSync {
         .map(f => `${f.field_code} = "${f.filter_value}"`)
         .join(' AND ')
 
-      console.log(`🔍 Built filter query: ${conditions || 'No valid filters'}`)
       return conditions
     } catch (error) {
       console.error('Error building filter query:', error)
@@ -353,8 +338,9 @@ export class KintoneDataSync {
   /**
    * Sync all data from Kintone to Supabase based on connector_app_mappings
    * @param appMappingId Optional specific app mapping ID to sync. If not provided, syncs all active mappings.
+   * @param targetAppType Optional target app type to filter mappings. If not provided, syncs all target app types.
    */
-  async syncAll(appMappingId?: string): Promise<SyncResult> {
+  async syncAll(appMappingId?: string, targetAppType?: string): Promise<SyncResult> {
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       // Check active mapping exists for this connector
       const { data: activeMappings } = await this.supabase
@@ -395,12 +381,22 @@ export class KintoneDataSync {
         query = query.eq('id', appMappingId)
       }
 
+      // If specific target app type is provided, filter by it
+      if (targetAppType) {
+        query = query.eq('target_app_type', targetAppType)
+      }
+
       const { data: appMappings, error: mappingsError } = await query
 
       if (mappingsError || !appMappings || appMappings.length === 0) {
-        const error = appMappingId 
-          ? `No active app mapping found with ID: ${appMappingId}`
-          : 'No active app mappings found'
+        let error: string
+        if (appMappingId) {
+          error = `No active app mapping found with ID: ${appMappingId}`
+        } else if (targetAppType) {
+          error = `No active app mappings found for target app type: ${targetAppType}`
+        } else {
+          error = 'No active app mappings found'
+        }
         errors.push(error)
         return { success: false, synced: {}, errors, duration: Date.now() - startTime, sessionId }
       }
@@ -465,8 +461,6 @@ export class KintoneDataSync {
    * Sync app data from Kintone based on app mapping configuration
    */
   private async syncAppData(targetAppType: string, sourceAppId: string, appMappingId?: string): Promise<number> {
-    console.log(`🔄 Starting sync for ${targetAppType} from app ${sourceAppId}`)
-    
     if (process.env.ALLOW_LEGACY_IMPORTS === 'false' || process.env.IMPORTS_DISABLED_UNTIL_MAPPING_ACTIVE === 'true') {
       const { data: active } = await this.supabase
         .from('connector_app_mappings')
@@ -490,7 +484,6 @@ export class KintoneDataSync {
           return 0
         }
         appMappings = [appMapping]
-        console.log(`📋 Found specific mapping ${appMappingId} for ${targetAppType}`)
       } else {
         // Get all mappings for the target app type
         appMappings = await getAppMappings(this.supabase, this.connectorId, targetAppType)
@@ -498,43 +491,22 @@ export class KintoneDataSync {
           console.error(`❌ No active ${targetAppType} mappings found`)
           return 0
         }
-        console.log(`📋 Found ${appMappings.length} mapping(s) for ${targetAppType}`)
       }
       
       let totalSyncedCount = 0
       
       // Process each mapping
       for (const appMapping of appMappings) {
-        console.log(`🔄 Processing mapping ${appMapping.id} for app ${appMapping.source_app_id}:`, {
-          sourceAppId: appMapping.source_app_id,
-          fieldMappingsCount: appMapping.field_mappings.length,
-          fieldMappings: appMapping.field_mappings.map(fm => ({
-            source: fm.source_field_code,
-            target: fm.target_field_id,
-            required: fm.is_required
-          }))
-        })
-        
         // Build query using only database filter conditions
         const filterQuery = await this.buildFilterQuery(targetAppType as 'people' | 'visas', appMappingId)
         const query = filterQuery || ''
         
-        console.log(`🔍 Query for ${targetAppType} (app ${appMapping.source_app_id}):`, query || 'No filters')
-        
         // Get records from Kintone
         const records = await this.kintoneClient.getRecords(appMapping.source_app_id, query, [])
-        console.log(`📊 Retrieved ${records.length} records from Kintone for ${targetAppType} (app ${appMapping.source_app_id})`)
-      
         let syncedCount = 0
       
         const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType, appMapping.id)
-        console.log(`🔍 Update keys for ${targetAppType}:`, updateKeys.map(fm => ({
-          source: fm.source_field_code,
-          target: fm.target_field_id,
-          required: fm.is_required
-        })))
         for (const record of records) {
-          console.log(`🔄 Processing record ${record.$id.value} for ${targetAppType}`)
         
           try {
             // Transform Kintone record to our format using database field mappings
@@ -548,16 +520,13 @@ export class KintoneDataSync {
             const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType, appMapping.id)
             
             // Check if record exists using update keys
-            const whereCondition = buildUpdateCondition(record, updateKeys)
-            console.log(`🔍 Search condition for existing record:`, whereCondition)
+            const whereCondition = buildUpdateCondition(record, updateKeys, this.tenantId)
             
             const { data: existingRecord, error: selectError } = await this.supabase
               .from(targetTable)
               .select('id')
               .match(whereCondition)
               .single()
-
-            console.log(`🔍 Existing record search result:`, { existingRecord, selectError })
 
             if (selectError && selectError.code !== 'PGRST116') {
               // PGRST116 means no rows found, which is expected for new records
@@ -567,16 +536,6 @@ export class KintoneDataSync {
 
             // Check if we should skip this record
             if (!existingRecord && appMapping.skip_if_no_update_target) {
-              // Skip this record if no update target found
-              console.log(`⏭️ Skipping record ${record.$id.value} - no update target found and skip_if_no_update_target is enabled`)
-              console.log(`⏭️ App mapping skip setting:`, appMapping.skip_if_no_update_target)
-              console.log(`⏭️ Existing record check result:`, existingRecord)
-              
-              // Log skipped item sync (for manual syncs only)
-              if (this.syncType === 'manual') {
-                await this.syncLogger.logItem(targetAppType as 'people' | 'visas', record.$id.value, 'failed', 'Skipped: No update target found')
-              }
-              
               continue // Skip to next record
             }
 
@@ -586,20 +545,17 @@ export class KintoneDataSync {
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }
+            
 
             // Map fields using database configuration
             for (const fieldMapping of appMapping.field_mappings) {
               if (fieldMapping.source_field_type === 'FILE') {
-                // Special handling for FILE type fields
-                console.log(`  📁 Processing FILE field: ${fieldMapping.source_field_code}`)
                 const filePath = await processFileField(this.kintoneClient, record, fieldMapping, this.tenantId)
                 data[fieldMapping.target_field_id] = filePath
-                console.log(`  📝 Mapping FILE ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${filePath || 'null'}`)
               } else {
                 // Regular field mapping
                 const sourceValue = record[fieldMapping.source_field_code]?.value
                 data[fieldMapping.target_field_id] = sourceValue || null
-                console.log(`  📝 Mapping ${fieldMapping.source_field_code} -> ${fieldMapping.target_field_id}: ${sourceValue}`)
               }
             }
 
@@ -607,7 +563,6 @@ export class KintoneDataSync {
             try {
               const dataMappings = await getDataMappings(appMapping.id)
               if (dataMappings.length > 0) {
-                console.log(`  🔄 Applying value mappings for ${dataMappings.length} fields`)
                 const mappedData = mapFieldValues(data, dataMappings)
                 
                 // Update data with mapped values
@@ -622,23 +577,16 @@ export class KintoneDataSync {
               console.warn(`  ⚠️ Value mapping failed (continuing with original values):`, valueMappingError)
             }
 
-            console.log(`🔍 Data object keys:`, Object.keys(data))
-            console.log(`🔍 Data object values:`, data)
-
             let error: any = null
 
             if (existingRecord) {
               // Record exists, update it
-              console.log(`🔄 Updating existing record in ${targetTable}`, whereCondition)
               const { error: updateError } = await this.supabase
                 .from(targetTable)
                 .update(data)
                 .match(whereCondition)
               error = updateError
             } else {
-              // Insert new record
-              console.log(`➕ Inserting new record to ${targetTable}`)
-              console.log(`➕ Insert data:`, data)
               const { error: insertError } = await this.supabase
                 .from(targetTable)
                 .insert(data)
@@ -650,9 +598,6 @@ export class KintoneDataSync {
               throw error
             }
 
-            console.log(`✅ Successfully synced ${targetAppType} ${record.$id.value}`)
-
-
             syncedCount++
           } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -663,11 +608,9 @@ export class KintoneDataSync {
           }
         }
         
-        console.log(`✅ Completed sync for ${targetAppType} (app ${appMapping.source_app_id}): ${syncedCount} records synced`)
         totalSyncedCount += syncedCount
       }
 
-      console.log(`✅ Completed sync for ${targetAppType}: ${totalSyncedCount} total records synced across ${appMappings.length} mapping(s)`)
       return totalSyncedCount
     } catch (error) {
       console.error(`❌ Error in syncAppData for ${targetAppType}:`, error)
@@ -686,10 +629,6 @@ export class KintoneDataSync {
     }
     return tableMap[targetAppType] || null
   }
-
-
-
-
 }
 
 /**
@@ -708,6 +647,7 @@ export async function createSyncService(
     if (!connector) {
       throw new Error('Connector not found')
     }
+    
     
     if (connector.provider !== 'kintone') {
       throw new Error('Only Kintone connectors support data sync')
@@ -768,6 +708,7 @@ export async function createSyncService(
     domain: `https://${subdomain}.cybozu.com`,
     accessToken
   })
+  
   
   return new KintoneDataSync(connectorId, kintoneClient, tenantId, syncType, runBy)
 }
