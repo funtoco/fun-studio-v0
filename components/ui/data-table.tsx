@@ -181,10 +181,10 @@ export function DataTable<T extends Record<string, any>>({
               value={selectValues[filter.key] || ""} 
               onValueChange={(value) => handleFilterChange(filter.key, value)}
             >
-              <SelectTrigger className="w-40">
-                <div className="flex items-center gap-2">
-                  <FilterIcon className="h-4 w-4" />
-                  <SelectValue placeholder={filter.label} />
+              <SelectTrigger className="min-w-[140px] max-w-[240px]">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FilterIcon className="h-4 w-4 flex-shrink-0" />
+                  <SelectValue placeholder={filter.label} className="truncate" />
                 </div>
               </SelectTrigger>
               <SelectContent>
