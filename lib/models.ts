@@ -14,6 +14,7 @@ export type Person = {
   email?: string
   address?: string
   tenantName?: string
+  company?: string
   note?: string
   visaId?: string
   externalId?: string

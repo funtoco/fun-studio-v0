@@ -71,6 +71,7 @@ begin
         (connector_id, app_mapping_id_13, 'latestResidenceCardNo', 'latestResidenceCardNo', '在留カード番号', 'SINGLE_LINE_TEXT', 'residence_card_no', 'residence_card_no', NULL, NULL, false, TRUE, 8, now(), now(), false),
         (connector_id, app_mapping_id_13, 'latestResidenceCardExpirationDate', 'latestResidenceCardExpirationDate', '在留期限', 'DATE', 'residence_card_issued_date', 'residence_card_issued_date', NULL, NULL, false, TRUE, 9, now(), now(), false),
         (connector_id, app_mapping_id_13, 'HRID', 'HRID', '人材ID', 'NUMBER', 'external_id', 'external_id', NULL, NULL, false, TRUE, 10, now(), now(), false),
+        (connector_id, app_mapping_id_13, 'placeOfWorkName', 'placeOfWorkName', '就業場所名（正式名称）ID', 'SINGLE_LINE_TEXT', 'company', 'company', NULL, NULL, false, TRUE, 11, now(), now(), false),
         /** 画像 **/
         (connector_id, app_mapping_id_30, '$id', '$id', '$id', 'UNKNOWN', 'external_id', 'external_id', NULL, NULL, false, TRUE, 0, now(), now(), TRUE),
         (connector_id, app_mapping_id_30, 'image', 'image', '写真 (営業 / CA)', 'FILE', 'image_path', 'image_path', NULL, NULL, false, TRUE, 1, now(), now(), false),

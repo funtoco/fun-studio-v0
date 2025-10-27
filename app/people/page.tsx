@@ -105,6 +105,24 @@ export default function PeoplePage() {
     }
   })
 
+  // URLパラメータから現在のフィルター状態を取得
+  const currentFilters = getFiltersFromUrl()
+  
+  // 現在のフィルター状態に基づいてデータをフィルター（所属先の選択肢を動的に生成するため）
+  const getFilteredDataForOptions = (filterKey: string) => {
+    return peopleWithVisas.filter((person) => {
+      // 他のフィルターが適用されている場合は、それに一致するデータのみを使用
+      for (const [key, values] of Object.entries(currentFilters)) {
+        if (key === filterKey) continue // 自分自身のフィルターは除外
+        if (values.length > 0) {
+          const personValue = person[key as keyof PersonWithVisa]?.toString()
+          if (!personValue || !values.includes(personValue)) return false
+        }
+      }
+      return true
+    })
+  }
+
   const columns: Column<PersonWithVisa>[] = [
     {
       key: "name",
@@ -137,6 +155,12 @@ export default function PeoplePage() {
       filterable: true,
     },
     {
+      key: "company",
+      label: "所属先",
+      sortable: true,
+      filterable: true,
+    },
+    {
       key: "employeeNumber",
       label: "従業員番号",
       sortable: true,
@@ -157,7 +181,7 @@ export default function PeoplePage() {
     {
       key: "nationality",
       label: "国籍",
-      options: Array.from(new Set(people.map((p) => p.nationality).filter(Boolean))).map((nationality) => ({
+      options: Array.from(new Set(getFilteredDataForOptions("nationality").map((p) => p.nationality).filter(Boolean))).map((nationality) => ({
         value: nationality!,
         label: nationality!,
       })),
@@ -166,9 +190,18 @@ export default function PeoplePage() {
     {
       key: "tenantName",
       label: "会社",
-      options: Array.from(new Set(people.map((p) => p.tenantName).filter(Boolean))).map((tenantName) => ({
+      options: Array.from(new Set(getFilteredDataForOptions("tenantName").map((p) => p.tenantName).filter(Boolean))).map((tenantName) => ({
         value: tenantName!,
         label: tenantName!,
+      })),
+      multiple: true,
+    },
+    {
+      key: "company",
+      label: "所属先",
+      options: Array.from(new Set(getFilteredDataForOptions("company").map((p) => p.company).filter(Boolean))).map((company) => ({
+        value: company!,
+        label: company!,
       })),
       multiple: true,
     },
