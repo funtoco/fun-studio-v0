@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils"
 import { LayoutDashboard, Users, FileText, Calendar, Clock, CheckSquare } from "lucide-react"
 
 const navigation = [
-  {
-    name: "ダッシュボード",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
+  // {
+  //   name: "ダッシュボード",
+  //   href: "/dashboard",
+  //   icon: LayoutDashboard,
+  // },
   {
     name: "人材一覧",
     href: "/people",

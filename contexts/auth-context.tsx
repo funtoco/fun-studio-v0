@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         // ログイン成功時はミドルウェアがリダイレクトを処理
-        window.location.href = "/dashboard"
+        window.location.href = "/people"
       }
       
       return { error }
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/dashboard`,
+          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/people`,
           data: {
             tenant_name: tenantName,
           },

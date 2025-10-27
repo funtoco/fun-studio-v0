@@ -37,10 +37,10 @@ export async function middleware(request: NextRequest) {
   //   return NextResponse.redirect(url)
   // }
 
-  // Redirect to dashboard if authenticated and trying to access auth pages
+  // Redirect to people page if authenticated and trying to access auth pages
   if (user && (request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/signup"))) {
     const url = request.nextUrl.clone()
-    url.pathname = "/dashboard"
+    url.pathname = "/people"
     return NextResponse.redirect(url)
   }
 
