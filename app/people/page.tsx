@@ -1,5 +1,5 @@
 "use client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { DataTable, type Column } from "@/components/ui/data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
@@ -17,6 +17,7 @@ interface PersonWithVisa extends Person {
 
 export default function PeoplePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [people, setPeople] = useState<Person[]>([])
   const [visas, setVisas] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -24,6 +25,41 @@ export default function PeoplePage() {
   const [dataSource, setDataSource] = useState<'sample' | 'kintone'>('sample')
 
   console.log('PeoplePage: Component initialized', { people: people.length, loading, error, dataSource })
+
+  // URLパラメータからフィルター状態を取得
+  const getFiltersFromUrl = (): Record<string, string[]> => {
+    const filters: Record<string, string[]> = {}
+    searchParams.forEach((value, key) => {
+      if (key !== 'search') {
+        filters[key] = value.split(',')
+      }
+    })
+    return filters
+  }
+
+  // URLパラメータを更新（実際に変更があったときだけ更新）
+  const updateUrl = (filters: Record<string, string[]>, searchTerm: string) => {
+    const params = new URLSearchParams()
+    
+    if (searchTerm) {
+      params.set('search', searchTerm)
+    }
+    
+    Object.entries(filters).forEach(([key, values]) => {
+      if (values.length > 0) {
+        params.set(key, values.join(','))
+      }
+    })
+
+    const newUrlString = params.toString()
+    const currentUrlString = searchParams.toString()
+    
+    // 実際に変更があったときだけURLを更新
+    if (newUrlString !== currentUrlString) {
+      const newUrl = newUrlString ? `?${newUrlString}` : ''
+      router.replace(`/people${newUrl}`, { scroll: false })
+    }
+  }
 
   // Load people data
   useEffect(() => {
@@ -69,6 +105,24 @@ export default function PeoplePage() {
     }
   })
 
+  // URLパラメータから現在のフィルター状態を取得
+  const currentFilters = getFiltersFromUrl()
+  
+  // 現在のフィルター状態に基づいてデータをフィルター（所属先の選択肢を動的に生成するため）
+  const getFilteredDataForOptions = (filterKey: string) => {
+    return peopleWithVisas.filter((person) => {
+      // 他のフィルターが適用されている場合は、それに一致するデータのみを使用
+      for (const [key, values] of Object.entries(currentFilters)) {
+        if (key === filterKey) continue // 自分自身のフィルターは除外
+        if (values.length > 0) {
+          const personValue = person[key as keyof PersonWithVisa]?.toString()
+          if (!personValue || !values.includes(personValue)) return false
+        }
+      }
+      return true
+    })
+  }
+
   const columns: Column<PersonWithVisa>[] = [
     {
       key: "name",
@@ -101,6 +155,12 @@ export default function PeoplePage() {
       filterable: true,
     },
     {
+      key: "company",
+      label: "所属先",
+      sortable: true,
+      filterable: true,
+    },
+    {
       key: "employeeNumber",
       label: "従業員番号",
       sortable: true,
@@ -121,7 +181,7 @@ export default function PeoplePage() {
     {
       key: "nationality",
       label: "国籍",
-      options: Array.from(new Set(people.map((p) => p.nationality).filter(Boolean))).map((nationality) => ({
+      options: Array.from(new Set(getFilteredDataForOptions("nationality").map((p) => p.nationality).filter(Boolean))).map((nationality) => ({
         value: nationality!,
         label: nationality!,
       })),
@@ -130,9 +190,18 @@ export default function PeoplePage() {
     {
       key: "tenantName",
       label: "会社",
-      options: Array.from(new Set(people.map((p) => p.tenantName).filter(Boolean))).map((tenantName) => ({
+      options: Array.from(new Set(getFilteredDataForOptions("tenantName").map((p) => p.tenantName).filter(Boolean))).map((tenantName) => ({
         value: tenantName!,
         label: tenantName!,
+      })),
+      multiple: true,
+    },
+    {
+      key: "company",
+      label: "所属先",
+      options: Array.from(new Set(getFilteredDataForOptions("company").map((p) => p.company).filter(Boolean))).map((company) => ({
+        value: company!,
+        label: company!,
       })),
       multiple: true,
     },
@@ -199,6 +268,9 @@ export default function PeoplePage() {
         filters={filters}
         searchKeys={["name", "tenantName", "nationality"]}
         onRowClick={handleRowClick}
+        initialSearchTerm={searchParams.get('search') || ''}
+        initialActiveFilters={getFiltersFromUrl()}
+        onFilterChange={updateUrl}
       />
     </div>
   )

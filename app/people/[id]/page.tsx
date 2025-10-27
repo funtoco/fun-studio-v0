@@ -58,6 +58,12 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
                         {person.tenantName}
                       </Badge>
                     )}
+                    {person.company && (
+                      <Badge variant="outline" className="gap-1">
+                        <Building2 className="h-3 w-3" />
+                        所属先: {person.company}
+                      </Badge>
+                    )}
                     {person.workingStatus && (
                       <StatusBadge status={person.workingStatus} type="working" />
                     )}
@@ -176,6 +182,15 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
                     <span className="text-sm text-muted-foreground">特定技能分野</span>
                   </div>
                   <span className="text-sm">{person.specificSkillField}</span>
+                </div>
+              )}
+              {person.company && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">所属先</span>
+                  </div>
+                  <span className="text-sm">{person.company}</span>
                 </div>
               )}
             </CardContent>
