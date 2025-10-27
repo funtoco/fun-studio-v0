@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, FileText, User, Clock, X, ChevronDown, ChevronUp, Building2 } from "lucide-react"
+import { Search, FileText, Clock, X, ChevronDown, ChevronUp, Building2 } from "lucide-react"
 import { getPeople } from "@/lib/supabase/people"
 import { getVisas } from "@/lib/supabase/visas"
 import { isExpiringSoon } from "@/lib/utils"
@@ -37,7 +37,6 @@ export default function VisasPage() {
   const searchParams = useSearchParams()
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
-  const [managerFilter, setManagerFilter] = useState<string>("all")
   const [expiryFilter, setExpiryFilter] = useState<string>("all")
   const [companyFilter, setCompanyFilter] = useState<string>("all")
   const [affiliationFilter, setAffiliationFilter] = useState<string>("all")
@@ -51,14 +50,12 @@ export default function VisasPage() {
   useEffect(() => {
     const search = searchParams.get('search')
     const type = searchParams.get('type')
-    const manager = searchParams.get('manager')
     const expiry = searchParams.get('expiry')
     const company = searchParams.get('company')
     const affiliation = searchParams.get('affiliation')
 
     if (search !== null) setSearchTerm(search)
     if (type) setTypeFilter(type)
-    if (manager) setManagerFilter(manager)
     if (expiry) setExpiryFilter(expiry)
     if (company) setCompanyFilter(company)
     if (affiliation) setAffiliationFilter(affiliation)
@@ -91,7 +88,6 @@ export default function VisasPage() {
     const newParams = new URLSearchParams()
     if (value) newParams.set('search', value)
     if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (managerFilter !== 'all') newParams.set('manager', managerFilter)
     if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
     if (companyFilter !== 'all') newParams.set('company', companyFilter)
     if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
@@ -103,19 +99,6 @@ export default function VisasPage() {
     const newParams = new URLSearchParams()
     if (searchTerm) newParams.set('search', searchTerm)
     if (value !== 'all') newParams.set('type', value)
-    if (managerFilter !== 'all') newParams.set('manager', managerFilter)
-    if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
-    if (companyFilter !== 'all') newParams.set('company', companyFilter)
-    if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
-    router.replace(`/visas?${newParams.toString()}`, { scroll: false })
-  }
-
-  const handleManagerFilterChange = (value: string) => {
-    setManagerFilter(value)
-    const newParams = new URLSearchParams()
-    if (searchTerm) newParams.set('search', searchTerm)
-    if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (value !== 'all') newParams.set('manager', value)
     if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
     if (companyFilter !== 'all') newParams.set('company', companyFilter)
     if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
@@ -127,7 +110,6 @@ export default function VisasPage() {
     const newParams = new URLSearchParams()
     if (searchTerm) newParams.set('search', searchTerm)
     if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (managerFilter !== 'all') newParams.set('manager', managerFilter)
     if (value !== 'all') newParams.set('expiry', value)
     if (companyFilter !== 'all') newParams.set('company', companyFilter)
     if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
@@ -139,7 +121,6 @@ export default function VisasPage() {
     const newParams = new URLSearchParams()
     if (searchTerm) newParams.set('search', searchTerm)
     if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (managerFilter !== 'all') newParams.set('manager', managerFilter)
     if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
     if (value !== 'all') newParams.set('company', value)
     if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
@@ -151,7 +132,6 @@ export default function VisasPage() {
     const newParams = new URLSearchParams()
     if (searchTerm) newParams.set('search', searchTerm)
     if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (managerFilter !== 'all') newParams.set('manager', managerFilter)
     if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
     if (companyFilter !== 'all') newParams.set('company', companyFilter)
     if (value !== 'all') newParams.set('affiliation', value)
@@ -171,9 +151,6 @@ export default function VisasPage() {
 
     // Type filter
     if (typeFilter !== "all" && visa.type !== typeFilter) return false
-
-    // Manager filter
-    if (managerFilter !== "all" && visa.manager !== managerFilter) return false
 
     // Expiry filter
     if (expiryFilter !== "all" && visa.expiryDate) {
@@ -206,7 +183,7 @@ export default function VisasPage() {
         return {
           id: visa.id,
           title: person.name,
-          subtitle: `${visa.type} | 担当: ${visa.manager || "未設定"}`,
+          subtitle: visa.type,
           badge: isWarning ? "期限注意" : undefined,
           badgeVariant: isUrgent ? ("destructive" as const) : ("secondary" as const),
           metadata: {
@@ -276,9 +253,6 @@ export default function VisasPage() {
       // Type filter
       if (typeFilter !== "all" && visa.type !== typeFilter) return false
 
-      // Manager filter
-      if (managerFilter !== "all" && visa.manager !== managerFilter) return false
-
       // Expiry filter
       if (expiryFilter !== "all" && visa.expiryDate) {
         const days = Number.parseInt(expiryFilter)
@@ -300,7 +274,6 @@ export default function VisasPage() {
   const clearAllFilters = () => {
     setSearchTerm("")
     setTypeFilter("all")
-    setManagerFilter("all")
     setExpiryFilter("all")
     setCompanyFilter("all")
     setAffiliationFilter("all")
@@ -312,9 +285,6 @@ export default function VisasPage() {
     switch (filterType) {
       case 'type':
         handleTypeFilterChange('all')
-        break
-      case 'manager':
-        handleManagerFilterChange('all')
         break
       case 'expiry':
         handleExpiryFilterChange('all')
@@ -334,7 +304,6 @@ export default function VisasPage() {
   // アクティブなフィルターを取得
   const activeFilters = []
   if (typeFilter !== "all") activeFilters.push({ key: 'type', label: `ビザ種別: ${typeFilter}`, value: typeFilter })
-  if (managerFilter !== "all") activeFilters.push({ key: 'manager', label: `担当者: ${managerFilter}`, value: managerFilter })
   if (expiryFilter !== "all") activeFilters.push({ key: 'expiry', label: `期限: ${expiryFilter}日以内`, value: expiryFilter })
   if (companyFilter !== "all") activeFilters.push({ key: 'company', label: `会社: ${companyFilter}`, value: companyFilter })
   if (affiliationFilter !== "all") activeFilters.push({ key: 'affiliation', label: `所属先: ${affiliationFilter}`, value: affiliationFilter })
@@ -342,7 +311,6 @@ export default function VisasPage() {
 
   // Get unique values for filters
   const visaTypes = Array.from(new Set(visas.map((v) => v.type)))
-  const managers = Array.from(new Set(visas.map((v) => v.manager).filter(Boolean)))
   
   // 会社の選択肢（会社フィルターを除いた他のフィルターに基づいて動的に生成）
   const companies = Array.from(new Set(
@@ -416,7 +384,7 @@ export default function VisasPage() {
           </div>
 
           {/* Active filters count */}
-          {(searchTerm || typeFilter !== "all" || managerFilter !== "all" || expiryFilter !== "all" || companyFilter !== "all" || affiliationFilter !== "all") && (
+          {(searchTerm || typeFilter !== "all" || expiryFilter !== "all" || companyFilter !== "all" || affiliationFilter !== "all") && (
             <Badge variant="secondary" className="ml-auto">
               {filteredVisas.length} / {visas.length} 件を表示
             </Badge>
@@ -441,24 +409,6 @@ export default function VisasPage() {
               </SelectContent>
             </Select>
             <span className="text-xs text-muted-foreground">ビザ種別</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <Select value={managerFilter} onValueChange={handleManagerFilterChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="担当者" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべて</SelectItem>
-                {managers.map((manager) => (
-                  <SelectItem key={manager} value={manager!}>
-                    {manager}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-xs text-muted-foreground">担当者</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -515,7 +465,7 @@ export default function VisasPage() {
           </div>
 
           {/* Clear filters button */}
-          {(typeFilter !== "all" || managerFilter !== "all" || expiryFilter !== "all" || companyFilter !== "all" || affiliationFilter !== "all") && (
+          {(typeFilter !== "all" || expiryFilter !== "all" || companyFilter !== "all" || affiliationFilter !== "all") && (
             <Button
               variant="ghost"
               size="sm"
