@@ -261,6 +261,38 @@ export default function VisasPage() {
     })
   }
 
+  // フィルター適用前の処理：他のフィルターでフィルタリングして選択肢を生成
+  const getFilteredDataForOptions = () => {
+    return visas.filter((visa) => {
+      const person = people.find((p) => p.id === visa.personId)
+      if (!person) return false
+
+      // Search filter
+      if (searchTerm) {
+        const searchMatch = person.name.toLowerCase().includes(searchTerm.toLowerCase())
+        if (!searchMatch) return false
+      }
+
+      // Type filter
+      if (typeFilter !== "all" && visa.type !== typeFilter) return false
+
+      // Manager filter
+      if (managerFilter !== "all" && visa.manager !== managerFilter) return false
+
+      // Expiry filter
+      if (expiryFilter !== "all" && visa.expiryDate) {
+        const days = Number.parseInt(expiryFilter)
+        if (!isExpiringSoon(visa.expiryDate, days)) return false
+      }
+
+      // 会社と所属先のフィルターは除外（選択肢生成のため）
+      return true
+    }).map((visa) => {
+      const person = people.find((p) => p.id === visa.personId)
+      return person
+    }).filter(Boolean)
+  }
+
   const handleItemClick = (item: any) => {
     window.location.href = `/people/${item.metadata.personId}`
   }
@@ -311,17 +343,26 @@ export default function VisasPage() {
   // Get unique values for filters
   const visaTypes = Array.from(new Set(visas.map((v) => v.type)))
   const managers = Array.from(new Set(visas.map((v) => v.manager).filter(Boolean)))
+  
+  // 会社の選択肢（会社フィルターを除いた他のフィルターに基づいて動的に生成）
   const companies = Array.from(new Set(
-    visas.map((v) => {
-      const person = people.find((p) => p.id === v.personId)
-      return person?.tenantName
-    }).filter(Boolean)
+    getFilteredDataForOptions()
+      .map((person) => person?.tenantName)
+      .filter(Boolean)
   ))
+  
+  // 所属先の選択肢（会社フィルターと所属先フィルターを除いた他のフィルターに基づいて動的に生成）
   const affiliations = Array.from(new Set(
-    visas.map((v) => {
-      const person = people.find((p) => p.id === v.personId)
-      return person?.company
-    }).filter(Boolean)
+    getFilteredDataForOptions()
+      .filter((person) => {
+        // 会社フィルターが設定されている場合は、その会社の所属先のみを表示
+        if (companyFilter !== "all") {
+          return person?.tenantName === companyFilter
+        }
+        return true
+      })
+      .map((person) => person?.company)
+      .filter(Boolean)
   ))
 
   if (loading) {
