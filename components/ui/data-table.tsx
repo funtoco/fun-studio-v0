@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,10 @@ interface DataTableProps<T> {
   searchKeys?: (keyof T)[]
   onRowClick?: (row: T) => void
   className?: string
+  // URLパラメータ永続化用
+  initialSearchTerm?: string
+  initialActiveFilters?: Record<string, string[]>
+  onFilterChange?: (filters: Record<string, string[]>, searchTerm: string) => void
 }
 
 interface Filter {
@@ -42,14 +46,35 @@ export function DataTable<T extends Record<string, any>>({
   searchKeys = [],
   onRowClick,
   className,
+  initialSearchTerm = "",
+  initialActiveFilters = {},
+  onFilterChange,
 }: DataTableProps<T>) {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm)
   const [sortConfig, setSortConfig] = useState<{
     key: string
     direction: "asc" | "desc"
   } | null>(null)
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})
+  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(initialActiveFilters)
   const [selectValues, setSelectValues] = useState<Record<string, string>>({})
+  const isInitialMount = useRef(true)
+
+  // 初期値が変更されたときに状態を更新（URLパラメータ変更時）
+  useEffect(() => {
+    const wasInitial = isInitialMount.current
+    setSearchTerm(initialSearchTerm)
+    setActiveFilters(initialActiveFilters)
+    if (wasInitial) {
+      isInitialMount.current = false
+    }
+  }, [initialSearchTerm, initialActiveFilters])
+
+  // URLパラメータ同期: フィルター状態の変更を親に通知（初回レンダリング時は除く）
+  useEffect(() => {
+    if (onFilterChange && !isInitialMount.current) {
+      onFilterChange(activeFilters, searchTerm)
+    }
+  }, [activeFilters, searchTerm, onFilterChange])
 
   // Filter data based on search and filters
   const filteredData = data.filter((row) => {

@@ -1,5 +1,5 @@
 "use client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { DataTable, type Column } from "@/components/ui/data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
@@ -17,6 +17,7 @@ interface PersonWithVisa extends Person {
 
 export default function PeoplePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [people, setPeople] = useState<Person[]>([])
   const [visas, setVisas] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -24,6 +25,41 @@ export default function PeoplePage() {
   const [dataSource, setDataSource] = useState<'sample' | 'kintone'>('sample')
 
   console.log('PeoplePage: Component initialized', { people: people.length, loading, error, dataSource })
+
+  // URLパラメータからフィルター状態を取得
+  const getFiltersFromUrl = (): Record<string, string[]> => {
+    const filters: Record<string, string[]> = {}
+    searchParams.forEach((value, key) => {
+      if (key !== 'search') {
+        filters[key] = value.split(',')
+      }
+    })
+    return filters
+  }
+
+  // URLパラメータを更新（実際に変更があったときだけ更新）
+  const updateUrl = (filters: Record<string, string[]>, searchTerm: string) => {
+    const params = new URLSearchParams()
+    
+    if (searchTerm) {
+      params.set('search', searchTerm)
+    }
+    
+    Object.entries(filters).forEach(([key, values]) => {
+      if (values.length > 0) {
+        params.set(key, values.join(','))
+      }
+    })
+
+    const newUrlString = params.toString()
+    const currentUrlString = searchParams.toString()
+    
+    // 実際に変更があったときだけURLを更新
+    if (newUrlString !== currentUrlString) {
+      const newUrl = newUrlString ? `?${newUrlString}` : ''
+      router.replace(`/people${newUrl}`, { scroll: false })
+    }
+  }
 
   // Load people data
   useEffect(() => {
@@ -199,6 +235,9 @@ export default function PeoplePage() {
         filters={filters}
         searchKeys={["name", "tenantName", "nationality"]}
         onRowClick={handleRowClick}
+        initialSearchTerm={searchParams.get('search') || ''}
+        initialActiveFilters={getFiltersFromUrl()}
+        onFilterChange={updateUrl}
       />
     </div>
   )
