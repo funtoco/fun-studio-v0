@@ -11,7 +11,7 @@ import { ArrowLeft, Building2, Users, Plus, MoreHorizontal, Trash2 } from "lucid
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { TenantMembersPage } from "@/components/tenant/tenant-members-page"
 import { CreateTenantDialog } from "@/components/tenant/create-tenant-dialog"
-import { createTenantAction, getTenantsAction, type CreateTenantData } from "@/lib/actions/tenant-actions"
+import { createTenantAction, getTenantsAction, isUserOwnerOfAnyTenant, type CreateTenantData } from "@/lib/actions/tenant-actions"
 import { deleteTenant } from "@/lib/supabase/tenants"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/lib/hooks/use-toast"
@@ -26,6 +26,7 @@ export default function AdminTenantsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -38,6 +39,10 @@ export default function AdminTenantsPage() {
       setLoading(true)
       const tenantsData: Tenant[] = await getTenantsAction()
       setTenants(tenantsData)
+      
+      // Check if user is owner
+      const userIsOwner = await isUserOwnerOfAnyTenant()
+      setIsOwner(userIsOwner)
     } catch (error) {
       console.error('Error fetching data:', error)
       toast({
@@ -166,10 +171,12 @@ export default function AdminTenantsPage() {
             <p className="text-muted-foreground mt-1">テナントとメンバーを管理します</p>
           </div>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          新しいテナント
-        </Button>
+        {isOwner && (
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            新しいテナント
+          </Button>
+        )}
       </div>
 
       {/* Tenants List */}
@@ -262,10 +269,17 @@ export default function AdminTenantsPage() {
               <p className="text-muted-foreground mb-6">
                 新しいテナントを作成して、チームでの作業を始めましょう。
               </p>
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                新しいテナントを作成
-              </Button>
+              {isOwner && (
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  新しいテナントを作成
+                </Button>
+              )}
+              {!isOwner && (
+                <p className="text-sm text-muted-foreground">
+                  テナントを作成する権限がありません。オーナーのみがテナントを作成できます。
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

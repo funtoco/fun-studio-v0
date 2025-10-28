@@ -13,12 +13,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/lib/hooks/use-toast"
 
 interface InviteMemberDialogProps {
   tenantId: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  onInviteSent: (memberData: { name: string; email: string; role: 'admin' | 'member' | 'guest' }) => void
+  onInviteSent: () => void
 }
 
 export function InviteMemberDialog({ 
@@ -32,6 +33,7 @@ export function InviteMemberDialog({
   const [role, setRole] = useState<'admin' | 'member' | 'guest'>('member')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -59,10 +61,26 @@ export function InviteMemberDialog({
 
     setLoading(true)
     try {
-      await onInviteSent({
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-        role,
+      const response = await fetch(`/api/tenants/${tenantId}/members/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.toLowerCase().trim(),
+          role: role
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send invitation')
+      }
+
+      toast({
+        title: "招待を送信しました",
+        description: `${name || email}さんに招待メールを送信しました`
       })
 
       // Reset form
@@ -71,8 +89,14 @@ export function InviteMemberDialog({
       setRole('member')
       setErrors({})
       onOpenChange(false)
+      onInviteSent()
     } catch (error) {
       console.error('Error sending invitation:', error)
+      toast({
+        title: "エラー",
+        description: error instanceof Error ? error.message : "招待の送信に失敗しました",
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }

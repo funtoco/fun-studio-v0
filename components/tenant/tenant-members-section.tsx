@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, UserPlus, Crown, Shield, User, UserCheck } from "lucide-react"
+import { MoreHorizontal, UserPlus, Crown, Shield, User, UserCheck, Mail } from "lucide-react"
 import { getTenantMembers, updateUserTenantRole, removeUserFromTenant, type UserTenant } from "@/lib/supabase/tenants"
 import { InviteMemberDialog } from "./invite-member-dialog"
+import { AddExistingMemberDialog } from "./add-existing-member-dialog"
 
 interface TenantMembersSectionProps {
   tenantId: string
@@ -20,6 +21,7 @@ export function TenantMembersSection({ tenantId, currentUserRole }: TenantMember
   const [members, setMembers] = useState<UserTenant[]>([])
   const [loading, setLoading] = useState(true)
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin'
 
@@ -109,9 +111,13 @@ export function TenantMembersSection({ tenantId, currentUserRole }: TenantMember
                 <Button variant="outline" size="sm">
                   シート管理
                 </Button>
-                <Button size="sm" onClick={() => setIsInviteDialogOpen(true)}>
+                <Button variant="outline" size="sm" onClick={() => setIsAddDialogOpen(true)}>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  メンバーを招待
+                  メンバーを追加
+                </Button>
+                <Button size="sm" onClick={() => setIsInviteDialogOpen(true)}>
+                  <Mail className="h-4 w-4 mr-2" />
+                  招待を送信
                 </Button>
               </div>
             )}
@@ -264,6 +270,14 @@ export function TenantMembersSection({ tenantId, currentUserRole }: TenantMember
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
         onInviteSent={fetchMembers}
+      />
+
+      {/* Add Existing Member Dialog */}
+      <AddExistingMemberDialog
+        tenantId={tenantId}
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onAddMember={fetchMembers}
       />
     </div>
   )
