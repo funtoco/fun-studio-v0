@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, UserPlus, Link, HelpCircle, Mail } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MembersTable } from "./members-table"
 import { InviteMemberDialog } from "./invite-member-dialog"
 import { AddExistingMemberDialog } from "./add-existing-member-dialog"
@@ -41,6 +41,7 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false)
   const [isInviteLinkDialogOpen, setIsInviteLinkDialogOpen] = useState(false)
+  const [isPermissionRulesDialogOpen, setIsPermissionRulesDialogOpen] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
     title: string
@@ -212,40 +213,14 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
-                <HelpCircle className="size-4 mr-2" />
-                権限ルールを見る
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-2">
-                <h4 className="font-medium">権限ルール</h4>
-                <div className="space-y-1 text-sm">
-                  <p>
-                    <strong>Owner:</strong> 全権限。他のOwnerの降格は不可。最低1名必要。
-                  </p>
-                  <p>
-                    <strong>Admin:</strong> メンバーCRUDとロール変更可（Owner以外）
-                  </p>
-                  <p>
-                    <strong>Member:</strong> 一般権限
-                  </p>
-                  <p>
-                    <strong>Guest:</strong> 閲覧のみ
-                  </p>
-                  <div className="mt-2 pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      • 自分自身のロール変更・削除は不可
-                      <br />• Ownerの削除・無効化は不可
-                      <br />• 最後のOwnerの降格は不可
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsPermissionRulesDialogOpen(true)}
+          >
+            <HelpCircle className="size-4 mr-2" />
+            権限ルールを見る
+          </Button>
           <Button 
             onClick={() => setIsInviteLinkDialogOpen(true)} 
             variant="outline" 
@@ -387,6 +362,68 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
         variant={confirmDialog.variant}
         confirmText="削除"
       />
+
+      {/* Permission Rules Dialog */}
+      <Dialog open={isPermissionRulesDialogOpen} onOpenChange={setIsPermissionRulesDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>権限ルール</DialogTitle>
+            <DialogDescription>
+              各ロールの権限と制限について説明します
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            {/* Owner Role */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">Owner（オーナー）</h3>
+              <ul className="text-sm space-y-1">
+                <li>✓ テナントの全権限</li>
+                <li>✓ メンバーの管理・ロール変更</li>
+                <li>✗ 他のOwnerは降格・削除不可</li>
+                <li>✗ 自分自身のロール変更・削除不可</li>
+              </ul>
+            </div>
+
+            {/* Admin Role */}
+            <div className="space-y-2 border-t pt-3">
+              <h3 className="font-semibold">Admin（管理者）</h3>
+              <ul className="text-sm space-y-1">
+                <li>✓ メンバーの追加・削除</li>
+                <li>✓ ロール変更（Owner以外）</li>
+                <li>✗ Ownerの操作は不可</li>
+                <li>✗ Ownerロールへの変更不可</li>
+              </ul>
+            </div>
+
+            {/* Member Role */}
+            <div className="space-y-2 border-t pt-3">
+              <h3 className="font-semibold">Member（メンバー）</h3>
+              <ul className="text-sm space-y-1">
+                <li>✓ データの閲覧・編集</li>
+                <li>✗ メンバー管理不可</li>
+                <li>✗ 設定変更不可</li>
+              </ul>
+            </div>
+
+            {/* Guest Role */}
+            <div className="space-y-2 border-t pt-3">
+              <h3 className="font-semibold">Guest（ゲスト）</h3>
+              <ul className="text-sm space-y-1">
+                <li>✓ データの閲覧のみ</li>
+                <li>✗ データの編集不可</li>
+                <li>✗ メンバー管理不可</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => setIsPermissionRulesDialogOpen(false)}>
+              閉じる
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
