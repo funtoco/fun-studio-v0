@@ -1,11 +1,11 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync-by-type?type=people",
+      "path": "/api/cron/sync-by-type?type=people&secret=6a742f117e24f36a079bb263715823e3621736d2e04156bc11b7c9d1d55abd10",
       "schedule": "0 2 * * *"
     },
     {
-      "path": "/api/cron/sync-by-type?type=visas",
+      "path": "/api/cron/sync-by-type?type=visas&secret=6a742f117e24f36a079bb263715823e3621736d2e04156bc11b7c9d1d55abd10",
       "schedule": "0 3 * * *"
     }
   ]

@@ -31,12 +31,14 @@ async function handleSyncByType(request: NextRequest) {
     const isLocal = process.env.NODE_ENV === 'development'
     
     if (!isLocal) {
-      const authHeader = request.headers.get('authorization')
+      // Check secret query parameter
+      const { searchParams } = new URL(request.url)
+      const secret = searchParams.get('secret')
       const expectedToken = process.env.CRON_SECRET
       
-      if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
+      if (!expectedToken || secret !== expectedToken) {
         return NextResponse.json(
-          { error: 'Unauthorized' },
+          { error: 'Unauthorized: Invalid secret' },
           { status: 401 }
         )
       }
