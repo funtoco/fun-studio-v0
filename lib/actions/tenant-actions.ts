@@ -27,6 +27,30 @@ export interface RemoveMemberData {
   userTenantId: string
 }
 
+// Check if user is owner of any tenant
+export async function isUserOwnerOfAnyTenant(): Promise<boolean> {
+  const supabase = await createClient()
+  
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return false
+  }
+
+  // Get user's tenants with owner role
+  const { data: userTenants, error: userTenantsError } = await supabase
+    .from('user_tenants')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('role', 'owner')
+    .eq('status', 'active')
+
+  if (userTenantsError || !userTenants || userTenants.length === 0) {
+    return false
+  }
+
+  return true
+}
+
 // Create new tenant
 export async function createTenantAction(data: CreateTenantData) {
   const supabase = await createClient()
@@ -34,6 +58,12 @@ export async function createTenantAction(data: CreateTenantData) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     throw new Error('認証が必要です')
+  }
+
+  // Check if user is owner of any tenant
+  const isOwner = await isUserOwnerOfAnyTenant()
+  if (!isOwner) {
+    throw new Error('テナントを作成する権限がありません。オーナーのみがテナントを作成できます。')
   }
 
   try {
