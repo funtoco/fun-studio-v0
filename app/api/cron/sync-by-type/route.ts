@@ -24,7 +24,8 @@ function getServerClient() {
   return createClient(supabaseUrl, serviceKey)
 }
 
-export async function POST(request: NextRequest) {
+// Common sync logic for both GET and POST methods
+async function handleSyncByType(request: NextRequest) {
   try {
     // Verify this is a legitimate cron request (skip auth in local development)
     const isLocal = process.env.NODE_ENV === 'development'
@@ -184,4 +185,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+export async function GET(request: NextRequest) {
+  return handleSyncByType(request)
+}
+
+export async function POST(request: NextRequest) {
+  return handleSyncByType(request)
 }
