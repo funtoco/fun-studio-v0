@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { MembersTable } from "./members-table"
 import { InviteMemberDialog } from "./invite-member-dialog"
 import { AddExistingMemberDialog } from "./add-existing-member-dialog"
+import { CreateUserDialog } from "./create-user-dialog"
 import { InviteLinkDialog } from "./invite-link-dialog"
 import { ConfirmDialog } from "./confirm-dialog"
 import { EmptyState } from "./empty-state"
@@ -38,6 +39,7 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
   // Dialog states
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false)
   const [isInviteLinkDialogOpen, setIsInviteLinkDialogOpen] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
@@ -76,6 +78,7 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
   const currentUserMember = members.find(m => m.user_id === user?.id)
   const currentUserRole = currentUserMember?.role || 'guest'
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin'
+  const canCreateUser = currentUserRole === 'owner'
 
   // Filtered members based on search and tab
   const filteredMembers = useMemo(() => {
@@ -260,6 +263,14 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
             メンバーを追加
           </Button>
           <Button 
+            onClick={() => setIsCreateUserDialogOpen(true)} 
+            variant="outline"
+            disabled={!canCreateUser}
+          >
+            <UserPlus className="size-4 mr-2" />
+            ユーザーを作成
+          </Button>
+          <Button 
             onClick={() => setIsInviteDialogOpen(true)} 
             disabled={!canManageMembers}
           >
@@ -352,6 +363,13 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAddMember={fetchData}
+      />
+
+      <CreateUserDialog
+        tenantId={tenantId}
+        open={isCreateUserDialogOpen}
+        onOpenChange={setIsCreateUserDialogOpen}
+        onUserCreated={fetchData}
       />
 
       <InviteLinkDialog
