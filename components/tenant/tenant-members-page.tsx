@@ -4,17 +4,17 @@ import { useState, useEffect, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Link, HelpCircle } from "lucide-react"
+import { Search, UserPlus, Link, HelpCircle, Mail } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { MembersTable } from "./members-table"
 import { InviteMemberDialog } from "./invite-member-dialog"
+import { AddExistingMemberDialog } from "./add-existing-member-dialog"
 import { InviteLinkDialog } from "./invite-link-dialog"
 import { ConfirmDialog } from "./confirm-dialog"
 import { EmptyState } from "./empty-state"
 import { 
   getTenantMembers, 
   getTenantInvitations, 
-  createTenantInvitation,
   updateUserTenantRole,
   removeUserFromTenant,
   cancelTenantInvitation,
@@ -37,6 +37,7 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
 
   // Dialog states
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isInviteLinkDialogOpen, setIsInviteLinkDialogOpen] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean
@@ -147,21 +148,6 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
     }
   }
 
-  // Handle member invitation
-  const handleAddMember = async (memberData: { name: string; email: string; role: 'admin' | 'member' | 'guest' }) => {
-    try {
-      const result = await createTenantInvitation(tenantId, memberData.email, memberData.role)
-      if (result.success) {
-        await fetchData()
-        // Show success message or toast here if needed
-      } else {
-        console.error('Error creating invitation:', result.error)
-        // Show error message or toast here if needed
-      }
-    } catch (error) {
-      console.error('Error creating invitation:', error)
-    }
-  }
 
   // Show delete confirmation
   const showDeleteConfirm = (memberId: string) => {
@@ -266,11 +252,19 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
             招待リンクを作成
           </Button>
           <Button 
-            onClick={() => setIsInviteDialogOpen(true)} 
+            onClick={() => setIsAddDialogOpen(true)} 
+            variant="outline"
             disabled={!canManageMembers}
           >
             <UserPlus className="size-4 mr-2" />
             メンバーを追加
+          </Button>
+          <Button 
+            onClick={() => setIsInviteDialogOpen(true)} 
+            disabled={!canManageMembers}
+          >
+            <Mail className="size-4 mr-2" />
+            招待を送信
           </Button>
         </div>
       </div>
@@ -350,7 +344,14 @@ export function TenantMembersPage({ tenantId }: TenantMembersPageProps) {
         tenantId={tenantId}
         open={isInviteDialogOpen}
         onOpenChange={setIsInviteDialogOpen}
-        onInviteSent={handleAddMember}
+        onInviteSent={fetchData}
+      />
+
+      <AddExistingMemberDialog
+        tenantId={tenantId}
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onAddMember={fetchData}
       />
 
       <InviteLinkDialog
