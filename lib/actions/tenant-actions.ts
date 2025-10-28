@@ -99,17 +99,39 @@ export async function createTenantAction(data: CreateTenantData) {
 // Get tenants for current user
 export async function getTenantsAction(): Promise<Tenant[]> {
   const supabase = await createClient()
-  // Find tenant by name
-  const { data: tenant, error } = await supabase
-    .from('tenants')
-    .select()
-
-  if (error) {
-    console.error('Get tenant error:', error)
+  
+  // Get current user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    console.error('Authentication error:', authError)
     return []
   }
 
-  return tenant ? tenant : []
+  // Get user's tenants from user_tenants table
+  const { data: userTenants, error: userTenantsError } = await supabase
+    .from('user_tenants')
+    .select(`
+      *,
+      tenant:tenant_id (*)
+    `)
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+
+  if (userTenantsError) {
+    console.error('Get user tenants error:', userTenantsError)
+    return []
+  }
+
+  if (!userTenants || userTenants.length === 0) {
+    return []
+  }
+
+  // Extract tenant information from user_tenants
+  const tenants = userTenants
+    .map(ut => (ut as any).tenant)
+    .filter(tenant => tenant !== null && tenant !== undefined) as Tenant[]
+
+  return tenants
 }
 
 // Get tenant members
