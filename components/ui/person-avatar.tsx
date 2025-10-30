@@ -26,6 +26,58 @@ const textSizeClasses = {
   xl: "text-2xl"
 }
 
+// Simple client-side cache for Supabase signed image URLs
+type CachedEntry = { url: string; expiresAt: number }
+const memoryCache: Map<string, CachedEntry> = (globalThis as any).__personAvatarUrlCache || new Map<string, CachedEntry>()
+;(globalThis as any).__personAvatarUrlCache = memoryCache
+
+const LOCAL_STORAGE_KEY = 'person-avatar-url-cache'
+const SKEW_SECONDS = 300 // refresh 5 minutes early
+const TTL_SECONDS = 3600 // matches createSignedUrl duration (1 hour)
+
+function readLocalCache(): Record<string, CachedEntry> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as Record<string, CachedEntry>
+  } catch {
+    return {}
+  }
+}
+
+function writeLocalCache(entries: Record<string, CachedEntry>) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(entries))
+  } catch {
+    // ignore quota/serialization errors
+  }
+}
+
+function getFromCache(path: string): string | null {
+  const now = Date.now()
+  const mem = memoryCache.get(path)
+  if (mem && mem.expiresAt > now) return mem.url
+
+  const ls = readLocalCache()
+  const entry = ls[path]
+  if (entry && entry.expiresAt > now) {
+    memoryCache.set(path, entry)
+    return entry.url
+  }
+  return null
+}
+
+function saveToCache(path: string, url: string) {
+  const expiresAt = Date.now() + (TTL_SECONDS - SKEW_SECONDS) * 1000
+  const entry: CachedEntry = { url, expiresAt }
+  memoryCache.set(path, entry)
+  const ls = readLocalCache()
+  ls[path] = entry
+  writeLocalCache(ls)
+}
+
 /**
  * デコードされたファイル名を取得
  */
@@ -93,10 +145,7 @@ export function PersonAvatar({
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    console.log('PersonAvatar useEffect triggered with imagePath:', imagePath)
-    
     if (!imagePath) {
-      console.log('No imagePath provided, setting to null')
       setImageUrl(null)
       setError(false)
       setLoading(false)
@@ -105,37 +154,43 @@ export function PersonAvatar({
 
     // 無効なimagePathの場合はスキップ
     if (imagePath === 'null' || imagePath === 'undefined' || imagePath.trim() === '') {
-      console.log('Invalid imagePath detected, skipping:', imagePath)
       setImageUrl(null)
       setError(false)
       setLoading(false)
       return
     }
 
+    const cached = getFromCache(imagePath)
+    if (cached) {
+      setImageUrl(cached)
+      setError(false)
+      setLoading(false)
+      return
+    }
+
+    let active = true
     const fetchSignedUrl = async () => {
-      console.log('Starting fetchSignedUrl for:', imagePath)
       setLoading(true)
       setError(false)
-      
       try {
         const signedUrl = await getSignedUrl(imagePath)
-        console.log('Signed URL result:', signedUrl)
+        if (!active) return
         if (signedUrl) {
+          saveToCache(imagePath, signedUrl)
           setImageUrl(signedUrl)
-          console.log('Successfully set image URL')
         } else {
-          console.log('No signed URL returned, setting error')
           setError(true)
         }
-      } catch (err) {
-        console.error('Failed to fetch signed URL:', err)
+      } catch {
+        if (!active) return
         setError(true)
       } finally {
+        if (!active) return
         setLoading(false)
       }
     }
-
     fetchSignedUrl()
+    return () => { active = false }
   }, [imagePath])
 
   const handleImageError = () => {
@@ -150,6 +205,8 @@ export function PersonAvatar({
           src={imageUrl} 
           alt={name}
           className="object-cover"
+          loading="lazy"
+          decoding="async"
           onError={handleImageError}
         />
       )}
