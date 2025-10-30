@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       source_app_id,
       destination_app_key,
       field_mappings,
+      target_table,
       skip_if_no_update_target,
       app_mapping_id, // Optional: if provided, update existing mapping
     } = body || {}
@@ -80,11 +81,13 @@ export async function POST(request: NextRequest) {
     } else {
       // Create new mapping
       console.log('Creating new mapping')
+      const defaultTargetTable = target_table || destination_app_key
       const { data: inserted, error: insErr } = await supabase
         .from('connector_app_mappings')
         .insert({
           connector_id,
           target_app_type: destination_app_key,
+          target_table: defaultTargetTable,
           source_app_id: String(source_app_id),
           source_app_name: `Kintone app ${source_app_id}`,
           skip_if_no_update_target: skip_if_no_update_target || false,

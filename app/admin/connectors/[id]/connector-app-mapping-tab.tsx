@@ -188,6 +188,11 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, 
         { name: 'notes', label: '備考' }
       ]
     },
+    people_image: {
+      label: '人材画像',
+      required: [],
+      optional: []
+    },
     visas: {
       label: 'ビザ進捗管理',
       required: [

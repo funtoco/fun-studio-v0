@@ -43,7 +43,12 @@ export async function getTenants(): Promise<Tenant[]> {
   return data || []
 }
 
-export async function getTenantById(id: string): Promise<Tenant | null> {
+export async function getTenantById(id: string | null | undefined): Promise<Tenant | null> {
+  console.log('[tenant] getTenantById called with:', id)
+  if (!id || id === 'null') {
+    console.log('[tenant] getTenantById: skip fetch (no id)')
+    return null
+  }
   const supabase = createClient()
   
   const { data, error } = await supabase
@@ -101,6 +106,11 @@ export async function getCurrentUserTenants(): Promise<UserTenant[]> {
 }
 
 export async function getTenantMembers(tenantId: string): Promise<UserTenant[]> {
+  console.log('[tenant] getTenantMembers called with:', tenantId)
+  if (!tenantId || tenantId === 'null') {
+    console.log('[tenant] getTenantMembers: skip fetch (no tenantId)')
+    return []
+  }
   const supabase = createClient()
   
   // Get all members from user_tenants table (active, pending, suspended)

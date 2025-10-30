@@ -109,10 +109,11 @@ function SelectingKintoneApp() {
 }
 
 function SelectingDestinationApp() {
-  const { setSelectedDestinationApp } = useKintoneWizardStore()
+  const { setSelectedDestinationApp, selectedTargetTable, setSelectedTargetTable } = useKintoneWizardStore()
   // Static list for MVP
   const destinations = [
     { key: "people", name: "人材一覧" },
+    { key: "people_image", name: "人材画像" },
     { key: "visas", name: "ビザ進捗管理" },
     { key: "meetings", name: "面談記録" },
   ]
@@ -132,6 +133,22 @@ function SelectingDestinationApp() {
           </button>
         ))}
       </div>
+      <div className="pt-4">
+        <div className="text-sm text-muted-foreground mb-2">書き込み先テーブルを選択</div>
+        <div className="flex gap-2 flex-wrap">
+          {['people','visas','meetings'].map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={`px-3 py-1 border rounded ${selectedTargetTable === t ? 'bg-black text-white' : ''}`}
+              onClick={() => setSelectedTargetTable(t)}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* テナント設定は自動判定（URLのtenantId有無）に変更 */}
     </div>
   )
 }
@@ -355,6 +372,7 @@ function MappingFields() {
   const {
     selectedKintoneApp,
     selectedDestinationApp,
+    selectedTargetTable,
     draftFilters,
     draftFieldMappings,
     setDraftFieldMappings,
@@ -477,7 +495,13 @@ function MappingFields() {
     }
   }, [editMode, existingMapping, connectorId, draftFieldMappings.length, setDraftFieldMappings])
 
-  const destinationKey = selectedDestinationApp?.key || 'people'
+  // Determine target table for schema fetching
+  // 1) If editing an existing mapping and it has target_table, use it
+  // 2) Otherwise, use explicitly selectedTargetTable (fallback to destination key)
+  const destinationKeyRaw = selectedDestinationApp?.key || 'people'
+  const destinationKey = (editMode && (existingMapping as any)?.target_table)
+    ? (existingMapping as any).target_table
+    : (selectedTargetTable || destinationKeyRaw)
   const schemaCache = destinationKey ? getSchemaCacheValid(destinationKey) : null
   const [schemaError, setSchemaError] = useState<string | null>(null)
 
@@ -524,13 +548,14 @@ function MappingFields() {
         source_type: 'kintone',
         source_app_id: selectedKintoneApp.id,
         destination_app_key: selectedDestinationApp.key,
+        target_table: selectedTargetTable || destinationKeyRaw,
         field_mappings: draftFieldMappings,
         skip_if_no_update_target: skipIfNoUpdateTarget,
       }
       
       // If in edit mode, include the existing mapping ID
-      if (editMode && existingMapping?.id) {
-        requestBody.app_mapping_id = existingMapping.id
+      if (editMode && (existingMapping as any)?.id) {
+        requestBody.app_mapping_id = (existingMapping as any).id
       }
       
       const res = await fetch(`/api/connector/mappings`, {

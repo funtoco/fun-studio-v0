@@ -28,23 +28,16 @@ begin
 
     insert into connector_app_mappings
         (connector_id, source_app_id, source_app_name, target_app_type, is_active, created_at, 
-        updated_at, skip_if_no_update_target) 
+        updated_at, skip_if_no_update_target, target_table) 
     values 
-        (connector_id, '13', 'Kintone app 13', 'people', TRUE, now(), now(), FALSE)
+        (connector_id, '13', 'Kintone app 13', 'people', TRUE, now(), now(), FALSE, 'people')
     returning id into app_mapping_id_13;
 
     insert into connector_app_mappings
         (connector_id, source_app_id, source_app_name, target_app_type, is_active, created_at, 
-        updated_at, skip_if_no_update_target) 
+        updated_at, skip_if_no_update_target, target_table) 
     values 
-        (connector_id, '30', 'Kintone app 30', 'people', TRUE, now(), now(), TRUE)
-    returning id into app_mapping_id_30;
-
-    insert into connector_app_mappings
-        (connector_id, source_app_id, source_app_name, target_app_type, is_active, created_at, 
-        updated_at, skip_if_no_update_target) 
-    values 
-        (connector_id, '50', 'Kintone app 50', 'visas', TRUE, now(), now(), FALSE)
+        (connector_id, '50', 'Kintone app 50', 'visas', TRUE, now(), now(), FALSE, 'visas')
     returning id into app_mapping_id_50;
 
     insert into connector_app_filters 
@@ -73,8 +66,8 @@ begin
         (connector_id, app_mapping_id_13, 'HRID', 'HRID', '人材ID', 'NUMBER', 'external_id', 'external_id', NULL, NULL, false, TRUE, 10, now(), now(), false),
         (connector_id, app_mapping_id_13, 'placeOfWorkName', 'placeOfWorkName', '就業場所名（正式名称）ID', 'SINGLE_LINE_TEXT', 'company', 'company', NULL, NULL, false, TRUE, 11, now(), now(), false),
         /** 画像 **/
-        (connector_id, app_mapping_id_30, '$id', '$id', '$id', 'UNKNOWN', 'external_id', 'external_id', NULL, NULL, false, TRUE, 0, now(), now(), TRUE),
-        (connector_id, app_mapping_id_30, 'image', 'image', '写真 (営業 / CA)', 'FILE', 'image_path', 'image_path', NULL, NULL, false, TRUE, 1, now(), now(), false),
+        -- (connector_id, app_mapping_id_30, '$id', '$id', '$id', 'UNKNOWN', 'external_id', 'external_id', NULL, NULL, false, TRUE, 0, now(), now(), TRUE),
+        -- (connector_id, app_mapping_id_30, 'image', 'image', '写真 (営業 / CA)', 'FILE', 'image_path', 'image_path', NULL, NULL, false, TRUE, 1, now(), now(), false),
         /** ビザ **/
         (connector_id, app_mapping_id_50, '$id', '$id', '$id', 'UNKNOWN', 'id', 'id', NULL, NULL, false, TRUE, 0, now(), now(), TRUE),
         (connector_id, app_mapping_id_50, 'WOID', 'WOID', '就労管理ID', 'NUMBER', 'person_id', 'person_id', NULL, NULL, false, TRUE, 1, now(), now(), false),

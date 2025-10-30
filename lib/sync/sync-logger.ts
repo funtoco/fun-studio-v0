@@ -49,10 +49,11 @@ export class SyncLogger {
     syncType: 'manual' | 'scheduled',
     runBy?: string
   ): Promise<string> {
+    const tenantValue = tenantId && tenantId.length > 0 ? tenantId : null
     const { data, error } = await this.supabase
       .from('sync_sessions')
       .insert({
-        tenant_id: tenantId,
+        tenant_id: tenantValue,
         connector_id: connectorId,
         sync_type: syncType,
         status: 'running',

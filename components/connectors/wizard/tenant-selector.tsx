@@ -92,6 +92,31 @@ export function TenantSelector({ selectedTenantId, onTenantSelect }: TenantSelec
       </div>
 
       <div className="grid gap-4">
+        {/* テナントなしで続行 */}
+        <Card
+          className={`cursor-pointer transition-all hover:shadow-md ${selectedTenantId === '' ? 'ring-2 ring-primary border-primary' : 'hover:border-primary/50'}`}
+          onClick={() => onTenantSelect('')}
+        >
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">テナント設定なしで続行</CardTitle>
+                  <CardDescription>全体向けや後からテナントを紐付ける場合に選択</CardDescription>
+                </div>
+              </div>
+              {selectedTenantId === '' && (
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                  <Check className="h-3 w-3 text-primary-foreground" />
+                </div>
+              )}
+            </div>
+          </CardHeader>
+        </Card>
+
         {tenants.map((userTenant) => (
           <Card
             key={userTenant.tenant_id}

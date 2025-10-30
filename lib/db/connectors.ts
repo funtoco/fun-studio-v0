@@ -41,7 +41,7 @@ function getServerClient() {
 // Types
 export interface Connector {
   id: string
-  tenant_id: string
+  tenant_id: string | null
   provider: string
   display_name: string
   created_at: string
@@ -74,7 +74,7 @@ export interface ConnectorWithSecrets extends Connector {
 
 // Connector operations
 export async function createConnector(data: {
-  tenant_id: string
+  tenant_id: string | null
   provider: string
   display_name: string
 }): Promise<string> {

@@ -54,13 +54,17 @@ export async function POST(
 
     // Real sync
     try {
+      // If tenantId is not provided, fall back to connector.tenant_id for tenantless/global connectors
+      const effectiveTenantId = tenantId || connector.tenant_id || ''
+      console.log('[sync-api] start manual sync', { connectorId, tenantId, connectorTenant: connector.tenant_id, effectiveTenantId, appMappingId })
       const syncService = await createSyncService(
         connectorId,
-        tenantId,
+        effectiveTenantId,
         'manual',
         request.headers.get('x-user-id') || undefined
       )
       const result = await syncService.syncAll(appMappingId)
+      console.log('[sync-api] result', result)
       
       // Update connector status if there were errors
       if (result.errors.length > 0) {

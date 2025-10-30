@@ -63,10 +63,7 @@ export async function getPersonById(id: string): Promise<Person | null> {
   
   const { data, error } = await supabase
     .from('people')
-    .select(`
-      *,
-      tenant:tenant_id (id, name)
-    `)
+    .select('*')
     .eq('id', id)
     .single()
   
@@ -75,6 +72,26 @@ export async function getPersonById(id: string): Promise<Person | null> {
   if (error) {
     console.error('Error fetching person:', error)
     return null
+  }
+  
+  if (!data) {
+    console.log('No person found with ID:', id)
+    return null
+  }
+  
+  // Get tenant name separately if tenant_id exists
+  let tenantName: string | undefined
+  if (data.tenant_id) {
+    try {
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('name')
+        .eq('id', data.tenant_id)
+        .single()
+      tenantName = tenantData?.name
+    } catch (err) {
+      console.error('Error fetching tenant name:', err)
+    }
   }
   
   return {
@@ -92,7 +109,7 @@ export async function getPersonById(id: string): Promise<Person | null> {
     residenceCardIssuedDate: data.residence_card_issued_date,
     email: data.email,
     address: data.address,
-    tenantName: data.tenant?.name,
+    tenantName: tenantName,
     company: data.company,
     note: data.note,
     visaId: data.visa_id,
@@ -245,6 +262,11 @@ export async function getPersonByExternalId(externalId: string): Promise<Person 
   
   if (error) {
     console.error('Error fetching person by external_id:', error)
+    return null
+  }
+  
+  if (!data) {
+    console.log('No person found with external_id:', externalId)
     return null
   }
   

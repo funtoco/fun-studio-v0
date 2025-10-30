@@ -25,7 +25,7 @@ async function getTenantInfo(tenantId: string) {
 // Validation schema for new connector system
 const createConnectorSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  tenantId: z.string().uuid(),
+  tenantId: z.string().uuid().optional().or(z.literal('').optional()),
   provider: z.enum(['kintone', 'hubspot']),
   providerConfig: z.record(z.any()).default({}),
   clientId: z.string().min(1, 'Client ID is required'),
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     
     // Create connector using new system
     const connectorId = await createConnector({
-      tenant_id: tenantId,
+      tenant_id: tenantId && tenantId.length > 0 ? tenantId : null,
       provider,
       display_name: name
     })
