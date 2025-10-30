@@ -574,6 +574,27 @@ export class KintoneDataSync {
       }
       
       let totalSyncedCount = 0
+
+      // Simple concurrency limiter (promise pool)
+      const runWithConcurrency = async <T, R>(items: T[], limit: number, worker: (item: T) => Promise<R>): Promise<R[]> => {
+        const results: any[] = []
+        let index = 0
+        const runners: Promise<void>[] = []
+        const runNext = async (): Promise<void> => {
+          if (index >= items.length) return
+          const current = index++
+          try {
+            const res = await worker(items[current])
+            results[current] = res
+          } finally {
+            await runNext()
+          }
+        }
+        const size = Math.min(limit, items.length)
+        for (let i = 0; i < size; i++) runners.push(runNext())
+        await Promise.all(runners)
+        return results as R[]
+      }
       
       // Process each mapping
       for (const appMapping of appMappings) {
@@ -597,8 +618,9 @@ export class KintoneDataSync {
           dataMappings = []
         }
 
-        for (const record of records) {
-        
+        // Process records with limited concurrency to speed up while avoiding timeouts
+        const CONCURRENCY_LIMIT = Number(process.env.SYNC_CONCURRENCY || 6)
+        await runWithConcurrency(records, CONCURRENCY_LIMIT, async (record) => {
           try {
             // Transform Kintone record to our format using database field mappings
             // Determine target table based on app type
@@ -614,22 +636,24 @@ export class KintoneDataSync {
             const whereCondition = buildUpdateCondition(record, updateKeys, this.tenantId, includeTenant)
             console.log(`[sync] where=${JSON.stringify(whereCondition)}`)
             
-            const { data: existingRecord, error: selectError } = await this.supabase
-              .from(targetTable)
-              .select('id')
-              .match(whereCondition)
-              .single()
-
-            if (selectError && selectError.code !== 'PGRST116') {
-              // PGRST116 means no rows found, which is expected for new records
-              console.error(`[sync] select-error table=%s err=%o`, targetTable, selectError)
-              throw selectError
-            }
-
-            // Check if we should skip this record
-            if (!existingRecord && appMapping.skip_if_no_update_target) {
-              console.log(`[sync] skip-no-target rec=${record.$id?.value}`)
-              continue // Skip to next record
+            // Check if we should skip this record when there is no update target
+            // We need to know existence cheaply; perform a minimal select when skip flag is on
+            let exists: boolean | undefined
+            if (appMapping.skip_if_no_update_target) {
+              const { data: headCheck, error: headErr } = await this.supabase
+                .from(targetTable)
+                .select('id')
+                .match(whereCondition)
+                .limit(1)
+              if (headErr && headErr.code !== 'PGRST116') {
+                console.error(`[sync] select-error table=%s err=%o`, targetTable, headErr)
+                throw headErr
+              }
+              exists = Array.isArray(headCheck) && headCheck.length > 0
+              if (!exists) {
+                console.log(`[sync] skip-no-target rec=${record.$id?.value}`)
+                return
+              }
             }
 
             // Only process data if we're going to insert or update
@@ -667,31 +691,41 @@ export class KintoneDataSync {
               }
             }
 
-            // Ensure id is present for tables that require NOT NULL id (e.g., people)
-            if (targetTable === 'people' && (data.id === undefined || data.id === null)) {
-              const kintoneId = record.$id?.value
-              if (kintoneId !== undefined && kintoneId !== null) {
-                data.id = String(kintoneId)
-                console.log(`[sync] ensure-id rec=${record.$id?.value} id=${data.id}`)
+            // Prepare insert payload separately to avoid updating primary key on update
+            const insertData: any = { ...data }
+            if (targetTable === 'people') {
+              if (insertData.id === undefined || insertData.id === null) {
+                const kintoneId = record.$id?.value
+                if (kintoneId !== undefined && kintoneId !== null) {
+                  insertData.id = String(kintoneId)
+                }
               }
             }
 
             let error: any = null
-
-            if (existingRecord) {
-              // Record exists, update it
-              const { error: updateError } = await this.supabase
-                .from(targetTable)
-                .update(data)
-                .match(whereCondition)
+            // UPDATE first with minimal payload; do not include primary key fields that could change
+            // For safety, ensure we never update people.id
+            const updatePayload = { ...data }
+            if (targetTable === 'people') {
+              delete (updatePayload as any).id
+            }
+            const { data: updatedRows, error: updateError } = await this.supabase
+              .from(targetTable)
+              .update(updatePayload)
+              .match(whereCondition)
+              .select('id')
+            if (updateError) {
               error = updateError
-              console.log(`[sync] op=update table=%s rec=${record.$id?.value} ok=%s`, targetTable, !updateError)
-            } else {
+            }
+            if (!error && (!updatedRows || updatedRows.length === 0)) {
+              // No rows updated -> insert new
               const { error: insertError } = await this.supabase
                 .from(targetTable)
-                .insert(data)
+                .insert(insertData)
               error = insertError
               console.log(`[sync] op=insert table=%s rec=${record.$id?.value} ok=%s`, targetTable, !insertError)
+            } else {
+              console.log(`[sync] op=update table=%s rec=${record.$id?.value} ok=%s`, targetTable, !error)
             }
 
             if (error) {
@@ -707,7 +741,7 @@ export class KintoneDataSync {
             
             // Continue with other records
           }
-        }
+        })
         
         totalSyncedCount += syncedCount
       }
