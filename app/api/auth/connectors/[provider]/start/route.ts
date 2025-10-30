@@ -22,20 +22,28 @@ export async function GET(
     const connectorId = searchParams.get('connectorId')
     const tenantId = searchParams.get('tenantId')
     const returnTo = searchParams.get('returnTo')
+    console.log('[auth-start] params', { providerId, connectorId, tenantId, returnTo })
     
-    if (!connectorId || !tenantId) {
+    if (!connectorId) {
       return NextResponse.json(
-        { error: 'connectorId and tenantId are required' },
+        { error: 'connectorId is required' },
         { status: 400 }
       )
     }
     
     // Get connector
     const connector = await getConnector(connectorId)
-    if (!connector || connector.tenant_id !== tenantId) {
+    if (!connector) {
       return NextResponse.json(
         { error: 'Connector not found' },
         { status: 404 }
+      )
+    }
+    // If connector is tenant-bound, ensure tenant matches; otherwise allow empty tenantId
+    if (connector.tenant_id && tenantId && connector.tenant_id !== tenantId) {
+      return NextResponse.json(
+        { error: 'Invalid tenant for connector' },
+        { status: 403 }
       )
     }
     
@@ -57,10 +65,11 @@ export async function GET(
       // Store session data in cookie
       const cookieStore = cookies()
       const sessionData = {
-        tenantId,
+        tenantId: tenantId || null,
         connectorId,
-        returnTo: returnTo || `/admin/connectors/${connectorId}?tenantId=${tenantId}`
+        returnTo: returnTo || `/admin/connectors/${connectorId}${tenantId ? `?tenantId=${tenantId}` : ''}`
       }
+      console.log('[auth-start] session', sessionData)
       
       cookieStore.set('kintone_oauth_session', JSON.stringify(sessionData), {
         httpOnly: true,

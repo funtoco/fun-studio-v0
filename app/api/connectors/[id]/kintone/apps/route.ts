@@ -583,11 +583,18 @@ export async function POST(
       }
 
       // Always create new mapping
+      // Determine default target_table from serviceFeature
+      // Rule: if serviceFeature ends with '_image' and starts with 'people', write to 'people'
+      const defaultTargetTable = (serviceFeature && typeof serviceFeature === 'string')
+        ? (serviceFeature.endsWith('_image') && serviceFeature.startsWith('people') ? 'people' : serviceFeature)
+        : 'people'
+
       const { data: newMapping, error: insertError } = await supabase
         .from('connector_app_mappings')
         .insert({
           connector_id: connectorId,
           target_app_type: serviceFeature,
+          target_table: defaultTargetTable,
           source_app_id: String(appId),
           source_app_name: appName,
           is_active: true

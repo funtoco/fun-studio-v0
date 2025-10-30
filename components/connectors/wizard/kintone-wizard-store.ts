@@ -39,6 +39,7 @@ export type WizardState = {
   tenantId?: string
   selectedKintoneApp: KintoneAppLite | null
   selectedDestinationApp: DestinationAppLite | null
+  selectedTargetTable?: string
   draftFilters: DraftFilter[]
   draftFieldMappings: DraftFieldMapping[]
   skipIfNoUpdateTarget: boolean
@@ -58,12 +59,19 @@ export type WizardState = {
   goToSelectingKintoneApp: () => void
   setSelectedKintoneApp: (app: KintoneAppLite) => void
   setSelectedDestinationApp: (app: DestinationAppLite) => void
+  setSelectedTargetTable: (t: string) => void
   setDraftFilters: (f: DraftFilter[]) => void
   setDraftFieldMappings: (m: DraftFieldMapping[]) => void
   setSkipIfNoUpdateTarget: (skip: boolean) => void
   setMappingIdDraft: (id: string | null) => void
   next: () => void
   back: () => void
+
+  // tenant filter flags (UI state only)
+  selectedSkipTenantFilter?: boolean
+  selectedOmitTenantOnWrite?: boolean
+  setSelectedSkipTenantFilter?: (v: boolean) => void
+  setSelectedOmitTenantOnWrite?: (v: boolean) => void
 
   // cache helpers
   setAppsCache: (payload: { apps: KintoneAppLite[]; total: number; nextOffset?: number }) => void
@@ -81,6 +89,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
   uiFlowState: "idle",
   selectedKintoneApp: null,
   selectedDestinationApp: null,
+  selectedTargetTable: 'people',
   draftFilters: [],
   draftFieldMappings: [],
   skipIfNoUpdateTarget: false,
@@ -120,8 +129,11 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
       set({
         selectedKintoneApp: kintoneApp,
         selectedDestinationApp: destinationApp,
+        selectedTargetTable: mapping.target_table,
         skipIfNoUpdateTarget: mapping.skip_if_no_update_target || false,
-        mappingIdDraft: mapping.id
+        mappingIdDraft: mapping.id,
+        selectedSkipTenantFilter: !!mapping.skip_tenant_filter,
+        selectedOmitTenantOnWrite: !!mapping.omit_tenant_on_write,
       })
       console.log("[FLOW] → mappingFields (edit mode)")
       set({ uiFlowState: "mappingFields" })
@@ -138,6 +150,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
       uiFlowState: "idle",
       selectedKintoneApp: null,
       selectedDestinationApp: null,
+      selectedTargetTable: 'people',
       draftFilters: [],
       draftFieldMappings: [],
       skipIfNoUpdateTarget: false,
@@ -159,6 +172,7 @@ export const useKintoneWizardStore = create<WizardState>((set, get) => ({
     console.log(`[FLOW] DestinationSelected appKey=${app.key} → settingFilters`)
     set({ uiFlowState: "settingFilters" })
   },
+  setSelectedTargetTable: (t) => set({ selectedTargetTable: t }),
   setDraftFilters: (f) => set({ draftFilters: f }),
   setDraftFieldMappings: (m) => set({ draftFieldMappings: m }),
   setSkipIfNoUpdateTarget: (skip) => set({ skipIfNoUpdateTarget: skip }),

@@ -30,7 +30,7 @@ export async function getUpdateKeys(appMappingId: string): Promise<FieldMapping[
     console.error('Error fetching update keys:', error)
     // Fallback to default id field mapping
     return [{
-      source_field_code: 'id',
+      source_field_code: '$id',
       target_field_id: 'id',
       is_required: true,
       sort_order: 0,
@@ -44,7 +44,7 @@ export async function getUpdateKeys(appMappingId: string): Promise<FieldMapping[
   if (updateKeys.length === 0) {
     console.warn('No update keys configured, falling back to "id"')
     return [{
-      source_field_code: 'id',
+      source_field_code: '$id',
       target_field_id: 'id',
       is_required: true,
       sort_order: 0,
@@ -86,7 +86,7 @@ export async function getUpdateKeysByConnector(
     console.error('Error fetching app mappings:', appError)
     // Fallback to default id field mapping
     return [{
-      source_field_code: 'id',
+      source_field_code: '$id',
       target_field_id: 'id',
       is_required: true,
       sort_order: 0,
@@ -115,11 +115,16 @@ export function buildConflictColumns(updateKeys: FieldMapping[]): string {
  * @param tenantId - The tenant ID to include in the condition
  * @returns Object with update key conditions including tenant_id
  */
-export function buildUpdateCondition(record: Record<string, any>, updateKeys: FieldMapping[], tenantId?: string): Record<string, any> {
+export function buildUpdateCondition(
+  record: Record<string, any>,
+  updateKeys: FieldMapping[],
+  tenantId?: string,
+  includeTenant: boolean = true
+): Record<string, any> {
   const condition: Record<string, any> = {}
   
   // Always include tenant_id in the condition for proper tenant isolation
-  if (tenantId) {
+  if (includeTenant && tenantId) {
     condition.tenant_id = tenantId
   }
   

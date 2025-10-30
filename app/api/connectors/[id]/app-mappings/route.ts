@@ -46,6 +46,7 @@ export async function GET(
         source_app_id,
         source_app_name,
         target_app_type,
+        target_table,
         is_active,
         created_at,
         updated_at

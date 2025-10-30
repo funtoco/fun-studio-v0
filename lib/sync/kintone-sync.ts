@@ -24,10 +24,78 @@ interface FieldMapping {
   sort_order: number
 }
 
+// Decode MIME Encoded-Word strings in filenames (RFC 2047)
+// Supports UTF-8 with Base64 (B) or Quoted-Printable (Q)
+function decodeMimeEncodedWord(input: string | undefined | null): string {
+  if (!input) return ''
+  try {
+    const regex = /=\?([^?]+)\?([bBqQ])\?([^?]+)\?=/g
+    let result = input
+    let match: RegExpExecArray | null
+    while ((match = regex.exec(input)) !== null) {
+      const charset = match[1].toLowerCase()
+      const encoding = match[2].toUpperCase()
+      const encodedText = match[3]
+      let decoded = ''
+      if (encoding === 'B') {
+        const buff = Buffer.from(encodedText, 'base64')
+        decoded = buff.toString('utf8')
+      } else {
+        // Q-encoding: underscore treated as space; =XX hex bytes
+        const q = encodedText.replace(/_/g, ' ')
+        decoded = q.replace(/=([0-9A-Fa-f]{2})/g, (_m, hex) => String.fromCharCode(parseInt(hex, 16)))
+      }
+      // Replace this encoded word in the original string
+      result = result.replace(match[0], decoded)
+    }
+    return result
+  } catch {
+    return input
+  }
+}
+
+// Sanitize a filename for Supabase Storage key
+// - remove path separators and control chars
+// - replace all whitespace (incl. full-width spaces) with single underscore
+// - remove characters that storage rejects (# ?)
+// - trim and ensure not empty
+function sanitizeStorageKey(input: string): string {
+  let name = input || ''
+  // Normalize Unicode
+  name = name.normalize('NFC')
+  // Remove path separators
+  name = name.replace(/[\\/]/g, '-')
+  // Remove control chars
+  name = name.replace(/[\u0000-\u001F\u007F]/g, '')
+  // Replace full-width spaces and any whitespace runs with underscore
+  name = name.replace(/[\u3000\s]+/g, '_')
+  // Remove forbidden characters
+  name = name.replace(/[?#]/g, '')
+  // Trim underscores and dots at ends
+  name = name.replace(/^[_\.]+|[_\.]+$/g, '')
+  if (!name) name = 'file'
+  return name
+}
+
+// Encode only the filename (basename) portion with URL-safe Base64, keep extension as-is
+function encodeFilenameBase64Url(filename: string): string {
+  const lastDot = filename.lastIndexOf('.')
+  const hasExt = lastDot > 0 && lastDot < filename.length - 1
+  const base = hasExt ? filename.slice(0, lastDot) : filename
+  const ext = hasExt ? filename.slice(lastDot) : ''
+  const b64 = Buffer.from(base, 'utf8').toString('base64')
+  // URL-safe: replace +/ with -_ and strip =
+  const b64url = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+  return `${b64url}${ext}`
+}
+
 interface AppMapping {
   id: string
   source_app_id: string
   target_app_type: string
+  target_table?: string
+  skip_tenant_filter?: boolean
+  omit_tenant_on_write?: boolean
   skip_if_no_update_target: boolean
   field_mappings: FieldMapping[]
 }
@@ -45,27 +113,26 @@ async function processFileField(
     const sourceValue = record[fieldMapping.source_field_code]?.value
     
     if (!sourceValue || !Array.isArray(sourceValue) || sourceValue.length === 0) {
-      console.log(`  📁 No file data found for field ${fieldMapping.source_field_code}`)
+      console.log(`[file] no-data field=%s`, fieldMapping.source_field_code)
       return null
     }
 
     // Get the first file (Kintone FILE fields can have multiple files)
     const fileInfo = sourceValue[0]
     if (!fileInfo || !fileInfo.fileKey) {
-      console.log(`  📁 No file key found for field ${fieldMapping.source_field_code}`)
+      console.log(`[file] no-key field=%s`, fieldMapping.source_field_code)
       return null
     }
 
     // Download file from Kintone
     const fileData = await kintoneClient.downloadFile(fileInfo.fileKey)
     
-    // Generate unique file path
-    const filePath = generateFilePath(
-      tenantId,
-      record.$id.value,
-      fieldMapping.source_field_code,
-      fileData.fileName
-    )
+    // Use the original filename (decode MIME Encoded-Word if necessary)
+    const decodedName = decodeMimeEncodedWord(fileData.fileName) || fileData.fileName
+    // Encode basename to URL-safe Base64 to avoid storage key issues, keep extension
+    const encodedName = encodeFilenameBase64Url(decodedName)
+    // Use URL-safe Base64-encoded basename + original extension as the storage key
+    const filePath = encodedName
 
     // Upload to Supabase Storage
     const uploadResult = await uploadFileToStorage(
@@ -77,14 +144,15 @@ async function processFileField(
     )
 
     if (!uploadResult.success) {
-      console.error(`  ❌ Failed to upload file for field ${fieldMapping.source_field_code}:`, uploadResult.error)
+      console.error(`[file] upload-failed field=%s path=%s err=%s`, fieldMapping.source_field_code, filePath, uploadResult.error)
       return null
     }
 
+    console.log(`[file] uploaded field=%s path=%s`, fieldMapping.source_field_code, uploadResult.path || filePath)
     return uploadResult.path || null
 
   } catch (error) {
-    console.error(`  ❌ Error processing file field ${fieldMapping.source_field_code}:`, error)
+    console.error(`[file] error field=%s err=%o`, fieldMapping.source_field_code, error)
     return null
   }
 }
@@ -121,7 +189,7 @@ async function getAppMappings(
 ): Promise<AppMapping[]> {
   const { data, error } = await supabase
     .from('connector_app_mappings')
-    .select('id, source_app_id, target_app_type, skip_if_no_update_target')
+    .select('id, source_app_id, target_app_type, target_table, skip_tenant_filter, omit_tenant_on_write, skip_if_no_update_target')
     .eq('connector_id', connectorId)
     .eq('target_app_type', targetAppType)
     .eq('is_active', true)
@@ -139,6 +207,9 @@ async function getAppMappings(
       id: mapping.id,
       source_app_id: mapping.source_app_id,
       target_app_type: mapping.target_app_type,
+      target_table: mapping.target_table,
+      skip_tenant_filter: mapping.skip_tenant_filter,
+      omit_tenant_on_write: mapping.omit_tenant_on_write,
       skip_if_no_update_target: mapping.skip_if_no_update_target || false,
       field_mappings: fieldMappings
     }
@@ -158,7 +229,7 @@ async function getAppMappingById(
 ): Promise<AppMapping | null> {
   const { data, error } = await supabase
     .from('connector_app_mappings')
-    .select('id, source_app_id, target_app_type, connector_id, skip_if_no_update_target')
+    .select('id, source_app_id, target_app_type, target_table, connector_id, skip_if_no_update_target')
     .eq('id', appMappingId)
     .eq('is_active', true)
     .single()
@@ -174,6 +245,7 @@ async function getAppMappingById(
     id: data.id,
     source_app_id: data.source_app_id,
     target_app_type: data.target_app_type,
+    target_table: data.target_table,
     skip_if_no_update_target: data.skip_if_no_update_target || false,
     field_mappings: fieldMappings
   }
@@ -361,6 +433,12 @@ export class KintoneDataSync {
     let sessionId: string | undefined
 
     try {
+      console.log('[sync] syncAll:start', {
+        connectorId: this.connectorId,
+        tenantId: this.tenantId,
+        targetAppType,
+        appMappingId
+      })
       // Start sync session
       sessionId = await this.syncLogger.startSession(
         this.tenantId,
@@ -398,10 +476,12 @@ export class KintoneDataSync {
           error = 'No active app mappings found'
         }
         errors.push(error)
+        console.log('[sync] syncAll:early-exit', { reason: error })
         return { success: false, synced: {}, errors, duration: Date.now() - startTime, sessionId }
       }
 
       // Sync each app mapping
+      console.log('[sync] syncAll:mappings', appMappings.map(m => ({ id: m.id, target_app_type: m.target_app_type, source_app_id: m.source_app_id })))
       for (const appMapping of appMappings) {
         try {
           const syncedCount = await this.syncAppData(appMapping.target_app_type, appMapping.source_app_id, appMapping.id)
@@ -522,13 +602,17 @@ export class KintoneDataSync {
           try {
             // Transform Kintone record to our format using database field mappings
             // Determine target table based on app type
-            const targetTable = this.getTargetTable(targetAppType)
+            const resolvedTargetTable = appMapping.target_table || this.getTargetTable(targetAppType)
+            const targetTable = resolvedTargetTable
             if (!targetTable) {
               throw new Error(`Unknown target app type: ${targetAppType}`)
             }
+            console.log(`[sync] rec=${record.$id?.value} appType=%s target_table=%s`, targetAppType, targetTable)
 
             // Check if record exists using update keys
-            const whereCondition = buildUpdateCondition(record, updateKeys, this.tenantId)
+            const includeTenant = !!this.tenantId
+            const whereCondition = buildUpdateCondition(record, updateKeys, this.tenantId, includeTenant)
+            console.log(`[sync] where=${JSON.stringify(whereCondition)}`)
             
             const { data: existingRecord, error: selectError } = await this.supabase
               .from(targetTable)
@@ -538,20 +622,23 @@ export class KintoneDataSync {
 
             if (selectError && selectError.code !== 'PGRST116') {
               // PGRST116 means no rows found, which is expected for new records
-              console.error(`❌ Error checking existing record:`, selectError)
+              console.error(`[sync] select-error table=%s err=%o`, targetTable, selectError)
               throw selectError
             }
 
             // Check if we should skip this record
             if (!existingRecord && appMapping.skip_if_no_update_target) {
+              console.log(`[sync] skip-no-target rec=${record.$id?.value}`)
               continue // Skip to next record
             }
 
             // Only process data if we're going to insert or update
             const data: any = {
-              tenant_id: this.tenantId, // Set tenant_id from connector
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
+            }
+            if (this.tenantId) {
+              data.tenant_id = this.tenantId
             }
             
 
@@ -560,6 +647,7 @@ export class KintoneDataSync {
               if (fieldMapping.source_field_type === 'FILE') {
                 const filePath = await processFileField(this.kintoneClient, record, fieldMapping, this.tenantId)
                 data[fieldMapping.target_field_id] = filePath
+                console.log(`[sync] file-mapped target_field=%s path=%s`, fieldMapping.target_field_id, filePath)
               } else {
                 // Regular field mapping
                 const sourceValue = record[fieldMapping.source_field_code]?.value
@@ -579,6 +667,15 @@ export class KintoneDataSync {
               }
             }
 
+            // Ensure id is present for tables that require NOT NULL id (e.g., people)
+            if (targetTable === 'people' && (data.id === undefined || data.id === null)) {
+              const kintoneId = record.$id?.value
+              if (kintoneId !== undefined && kintoneId !== null) {
+                data.id = String(kintoneId)
+                console.log(`[sync] ensure-id rec=${record.$id?.value} id=${data.id}`)
+              }
+            }
+
             let error: any = null
 
             if (existingRecord) {
@@ -588,15 +685,17 @@ export class KintoneDataSync {
                 .update(data)
                 .match(whereCondition)
               error = updateError
+              console.log(`[sync] op=update table=%s rec=${record.$id?.value} ok=%s`, targetTable, !updateError)
             } else {
               const { error: insertError } = await this.supabase
                 .from(targetTable)
                 .insert(data)
               error = insertError
+              console.log(`[sync] op=insert table=%s rec=${record.$id?.value} ok=%s`, targetTable, !insertError)
             }
 
             if (error) {
-              console.error(`❌ Database error for ${targetAppType} ${record.$id.value}:`, error)
+              console.error(`[sync] db-error table=%s rec=%s err=%o`, targetTable, record.$id?.value, error)
               throw error
             }
 
