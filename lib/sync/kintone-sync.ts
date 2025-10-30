@@ -504,8 +504,19 @@ export class KintoneDataSync {
         // Get records from Kintone
         const records = await this.kintoneClient.getRecords(appMapping.source_app_id, query, [])
         let syncedCount = 0
-      
+
+        // Fetch update keys once per appMapping and reuse inside the loop
         const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType, appMapping.id)
+
+        // Fetch data mappings once per appMapping and reuse inside the loop
+        let dataMappings: DataMapping[] = []
+        try {
+          dataMappings = await getDataMappings(appMapping.id)
+        } catch (valueMappingError) {
+          console.warn(`  ⚠️ Value mapping load failed (continuing without mappings):`, valueMappingError)
+          dataMappings = []
+        }
+
         for (const record of records) {
         
           try {
@@ -516,9 +527,6 @@ export class KintoneDataSync {
               throw new Error(`Unknown target app type: ${targetAppType}`)
             }
 
-            // Get dynamic update keys for this connector and target app type
-            const updateKeys = await getUpdateKeysByConnector(this.connectorId, targetAppType, appMapping.id)
-            
             // Check if record exists using update keys
             const whereCondition = buildUpdateCondition(record, updateKeys, this.tenantId)
             
@@ -559,22 +567,16 @@ export class KintoneDataSync {
               }
             }
 
-            // Apply value mappings if configured
-            try {
-              const dataMappings = await getDataMappings(appMapping.id)
-              if (dataMappings.length > 0) {
-                const mappedData = mapFieldValues(data, dataMappings)
-                
-                // Update data with mapped values
-                for (const [key, value] of Object.entries(mappedData)) {
-                  if (data[key] !== value) {
-                    console.log(`  🔄 Value mapping applied: ${key} "${data[key]}" -> "${value}"`)
-                    data[key] = value
-                  }
+            // Apply value mappings if configured (use pre-fetched mappings)
+            if (dataMappings.length > 0) {
+              const mappedData = mapFieldValues(data, dataMappings)
+              // Update data with mapped values
+              for (const [key, value] of Object.entries(mappedData)) {
+                if (data[key] !== value) {
+                  console.log(`  🔄 Value mapping applied: ${key} "${data[key]}" -> "${value}"`)
+                  data[key] = value
                 }
               }
-            } catch (valueMappingError) {
-              console.warn(`  ⚠️ Value mapping failed (continuing with original values):`, valueMappingError)
             }
 
             let error: any = null
