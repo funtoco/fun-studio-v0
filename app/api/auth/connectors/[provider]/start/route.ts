@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getConnector } from '@/lib/db/connectors'
 import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
 import { buildKintoneAuthUrl } from '@/lib/integrations/kintone'
+import { computeRedirectUri } from '@/lib/utils/redirect-uri'
 import { cookies } from 'next/headers'
 import { randomBytes } from 'crypto'
 
@@ -59,6 +60,10 @@ export async function GET(
       // Load Kintone configuration
       const config = await loadKintoneClientConfig(connectorId)
       
+      // Compute redirect URI dynamically from request
+      const redirectUri = computeRedirectUri(request)
+      console.log('[auth-start] computed redirectUri', redirectUri)
+      
       // Generate random state for CSRF protection
       const state = randomBytes(32).toString('base64url')
       
@@ -84,7 +89,7 @@ export async function GET(
         clientId: config.clientId,
         clientSecret: config.clientSecret,
         domain: config.subdomain,
-        redirectUri: config.redirectUri
+        redirectUri: redirectUri
       }, state)
       
       return NextResponse.redirect(authUrl)

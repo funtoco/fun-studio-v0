@@ -21,7 +21,7 @@ export async function loadKintoneClientConfig(connectorId: string): Promise<{
   clientId: string
   clientSecret: string
   domain: string
-  redirectUri: string
+  subdomain: string
 }> {
   console.log(`[kintone-auth] Loading config for connectorId=${connectorId}`)
   
@@ -80,8 +80,8 @@ export async function loadKintoneClientConfig(connectorId: string): Promise<{
     clientId: config.clientId,
     clientSecret: config.clientSecret,
     domain: subdomain,
-    subdomain: subdomain,
-    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/api/auth/connectors/kintone/callback`
+    subdomain: subdomain
+    // redirectUri is now computed dynamically from the request
   }
 }
 
