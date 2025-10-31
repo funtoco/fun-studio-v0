@@ -12,8 +12,8 @@ import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "FunStudio - ビザ進捗管理システム",
-  description: "外国人人材のビザ進捗と面談記録を管理するシステム",
+  title: "FunStudio - 外国人管理システム",
+  description: "外国人人材のビザ進捗と面談記録などを管理するシステム",
   generator: "v0.app",
 }
 
