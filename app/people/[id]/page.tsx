@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { PersonDetailTabs } from "@/components/person-detail-tabs"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +12,7 @@ import { getVisasByPersonId } from "@/lib/supabase/visas"
 import { allMeetings } from "@/data/meetings"
 import { supportActions } from "@/data/support-actions"
 import { formatDate, formatDateTime } from "@/lib/utils"
-import { Mail, Phone, MapPin, Building2, Calendar, User, IdCard, User2 } from "lucide-react"
+import { Mail, Phone, MapPin, Building2, Calendar, User, IdCard, User2, Edit } from "lucide-react"
 
 interface PersonDetailPageProps {
   params: { id: string }
@@ -31,6 +33,16 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header with Edit Button */}
+      <div className="flex items-center justify-end">
+        <Link href={`/people/${params.id}/edit`}>
+          <Button variant="outline" className="gap-2">
+            <Edit className="h-4 w-4" />
+            編集
+          </Button>
+        </Link>
+      </div>
+
       {/* Profile Header */}
       <Card>
         <CardContent className="p-6">
