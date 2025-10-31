@@ -53,7 +53,7 @@ async function getConnectionStatusFromCredentials(connectorId: string) {
   
   return { status: 'connected' }
 }
-import { getConfigAndToken, computeRedirectUri } from "@/lib/connectors/kintoneClient"
+import { getConfigAndToken } from "@/lib/connectors/kintoneClient"
 import { ConnectorActions } from "../connector-actions"
 import { OAuthSetupInfo } from "@/components/connectors/oauth-setup-info"
 
@@ -160,22 +160,36 @@ export default async function ConnectorDetailPage({
         }
         
         if (kintoneConfig && kintoneConfig.domain) {
-          // Create a mock request to compute redirect URI
-          const mockRequest = new Request('https://localhost:3000', {
-            headers: {
-              'x-forwarded-proto': 'https',
-              'x-forwarded-host': 'localhost:3000'
-            }
-          })
-          redirectUri = computeRedirectUri(mockRequest)
+          // Compute redirect URI from environment variable or fallback
+          // In production, NEXT_PUBLIC_BASE_URL should be set to the production URL
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+            (process.env.NODE_ENV === 'development' ? 'https://localhost:3000' : '')
+          if (baseUrl) {
+            redirectUri = `${baseUrl}/api/auth/connectors/kintone/callback`
+          } else {
+            // Fallback for display purposes
+            redirectUri = '/api/auth/connectors/kintone/callback'
+          }
         } else {
           kintoneConfig = null
-          redirectUri = 'https://localhost:3000/api/auth/connectors/kintone/callback'
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+            (process.env.NODE_ENV === 'development' ? 'https://localhost:3000' : '')
+          if (baseUrl) {
+            redirectUri = `${baseUrl}/api/auth/connectors/kintone/callback`
+          } else {
+            redirectUri = '/api/auth/connectors/kintone/callback'
+          }
         }
       } catch (configError) {
         console.error('Failed to load Kintone config:', configError)
         kintoneConfig = null
-        redirectUri = 'https://localhost:3000/api/connect/kintone/callback'
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+          (process.env.NODE_ENV === 'development' ? 'https://localhost:3000' : '')
+        if (baseUrl) {
+          redirectUri = `${baseUrl}/api/auth/connectors/kintone/callback`
+        } else {
+          redirectUri = '/api/auth/connectors/kintone/callback'
+        }
       }
     }
   } catch (error) {

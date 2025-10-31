@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getConnector, updateConnectionStatus } from '@/lib/db/connectors'
 import { loadKintoneClientConfig } from '@/lib/db/credential-loader'
 import { exchangeCodeForToken } from '@/lib/integrations/kintone'
+import { computeRedirectUri, computeBaseUrl } from '@/lib/utils/redirect-uri'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
@@ -66,12 +67,16 @@ export async function GET(
       // Load Kintone configuration
       const config = await loadKintoneClientConfig(connectorId)
       
+      // Compute redirect URI dynamically from request (must match the one used in start)
+      const redirectUri = computeRedirectUri(request)
+      console.log('[auth-callback] computed redirectUri', redirectUri)
+      
       // Exchange code for token
       const tokenData = await exchangeCodeForToken({
         clientId: config.clientId,
         clientSecret: config.clientSecret,
         domain: config.domain,
-        redirectUri: config.redirectUri
+        redirectUri: redirectUri
       }, code)
       
       // Store token (simplified - in real implementation, encrypt this)
@@ -94,7 +99,7 @@ export async function GET(
       cookieStore.delete('kintone_oauth_session')
       
       // Redirect to return URL
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'
+      const baseUrl = computeBaseUrl(request)
       let redirectUrl = returnTo || `${baseUrl}/admin/connectors/${connectorId}?tenantId=${tenantId}&connected=true`
       
       // If returnTo is a relative URL, make it absolute
