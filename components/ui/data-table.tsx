@@ -6,9 +6,10 @@ import { useState, useEffect, useRef } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Search, FilterIcon, Download, ChevronUp, ChevronDown, X } from "lucide-react"
+import { Search, FilterIcon, Download, ChevronUp, ChevronDown, X, ChevronDown as ChevronDownIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface Column<T> {
@@ -56,7 +57,6 @@ export function DataTable<T extends Record<string, any>>({
     direction: "asc" | "desc"
   } | null>(null)
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>(initialActiveFilters)
-  const [selectValues, setSelectValues] = useState<Record<string, string>>({})
   const isInitialMount = useRef(true)
 
   // 初期値が変更されたときに状態を更新（URLパラメータ変更時）
@@ -128,12 +128,6 @@ export function DataTable<T extends Record<string, any>>({
 
       return { ...current, [filterKey]: newValues }
     })
-    
-    // Update select value
-    setSelectValues((current) => ({
-      ...current,
-      [filterKey]: value
-    }))
   }
 
   const removeFilter = (filterKey: string, value: string) => {
@@ -142,21 +136,10 @@ export function DataTable<T extends Record<string, any>>({
       const newValues = currentValues.filter((v) => v !== value)
       return { ...current, [filterKey]: newValues }
     })
-    
-    // Clear select value if no filters remain for this key
-    setSelectValues((current) => {
-      const newValues = { ...current }
-      const remainingFilters = activeFilters[filterKey]?.filter((v) => v !== value) || []
-      if (remainingFilters.length === 0) {
-        delete newValues[filterKey]
-      }
-      return newValues
-    })
   }
 
   const clearAllFilters = () => {
     setActiveFilters({})
-    setSelectValues({})
     setSearchTerm("")
   }
 
@@ -200,27 +183,60 @@ export function DataTable<T extends Record<string, any>>({
           )}
 
           {/* Filters */}
-          {filters.map((filter) => (
-            <Select 
-              key={filter.key} 
-              value={selectValues[filter.key] || ""} 
-              onValueChange={(value) => handleFilterChange(filter.key, value)}
-            >
-              <SelectTrigger className="min-w-[140px] max-w-[240px]">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FilterIcon className="h-4 w-4 flex-shrink-0" />
-                  <SelectValue placeholder={filter.label} className="truncate" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {filter.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ))}
+          {filters.map((filter) => {
+            const selectedValues = activeFilters[filter.key] || []
+            const selectedCount = selectedValues.length
+            
+            return (
+              <Popover key={filter.key}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 min-w-[140px] max-w-[240px] justify-between"
+                  >
+                    <FilterIcon className="h-4 w-4 flex-shrink-0 mr-2" />
+                    <span className="truncate">
+                      {filter.label}
+                      {selectedCount > 0 && (
+                        <span className="ml-1 text-muted-foreground">
+                          ({selectedCount})
+                        </span>
+                      )}
+                    </span>
+                    <ChevronDownIcon className="h-4 w-4 flex-shrink-0 opacity-50 ml-2" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[240px] p-4" align="start">
+                  <div className="space-y-1">
+                    {filter.options.length === 0 ? (
+                      <div className="text-sm text-muted-foreground text-center">
+                        オプションがありません
+                      </div>
+                    ) : (
+                      filter.options.map((option) => {
+                        const isSelected = selectedValues.includes(option.value)
+                        return (
+                          <div
+                            key={option.value}
+                            className="flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent cursor-pointer"
+                            onClick={() => handleFilterChange(filter.key, option.value)}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => {}}
+                            />
+                            <span className="flex-1 text-sm cursor-pointer select-none">
+                              {option.label}
+                            </span>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )
+          })}
         </div>
 
         {/* Export */}

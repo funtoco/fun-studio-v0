@@ -4,10 +4,12 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Search, FileText, Clock, X, ChevronDown, ChevronUp, Building2 } from "lucide-react"
+import { Search, FileText, Clock, X, ChevronDown, ChevronUp, Building2, FilterIcon, ChevronDown as ChevronDownIcon } from "lucide-react"
 import { getPeople } from "@/lib/supabase/people"
 import { getVisas } from "@/lib/supabase/visas"
 import { isExpiringSoon } from "@/lib/utils"
@@ -38,8 +40,8 @@ export default function VisasPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [expiryFilter, setExpiryFilter] = useState<string>("all")
-  const [companyFilter, setCompanyFilter] = useState<string>("all")
-  const [affiliationFilter, setAffiliationFilter] = useState<string>("all")
+  const [companyFilter, setCompanyFilter] = useState<string[]>([])
+  const [affiliationFilter, setAffiliationFilter] = useState<string[]>([])
   const [people, setPeople] = useState<Person[]>([])
   const [visas, setVisas] = useState<Visa[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,8 +59,8 @@ export default function VisasPage() {
     if (search !== null) setSearchTerm(search)
     if (type) setTypeFilter(type)
     if (expiry) setExpiryFilter(expiry)
-    if (company) setCompanyFilter(company)
-    if (affiliation) setAffiliationFilter(affiliation)
+    if (company) setCompanyFilter(company.split(','))
+    if (affiliation) setAffiliationFilter(affiliation.split(','))
   }, [searchParams])
 
   useEffect(() => {
@@ -82,60 +84,85 @@ export default function VisasPage() {
     fetchData()
   }, [])
 
+  // URLパラメータを更新
+  const updateUrl = (filters: {
+    search?: string
+    type?: string
+    expiry?: string
+    company?: string[]
+    affiliation?: string[]
+  }) => {
+    const newParams = new URLSearchParams()
+    
+    if (filters.search) newParams.set('search', filters.search)
+    if (filters.type && filters.type !== 'all') newParams.set('type', filters.type)
+    if (filters.expiry && filters.expiry !== 'all') newParams.set('expiry', filters.expiry)
+    if (filters.company && filters.company.length > 0) newParams.set('company', filters.company.join(','))
+    if (filters.affiliation && filters.affiliation.length > 0) newParams.set('affiliation', filters.affiliation.join(','))
+
+    router.replace(`/visas?${newParams.toString()}`, { scroll: false })
+  }
+
   // フィルター変更時のハンドラ
   const handleSearchChange = (value: string) => {
     setSearchTerm(value)
-    const newParams = new URLSearchParams()
-    if (value) newParams.set('search', value)
-    if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
-    if (companyFilter !== 'all') newParams.set('company', companyFilter)
-    if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
-    router.replace(`/visas?${newParams.toString()}`, { scroll: false })
+    updateUrl({
+      search: value,
+      type: typeFilter,
+      expiry: expiryFilter,
+      company: companyFilter,
+      affiliation: affiliationFilter,
+    })
   }
 
   const handleTypeFilterChange = (value: string) => {
     setTypeFilter(value)
-    const newParams = new URLSearchParams()
-    if (searchTerm) newParams.set('search', searchTerm)
-    if (value !== 'all') newParams.set('type', value)
-    if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
-    if (companyFilter !== 'all') newParams.set('company', companyFilter)
-    if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
-    router.replace(`/visas?${newParams.toString()}`, { scroll: false })
+    updateUrl({
+      search: searchTerm,
+      type: value,
+      expiry: expiryFilter,
+      company: companyFilter,
+      affiliation: affiliationFilter,
+    })
   }
 
   const handleExpiryFilterChange = (value: string) => {
     setExpiryFilter(value)
-    const newParams = new URLSearchParams()
-    if (searchTerm) newParams.set('search', searchTerm)
-    if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (value !== 'all') newParams.set('expiry', value)
-    if (companyFilter !== 'all') newParams.set('company', companyFilter)
-    if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
-    router.replace(`/visas?${newParams.toString()}`, { scroll: false })
+    updateUrl({
+      search: searchTerm,
+      type: typeFilter,
+      expiry: value,
+      company: companyFilter,
+      affiliation: affiliationFilter,
+    })
   }
 
   const handleCompanyFilterChange = (value: string) => {
-    setCompanyFilter(value)
-    const newParams = new URLSearchParams()
-    if (searchTerm) newParams.set('search', searchTerm)
-    if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
-    if (value !== 'all') newParams.set('company', value)
-    if (affiliationFilter !== 'all') newParams.set('affiliation', affiliationFilter)
-    router.replace(`/visas?${newParams.toString()}`, { scroll: false })
+    const newCompanyFilter = companyFilter.includes(value)
+      ? companyFilter.filter((v) => v !== value)
+      : [...companyFilter, value]
+    setCompanyFilter(newCompanyFilter)
+    updateUrl({
+      search: searchTerm,
+      type: typeFilter,
+      expiry: expiryFilter,
+      company: newCompanyFilter,
+      affiliation: affiliationFilter,
+    })
   }
 
   const handleAffiliationFilterChange = (value: string) => {
-    setAffiliationFilter(value)
-    const newParams = new URLSearchParams()
-    if (searchTerm) newParams.set('search', searchTerm)
-    if (typeFilter !== 'all') newParams.set('type', typeFilter)
-    if (expiryFilter !== 'all') newParams.set('expiry', expiryFilter)
-    if (companyFilter !== 'all') newParams.set('company', companyFilter)
-    if (value !== 'all') newParams.set('affiliation', value)
-    router.replace(`/visas?${newParams.toString()}`, { scroll: false })
+    const newAffiliationFilter = affiliationFilter.includes(value)
+      ? affiliationFilter.filter((v) => v !== value)
+      : [...affiliationFilter, value]
+    setAffiliationFilter(newAffiliationFilter)
+    updateUrl({
+      search: searchTerm,
+      type: typeFilter,
+      expiry: expiryFilter,
+      company: companyFilter,
+      affiliation: newAffiliationFilter,
+    })
   }
 
   // Filter visas based on search and filters
@@ -159,10 +186,10 @@ export default function VisasPage() {
     }
 
     // Company filter
-    if (companyFilter !== "all" && person.tenantName !== companyFilter) return false
+    if (companyFilter.length > 0 && !companyFilter.includes(person.tenantName || '')) return false
 
     // Affiliation filter
-    if (affiliationFilter !== "all" && person.company !== affiliationFilter) return false
+    if (affiliationFilter.length > 0 && !affiliationFilter.includes(person.company || '')) return false
 
     return true
   })
@@ -275,8 +302,8 @@ export default function VisasPage() {
     setSearchTerm("")
     setTypeFilter("all")
     setExpiryFilter("all")
-    setCompanyFilter("all")
-    setAffiliationFilter("all")
+    setCompanyFilter([])
+    setAffiliationFilter([])
     router.replace('/visas', { scroll: false })
   }
 
@@ -290,10 +317,32 @@ export default function VisasPage() {
         handleExpiryFilterChange('all')
         break
       case 'company':
-        handleCompanyFilterChange('all')
+        if (value) {
+          handleCompanyFilterChange(value)
+        } else {
+          setCompanyFilter([])
+          updateUrl({
+            search: searchTerm,
+            type: typeFilter,
+            expiry: expiryFilter,
+            company: [],
+            affiliation: affiliationFilter,
+          })
+        }
         break
       case 'affiliation':
-        handleAffiliationFilterChange('all')
+        if (value) {
+          handleAffiliationFilterChange(value)
+        } else {
+          setAffiliationFilter([])
+          updateUrl({
+            search: searchTerm,
+            type: typeFilter,
+            expiry: expiryFilter,
+            company: companyFilter,
+            affiliation: [],
+          })
+        }
         break
       case 'search':
         handleSearchChange('')
@@ -302,11 +351,15 @@ export default function VisasPage() {
   }
 
   // アクティブなフィルターを取得
-  const activeFilters = []
+  const activeFilters: Array<{ key: string; label: string; value: string }> = []
   if (typeFilter !== "all") activeFilters.push({ key: 'type', label: `ビザ種別: ${typeFilter}`, value: typeFilter })
   if (expiryFilter !== "all") activeFilters.push({ key: 'expiry', label: `期限: ${expiryFilter}日以内`, value: expiryFilter })
-  if (companyFilter !== "all") activeFilters.push({ key: 'company', label: `会社: ${companyFilter}`, value: companyFilter })
-  if (affiliationFilter !== "all") activeFilters.push({ key: 'affiliation', label: `所属先: ${affiliationFilter}`, value: affiliationFilter })
+  companyFilter.forEach((company) => {
+    activeFilters.push({ key: 'company', label: `会社: ${company}`, value: company })
+  })
+  affiliationFilter.forEach((affiliation) => {
+    activeFilters.push({ key: 'affiliation', label: `所属先: ${affiliation}`, value: affiliation })
+  })
   if (searchTerm) activeFilters.push({ key: 'search', label: `検索: ${searchTerm}`, value: searchTerm })
 
   // Get unique values for filters
@@ -324,8 +377,8 @@ export default function VisasPage() {
     getFilteredDataForOptions()
       .filter((person) => {
         // 会社フィルターが設定されている場合は、その会社の所属先のみを表示
-        if (companyFilter !== "all") {
-          return person?.tenantName === companyFilter
+        if (companyFilter.length > 0) {
+          return person?.tenantName && companyFilter.includes(person.tenantName)
         }
         return true
       })
@@ -384,7 +437,7 @@ export default function VisasPage() {
           </div>
 
           {/* Active filters count */}
-          {(searchTerm || typeFilter !== "all" || expiryFilter !== "all" || companyFilter !== "all" || affiliationFilter !== "all") && (
+          {(searchTerm || typeFilter !== "all" || expiryFilter !== "all" || companyFilter.length > 0 || affiliationFilter.length > 0) && (
             <Badge variant="secondary" className="ml-auto">
               {filteredVisas.length} / {visas.length} 件を表示
             </Badge>
@@ -428,44 +481,104 @@ export default function VisasPage() {
             <span className="text-xs text-muted-foreground">期限切れ</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <Select value={companyFilter} onValueChange={handleCompanyFilterChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="会社" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべて</SelectItem>
-                {companies.map((company) => (
-                  <SelectItem key={company} value={company!}>
-                    {company}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-xs text-muted-foreground">会社</span>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 min-w-[140px] max-w-[240px] justify-between"
+              >
+                <Building2 className="h-4 w-4 flex-shrink-0 mr-2" />
+                <span className="truncate">
+                  会社
+                  {companyFilter.length > 0 && (
+                    <span className="ml-1 text-muted-foreground">
+                      ({companyFilter.length})
+                    </span>
+                  )}
+                </span>
+                <ChevronDownIcon className="h-4 w-4 flex-shrink-0 opacity-50 ml-2" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[240px] p-4" align="start">
+              <div className="space-y-1">
+                {companies.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center">
+                    オプションがありません
+                  </div>
+                ) : (
+                  companies.map((company) => {
+                    const isSelected = companyFilter.includes(company || '')
+                    return (
+                      <div
+                        key={company}
+                        className="flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent cursor-pointer"
+                        onClick={() => handleCompanyFilterChange(company || '')}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => {}}
+                        />
+                        <span className="flex-1 text-sm cursor-pointer select-none">
+                          {company}
+                        </span>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
 
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <Select value={affiliationFilter} onValueChange={handleAffiliationFilterChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="所属先" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">すべて</SelectItem>
-                {affiliations.map((affiliation) => (
-                  <SelectItem key={affiliation} value={affiliation!}>
-                    {affiliation}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-xs text-muted-foreground">所属先</span>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 min-w-[140px] max-w-[240px] justify-between"
+              >
+                <Building2 className="h-4 w-4 flex-shrink-0 mr-2" />
+                <span className="truncate">
+                  所属先
+                  {affiliationFilter.length > 0 && (
+                    <span className="ml-1 text-muted-foreground">
+                      ({affiliationFilter.length})
+                    </span>
+                  )}
+                </span>
+                <ChevronDownIcon className="h-4 w-4 flex-shrink-0 opacity-50 ml-2" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[240px] p-4" align="start">
+              <div className="space-y-1">
+                {affiliations.length === 0 ? (
+                  <div className="text-sm text-muted-foreground text-center">
+                    オプションがありません
+                  </div>
+                ) : (
+                  affiliations.map((affiliation) => {
+                    const isSelected = affiliationFilter.includes(affiliation || '')
+                    return (
+                      <div
+                        key={affiliation}
+                        className="flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-accent cursor-pointer"
+                        onClick={() => handleAffiliationFilterChange(affiliation || '')}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => {}}
+                        />
+                        <span className="flex-1 text-sm cursor-pointer select-none">
+                          {affiliation}
+                        </span>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           {/* Clear filters button */}
-          {(typeFilter !== "all" || expiryFilter !== "all" || companyFilter !== "all" || affiliationFilter !== "all") && (
+          {(typeFilter !== "all" || expiryFilter !== "all" || companyFilter.length > 0 || affiliationFilter.length > 0) && (
             <Button
               variant="ghost"
               size="sm"
@@ -482,12 +595,12 @@ export default function VisasPage() {
         {activeFilters.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm text-muted-foreground">フィルタ:</span>
-            {activeFilters.map((filter) => (
+            {activeFilters.map((filter, index) => (
               <Badge
-                key={filter.key}
+                key={`${filter.key}-${filter.value}-${index}`}
                 variant="secondary"
                 className="cursor-pointer hover:bg-secondary/80"
-                onClick={() => removeFilter(filter.key)}
+                onClick={() => removeFilter(filter.key, filter.value)}
               >
                 {filter.label} ×
               </Badge>
