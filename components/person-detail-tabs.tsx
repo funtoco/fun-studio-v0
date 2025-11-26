@@ -8,14 +8,15 @@ import { StatusBadge } from "@/components/ui/status-badge"
 import { Timeline } from "@/components/ui/timeline"
 import { TreeNoteView } from "@/components/ui/tree-note-view"
 import { formatDateTime } from "@/lib/utils"
-import type { Meeting, SupportAction } from "@/lib/models"
+import type { Meeting, SupportAction, Visa } from "@/lib/models"
 
 interface PersonDetailTabsProps {
   personMeetings: Meeting[]
   personSupportActions: SupportAction[]
+  personVisas: Visa[]
 }
 
-export function PersonDetailTabs({ personMeetings, personSupportActions }: PersonDetailTabsProps) {
+export function PersonDetailTabs({ personMeetings, personSupportActions, personVisas }: PersonDetailTabsProps) {
   const [activeTab, setActiveTab] = useState("timeline")
 
   return (
@@ -48,6 +49,29 @@ export function PersonDetailTabs({ personMeetings, personSupportActions }: Perso
                   datetime: action.updatedAt,
                   status: action.status,
                 })),
+                // Add visa status history
+                ...personVisas.flatMap((visa) => {
+                  const statusDates = [
+                    { date: visa.documentPreparationDate, status: "書類準備中" },
+                    { date: visa.documentCreationDate, status: "書類作成中" },
+                    { date: visa.documentConfirmationDate, status: "書類確認中" },
+                    { date: visa.applicationPreparationDate, status: "申請準備中" },
+                    { date: visa.visaApplicationPreparationDate, status: "ビザ申請準備中" },
+                    { date: visa.applicationDate, status: "申請中" },
+                    { date: visa.additionalDocumentsDate, status: "追加書類" },
+                    { date: visa.visaAcquiredDate, status: "ビザ取得済み" },
+                  ]
+
+                  return statusDates
+                    .filter(({ date }) => date)
+                    .map(({ date, status }) => ({
+                      id: `${visa.id}-${status}`,
+                      type: "visa" as const,
+                      title: `ビザ状況: ${status}`,
+                      datetime: date!,
+                      status: status,
+                    }))
+                }),
               ].sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime())}
             />
           </CardContent>

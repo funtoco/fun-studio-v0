@@ -35,7 +35,15 @@ export async function getVisas(): Promise<Visa[]> {
     submittedAt: visa.submitted_at,
     resultAt: visa.result_at,
     manager: visa.manager,
-    updatedAt: visa.updated_at
+    updatedAt: visa.updated_at,
+    documentPreparationDate: visa.document_preparation_date,
+    documentCreationDate: visa.document_creation_date,
+    documentConfirmationDate: visa.document_confirmation_date,
+    applicationPreparationDate: visa.application_preparation_date,
+    visaApplicationPreparationDate: visa.visa_application_preparation_date,
+    applicationDate: visa.application_date,
+    additionalDocumentsDate: visa.additional_documents_date,
+    visaAcquiredDate: visa.visa_acquired_date
   }))
 }
 
@@ -62,7 +70,15 @@ export async function getVisaById(id: string): Promise<Visa | null> {
     submittedAt: data.submitted_at,
     resultAt: data.result_at,
     manager: data.manager,
-    updatedAt: data.updated_at
+    updatedAt: data.updated_at,
+    documentPreparationDate: data.document_preparation_date,
+    documentCreationDate: data.document_creation_date,
+    documentConfirmationDate: data.document_confirmation_date,
+    applicationPreparationDate: data.application_preparation_date,
+    visaApplicationPreparationDate: data.visa_application_preparation_date,
+    applicationDate: data.application_date,
+    additionalDocumentsDate: data.additional_documents_date,
+    visaAcquiredDate: data.visa_acquired_date
   }
 }
 
@@ -80,7 +96,7 @@ export async function getVisasByPersonId(personId: string): Promise<Visa[]> {
     throw error
   }
   
-  return data.map(visa => ({
+  return data.map((visa: any) => ({
     id: visa.id,
     personId: visa.person_id,
     status: visa.status,
@@ -89,7 +105,15 @@ export async function getVisasByPersonId(personId: string): Promise<Visa[]> {
     submittedAt: visa.submitted_at,
     resultAt: visa.result_at,
     manager: visa.manager,
-    updatedAt: visa.updated_at
+    updatedAt: visa.updated_at,
+    documentPreparationDate: visa.document_preparation_date,
+    documentCreationDate: visa.document_creation_date,
+    documentConfirmationDate: visa.document_confirmation_date,
+    applicationPreparationDate: visa.application_preparation_date,
+    visaApplicationPreparationDate: visa.visa_application_preparation_date,
+    applicationDate: visa.application_date,
+    additionalDocumentsDate: visa.additional_documents_date,
+    visaAcquiredDate: visa.visa_acquired_date
   }))
 }
 
@@ -106,7 +130,15 @@ export async function createVisa(visa: Omit<Visa, 'updatedAt'>): Promise<Visa> {
       expiry_date: visa.expiryDate,
       submitted_at: visa.submittedAt,
       result_at: visa.resultAt,
-      manager: visa.manager
+      manager: visa.manager,
+      document_preparation_date: visa.documentPreparationDate,
+      document_creation_date: visa.documentCreationDate,
+      document_confirmation_date: visa.documentConfirmationDate,
+      application_preparation_date: visa.applicationPreparationDate,
+      visa_application_preparation_date: visa.visaApplicationPreparationDate,
+      application_date: visa.applicationDate,
+      additional_documents_date: visa.additionalDocumentsDate,
+      visa_acquired_date: visa.visaAcquiredDate
     })
     .select()
     .single()
@@ -125,7 +157,15 @@ export async function createVisa(visa: Omit<Visa, 'updatedAt'>): Promise<Visa> {
     submittedAt: data.submitted_at,
     resultAt: data.result_at,
     manager: data.manager,
-    updatedAt: data.updated_at
+    updatedAt: data.updated_at,
+    documentPreparationDate: data.document_preparation_date,
+    documentCreationDate: data.document_creation_date,
+    documentConfirmationDate: data.document_confirmation_date,
+    applicationPreparationDate: data.application_preparation_date,
+    visaApplicationPreparationDate: data.visa_application_preparation_date,
+    applicationDate: data.application_date,
+    additionalDocumentsDate: data.additional_documents_date,
+    visaAcquiredDate: data.visa_acquired_date
   }
 }
 
@@ -141,7 +181,15 @@ export async function updateVisa(id: string, updates: Partial<Omit<Visa, 'id' | 
       expiry_date: updates.expiryDate,
       submitted_at: updates.submittedAt,
       result_at: updates.resultAt,
-      manager: updates.manager
+      manager: updates.manager,
+      document_preparation_date: updates.documentPreparationDate,
+      document_creation_date: updates.documentCreationDate,
+      document_confirmation_date: updates.documentConfirmationDate,
+      application_preparation_date: updates.applicationPreparationDate,
+      visa_application_preparation_date: updates.visaApplicationPreparationDate,
+      application_date: updates.applicationDate,
+      additional_documents_date: updates.additionalDocumentsDate,
+      visa_acquired_date: updates.visaAcquiredDate
     })
     .eq('id', id)
     .select()
@@ -161,7 +209,15 @@ export async function updateVisa(id: string, updates: Partial<Omit<Visa, 'id' | 
     submittedAt: data.submitted_at,
     resultAt: data.result_at,
     manager: data.manager,
-    updatedAt: data.updated_at
+    updatedAt: data.updated_at,
+    documentPreparationDate: data.document_preparation_date,
+    documentCreationDate: data.document_creation_date,
+    documentConfirmationDate: data.document_confirmation_date,
+    applicationPreparationDate: data.application_preparation_date,
+    visaApplicationPreparationDate: data.visa_application_preparation_date,
+    applicationDate: data.application_date,
+    additionalDocumentsDate: data.additional_documents_date,
+    visaAcquiredDate: data.visa_acquired_date
   }
 }
 
@@ -245,6 +301,14 @@ export async function getVisasPaginated(
     resultAt: item.result_at,
     manager: item.manager,
     updatedAt: item.updated_at,
+    documentPreparationDate: item.document_preparation_date,
+    documentCreationDate: item.document_creation_date,
+    documentConfirmationDate: item.document_confirmation_date,
+    applicationPreparationDate: item.application_preparation_date,
+    visaApplicationPreparationDate: item.visa_application_preparation_date,
+    applicationDate: item.application_date,
+    additionalDocumentsDate: item.additional_documents_date,
+    visaAcquiredDate: item.visa_acquired_date,
     // Add person data for display
     person: {
       id: item.people.id,

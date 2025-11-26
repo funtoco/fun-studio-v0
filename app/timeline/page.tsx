@@ -1,26 +1,60 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Timeline } from "@/components/ui/timeline"
 import { Search, Filter, Calendar, FileText, CheckSquare } from "lucide-react"
-import { people } from "@/data/people"
-import { visas } from "@/data/visas"
-import { allMeetings } from "@/data/meetings"
-import { supportActions } from "@/data/support-actions"
+import { getPeople } from "@/lib/supabase/people"
+import { getVisas } from "@/lib/supabase/visas"
+import { getMeetings } from "@/lib/supabase/meetings"
+import { getSupportActions } from "@/lib/supabase/support-actions"
 import { generateActivityTimeline } from "@/lib/utils"
+import type { Person, Visa, Meeting, SupportAction } from "@/lib/models"
 
 export default function TimelinePage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [personFilter, setPersonFilter] = useState<string>("all")
   const [dateFilter, setDateFilter] = useState<string>("all")
+  const [people, setPeople] = useState<Person[]>([])
+  const [visas, setVisas] = useState<Visa[]>([])
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [supportActions, setSupportActions] = useState<SupportAction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch data from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        setError(null)
+        const [peopleData, visasData, meetingsData, supportActionsData] = await Promise.all([
+          getPeople(),
+          getVisas(),
+          getMeetings(),
+          getSupportActions(),
+        ])
+        setPeople(peopleData)
+        setVisas(visasData)
+        setMeetings(meetingsData)
+        setSupportActions(supportActionsData)
+      } catch (err) {
+        console.error("Error fetching timeline data:", err)
+        setError(err instanceof Error ? err.message : "データの取得に失敗しました")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   // Generate full activity timeline
-  const allActivities = generateActivityTimeline(people, visas, allMeetings, supportActions)
+  const allActivities = generateActivityTimeline(people, visas, meetings, supportActions)
 
   // Filter activities
   const filteredActivities = allActivities.filter((activity) => {
@@ -76,6 +110,34 @@ export default function TimelinePage() {
     meeting: filteredActivities.filter((a) => a.type === "meeting").length,
     visa: filteredActivities.filter((a) => a.type === "visa").length,
     support: filteredActivities.filter((a) => a.type === "support").length,
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">タイムライン</h1>
+          <p className="text-muted-foreground mt-2">すべての活動を時系列で確認</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-muted-foreground">読み込み中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">タイムライン</h1>
+          <p className="text-muted-foreground mt-2">すべての活動を時系列で確認</p>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
