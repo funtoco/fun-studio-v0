@@ -111,20 +111,36 @@ export function generateActivityTimeline(
     }
   })
 
-  // Add visa activities
+  // Add visa activities from status history dates
   visas.forEach((visa) => {
     const person = people.find((p) => p.id === visa.personId)
-    if (person) {
-      activities.push({
-        id: visa.id,
-        type: "visa",
-        title: `ビザ状況更新: ${visa.status}`,
-        personName: person.name,
-        datetime: visa.updatedAt,
-        status: visa.status,
-        link: `/visas`,
-      })
-    }
+    if (!person) return
+
+    // Create activity items for each status date that exists
+    const statusDates = [
+      { date: visa.documentPreparationDate, status: "書類準備中" },
+      { date: visa.documentCreationDate, status: "書類作成中" },
+      { date: visa.documentConfirmationDate, status: "書類確認中" },
+      { date: visa.applicationPreparationDate, status: "申請準備中" },
+      { date: visa.visaApplicationPreparationDate, status: "ビザ申請準備中" },
+      { date: visa.applicationDate, status: "申請中" },
+      { date: visa.additionalDocumentsDate, status: "追加書類" },
+      { date: visa.visaAcquiredDate, status: "ビザ取得済み" },
+    ]
+
+    statusDates.forEach(({ date, status }) => {
+      if (date) {
+        activities.push({
+          id: `${visa.id}-${status}`,
+          type: "visa",
+          title: `ビザ状況: ${status}`,
+          personName: person.name,
+          datetime: date,
+          status: status,
+          link: `/visas`,
+        })
+      }
+    })
   })
 
   // Add support action activities

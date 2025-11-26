@@ -42,6 +42,15 @@ export type Visa = {
   resultAt?: string
   manager?: string
   updatedAt: string
+  // Status history dates
+  documentPreparationDate?: string
+  documentCreationDate?: string
+  documentConfirmationDate?: string
+  applicationPreparationDate?: string
+  visaApplicationPreparationDate?: string
+  applicationDate?: string
+  additionalDocumentsDate?: string
+  visaAcquiredDate?: string
 }
 
 export type MeetingNote = {

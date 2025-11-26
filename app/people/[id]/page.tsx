@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { DeadlineChip } from "@/components/ui/deadline-chip"
 import { getPersonById } from "@/lib/supabase/people-server"
-import { getVisasByPersonId } from "@/lib/supabase/visas"
+import { getVisasByPersonId } from "@/lib/supabase/visas-server"
 import { allMeetings } from "@/data/meetings"
 import { supportActions } from "@/data/support-actions"
 import { formatDate, formatDateTime } from "@/lib/utils"
@@ -104,6 +104,7 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
           <PersonDetailTabs 
             personMeetings={personMeetings}
             personSupportActions={personSupportActions}
+            personVisas={personVisas}
           />
         </div>
 
