@@ -240,7 +240,7 @@ export function DataTable<T extends Record<string, any>>({
         </div>
 
         {/* Export */}
-        <Button variant="outline" onClick={exportToCsv} className="gap-2 bg-transparent">
+        <Button variant="outline" onClick={exportToCsv} className="gap-2">
           <Download className="h-4 w-4" />
           CSV出力
         </Button>
