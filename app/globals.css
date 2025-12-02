@@ -50,6 +50,14 @@
   --color-success: 34 197 94; /* green-500 */
   --color-warning: 245 158 11; /* amber-500 */
   --color-danger: 239 68 68; /* red-500 */
+
+  /* Neumorphism colors - Light theme */
+  --neumorphic-base: #ffffff; /* White - ベースは白 */
+  --neumorphic-base-hover: #f6f6f6; /* White 200 - ホバー時のグレー */
+  --neumorphic-shadow-dark: #e0e0e0; /* より薄いグレー */
+  --neumorphic-shadow-light: #ffffff; /* White */
+  --neumorphic-text: #7d7d7d; /* Gray 400 */
+  --neumorphic-placeholder: #bababa; /* Gray 200 */
 }
 
 .dark {
@@ -97,6 +105,13 @@
   --color-success: 74 222 128; /* green-400 */
   --color-warning: 251 191 36; /* amber-400 */
   --color-danger: 248 113 113; /* red-400 */
+
+  /* Neumorphism colors - Dark theme */
+  --neumorphic-base: #212121; /* Black 300 */
+  --neumorphic-shadow-dark: #141414; /* Black 400 */
+  --neumorphic-shadow-light: #2e2e2e; /* Black 200 */
+  --neumorphic-text: #f6f6f6; /* White 200 */
+  --neumorphic-placeholder: #9b9b9b; /* Gray 300 */
 }
 
 @theme inline {
@@ -146,9 +161,50 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-color: var(--neumorphic-base);
+  }
+  
+  /* ページ全体の背景も白基調に */
+  html {
+    background-color: var(--neumorphic-base);
   }
   /* Added Japanese font optimization */
   .font-ja {
     font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Neumorphism utility classes */
+  .neumorphic {
+    background: var(--neumorphic-base);
+    box-shadow: 
+      2px 2px 4px var(--neumorphic-shadow-dark),
+      -2px -2px 4px var(--neumorphic-shadow-light);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .neumorphic-pressed,
+  .neumorphic:hover,
+  .neumorphic:active {
+    background: var(--neumorphic-base-hover);
+    box-shadow: 
+      inset 2px 2px 4px var(--neumorphic-shadow-dark),
+      inset -2px -2px 4px var(--neumorphic-shadow-light);
+  }
+
+  .neumorphic-inset {
+    background: var(--neumorphic-base);
+    box-shadow: 
+      inset 2px 2px 4px var(--neumorphic-shadow-dark),
+      inset -2px -2px 4px var(--neumorphic-shadow-light);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .neumorphic-inset:hover {
+    background: var(--neumorphic-base-hover);
+    box-shadow: 
+      2px 2px 4px var(--neumorphic-shadow-dark),
+      -2px -2px 4px var(--neumorphic-shadow-light);
   }
 }
