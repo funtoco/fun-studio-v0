@@ -63,7 +63,7 @@ export default function SignupPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <Image src="/funstudio-logo.webp" alt="FunStudio" width={120} height={32} className="h-8 w-auto" />
+            <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
             </div>
             <CardTitle className="text-2xl">登録完了</CardTitle>
           </CardHeader>
@@ -89,10 +89,10 @@ export default function SignupPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Image src="/funstudio-logo.webp" alt="FunStudio" width={120} height={32} className="h-8 w-auto" />
+            <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
           </div>
           <CardTitle className="text-2xl">新規登録</CardTitle>
-          <CardDescription>FunStudio ビザ進捗管理システムのアカウントを作成してください</CardDescription>
+          <CardDescription>FunBase のアカウントを作成してください</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -121,7 +121,7 @@ export default function SignupPage() {
                 type="text"
                 value={tenantName}
                 onChange={(e) => setTenantName(e.target.value)}
-                placeholder="例: FunStudio株式会社"
+                placeholder="例: FunBase株式会社"
                 required
                 disabled={loading}
               />

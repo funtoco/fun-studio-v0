@@ -76,7 +76,7 @@ export function ConnectorShell({ children }: ConnectorShellProps) {
           {/* Logo/Header */}
           <div className="flex h-16 items-center justify-between px-6 border-b border-sidebar-border">
             <div className="flex items-center gap-2">
-              <Image src="/funstudio-logo.webp" alt="FunStudio" width={120} height={32} className="h-8 w-auto" />
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
             </div>
             <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
               <X className="h-4 w-4" />
@@ -156,7 +156,7 @@ export function ConnectorShell({ children }: ConnectorShellProps) {
 
           {/* Footer */}
           <div className="border-t border-sidebar-border p-4">
-            <div className="text-xs text-sidebar-foreground/60">ビザ進捗管理システム v1.0</div>
+            <div className="text-xs text-sidebar-foreground/60">FunBase</div>
           </div>
         </div>
       </div>

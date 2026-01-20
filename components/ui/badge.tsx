@@ -10,13 +10,13 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          'neumorphic text-foreground [a&]:hover:neumorphic-pressed',
+          'bg-primary/10 text-primary border border-primary/20 shadow-none',
         secondary:
-          'neumorphic text-secondary-foreground [a&]:hover:neumorphic-pressed',
+          'bg-secondary text-secondary-foreground border border-border shadow-none',
         destructive:
-          'neumorphic text-destructive [a&]:hover:neumorphic-pressed focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
+          'bg-destructive/10 text-destructive border border-destructive/30 shadow-none focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
         outline:
-          'neumorphic text-foreground [a&]:hover:neumorphic-pressed',
+          'bg-background text-foreground border border-border shadow-none',
       },
     },
     defaultVariants: {

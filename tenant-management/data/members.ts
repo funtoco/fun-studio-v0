@@ -4,7 +4,7 @@ export const members: TenantMember[] = [
   {
     id: "mem_001",
     tenantId: "tnt_001",
-    name: "FunStudio",
+    name: "FunBase",
     email: "info@funtoco.jp",
     role: "Owner",
     status: "Active",

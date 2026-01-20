@@ -12,9 +12,13 @@ import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "FunStudio - 外国人管理システム",
-  description: "外国人人材のビザ進捗と面談記録などを管理するシステム",
+  title: "FunBase",
+  description: "外国人人材の進捗と面談記録などを管理するシステム",
   generator: "v0.app",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
 }
 
 export default function RootLayout({
