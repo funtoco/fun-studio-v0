@@ -38,10 +38,10 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Image src="/funstudio-logo.webp" alt="FunStudio" width={120} height={32} className="h-8 w-auto" />
+            <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
           </div>
           <CardTitle className="text-2xl">ログイン</CardTitle>
-          <CardDescription>FunStudio ビザ進捗管理システムにログインしてください</CardDescription>
+          <CardDescription>FunBase へログインしてください</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

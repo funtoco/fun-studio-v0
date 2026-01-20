@@ -41,7 +41,7 @@ export default function DashboardPage() {
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">ダッシュボード</h1>
-          <p className="text-muted-foreground mt-2">ビザ進捗管理システムの概要</p>
+          <p className="text-muted-foreground mt-2">概要</p>
         </div>
 
         {/* KPI Cards */}

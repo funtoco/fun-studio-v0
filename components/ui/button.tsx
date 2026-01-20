@@ -10,16 +10,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'neumorphic text-foreground hover:neumorphic-pressed',
+          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:translate-y-[1px]',
         destructive:
-          'neumorphic text-destructive hover:neumorphic-pressed focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
+          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/30 dark:focus-visible:ring-destructive/40',
         outline:
-          'neumorphic text-foreground hover:neumorphic-pressed',
+          'border border-border bg-background text-foreground shadow-sm hover:bg-muted',
         secondary:
-          'neumorphic text-secondary-foreground hover:neumorphic-pressed',
+          'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost:
-          'neumorphic text-foreground hover:neumorphic-pressed',
-        link: 'text-primary underline-offset-4 hover:underline',
+          'text-foreground hover:bg-muted shadow-none',
+        link: 'text-primary underline-offset-4 hover:underline shadow-none',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',

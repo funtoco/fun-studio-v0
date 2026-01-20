@@ -111,11 +111,11 @@ export function CreateTenantDialog({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">テナント名</Label>
-              <Input 
-                id="name" 
-                value={name} 
-                onChange={(e) => handleNameChange(e.target.value)} 
-                placeholder="例: FunStudio株式会社" 
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="例: FunBase株式会社"
               />
               {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
             </div>
@@ -125,7 +125,7 @@ export function CreateTenantDialog({
                 id="slug"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                placeholder="例: funstudio-inc"
+                placeholder="例: funbase-inc"
               />
               <p className="text-sm text-muted-foreground">
                 スラッグはURLで使用されます。小文字、数字、ハイフンのみ使用できます。

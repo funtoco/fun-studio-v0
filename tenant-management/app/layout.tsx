@@ -12,8 +12,8 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: "FunStudio - テナント管理",
-  description: "テナント・メンバー管理システム",
+  title: "FunBase - テナント管理",
+  description: "テナント・メンバー管理",
   generator: "v0.app",
 }
 

@@ -17,7 +17,7 @@ export const connectors: Connector[] = [
     type: "kintone",
     status: "connected",
     subdomain: "example",
-    oauthClientName: "FunStudio OAuth Client",
+    oauthClientName: "FunBase OAuth Client",
     createdAt: "2024-01-15T09:00:00Z",
     updatedAt: "2024-03-10T14:30:00Z",
     lastSync: "2024-03-10T14:30:00Z",

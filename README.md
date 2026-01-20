@@ -1,6 +1,6 @@
-# FunStudio - ビザ進捗管理システム
+# FunBase
 
-外国人人材のビザ進捗と面談記録を管理するNext.jsアプリケーションです。
+外国人人材の進捗と面談記録を管理するNext.jsアプリケーションです。
 
 ## 機能概要
 
@@ -46,6 +46,11 @@ npm start
 \`\`\`
 
 開発サーバーは http://localhost:3000 で起動します。
+
+# ローカルのデータ投入
+
+https://github.com/funtoco/fun-docs/issues/237
+こちらを参考に
 
 ## データ構成
 

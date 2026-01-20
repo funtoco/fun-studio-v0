@@ -52,7 +52,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
           <Building2 className="size-6" />
-          <span className="font-semibold">FunStudio</span>
+          <span className="font-semibold">FunBase</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
