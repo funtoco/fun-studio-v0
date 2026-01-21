@@ -192,18 +192,32 @@ export function DataTable<T extends Record<string, any>>({
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 min-w-[140px] max-w-[240px] justify-between"
+                    className={cn(
+                      "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 min-w-[140px] max-w-[240px] justify-between",
+                      selectedCount > 0 &&
+                        "border-blue-600 bg-blue-600 text-white hover:bg-blue-600/90 hover:text-white",
+                    )}
                   >
-                    <FilterIcon className="h-4 w-4 flex-shrink-0 mr-2" />
+                    <FilterIcon
+                      className={cn(
+                        "h-4 w-4 flex-shrink-0 mr-2",
+                        selectedCount > 0 ? "text-white" : "text-muted-foreground",
+                      )}
+                    />
                     <span className="truncate">
                       {filter.label}
                       {selectedCount > 0 && (
-                        <span className="ml-1 text-muted-foreground">
+                        <span className="ml-1 text-white/80">
                           ({selectedCount})
                         </span>
                       )}
                     </span>
-                    <ChevronDownIcon className="h-4 w-4 flex-shrink-0 opacity-50 ml-2" />
+                    <ChevronDownIcon
+                      className={cn(
+                        "h-4 w-4 flex-shrink-0 ml-2",
+                        selectedCount > 0 ? "text-white/80" : "opacity-50",
+                      )}
+                    />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[240px] p-4" align="start">
