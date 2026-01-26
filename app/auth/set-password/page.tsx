@@ -22,6 +22,7 @@ export default function SetPasswordPage() {
   const [sessionEstablished, setSessionEstablished] = useState(false)
   const [isAlreadyLoggedIn, setIsAlreadyLoggedIn] = useState(false)
   const [invalidLink, setInvalidLink] = useState(false)
+  const [authType, setAuthType] = useState<"signup" | "invite" | "recovery" | null>(null)
   
   const router = useRouter()
   const supabase = createClient()
@@ -56,7 +57,7 @@ export default function SetPasswordPage() {
           })
           
           if (hashErrorCode === 'otp_expired') {
-            setError("リンクの有効期限が切れています。招待メールを再送してください。")
+            setError("リンクの有効期限が切れています。メールを再送してください。")
           } else {
             setError("このリンクは無効です。もう一度お試しください。")
           }
@@ -82,7 +83,7 @@ export default function SetPasswordPage() {
         // Handle errors from verify-invite route
         if (error) {
           if (error === 'expired') {
-            setError("リンクの有効期限が切れています。招待メールを再送してください。")
+            setError("リンクの有効期限が切れています。メールを再送してください。")
           } else {
             setError("このリンクは無効です。もう一度お試しください。")
           }
@@ -92,6 +93,7 @@ export default function SetPasswordPage() {
 
         // If verified by verify-invite route, check if user is now logged in
         if (verified === 'true') {
+          setAuthType("invite")
           const { data: { user } } = await supabase.auth.getUser()
           console.log('User after verification:', {
             hasUser: !!user,
@@ -122,6 +124,7 @@ export default function SetPasswordPage() {
 
         // If we have a token from Supabase verify endpoint, handle it directly
         if (token && type === 'invite') {
+          setAuthType("invite")
           console.log('Detected Supabase invite token, verifying directly...')
           
           try {
@@ -162,7 +165,7 @@ export default function SetPasswordPage() {
 
             if (error) {
               console.error('Direct invitation verification error:', error)
-              setError("リンクの有効期限が切れています。招待メールを再送してください。")
+              setError("リンクの有効期限が切れています。メールを再送してください。")
               setInvalidLink(true)
               return
             }
@@ -205,6 +208,8 @@ export default function SetPasswordPage() {
           setInvalidLink(true)
           return
         }
+
+        setAuthType(type)
 
         // Establish session
         const { data, error } = await supabase.auth.setSession({
@@ -269,7 +274,7 @@ export default function SetPasswordPage() {
 
       if (updateError) {
         if (updateError.message.includes('refresh_token') || updateError.message.includes('expired')) {
-          setError("リンクの有効期限が切れています。招待メールを再送してください。")
+          setError("リンクの有効期限が切れています。メールを再送してください。")
         } else {
           setError(updateError.message)
         }
@@ -353,19 +358,32 @@ export default function SetPasswordPage() {
             >
               ログインページへ
             </Button>
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <Link 
                 href="/auth/resend-invite" 
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
                 リンクが期限切れの場合はこちら（再送）
               </Link>
+              <div>
+                <Link
+                  href="/auth/reset-password"
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  パスワード再設定メールを送信する
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
     )
   }
+
+  const formTitle = authType === "recovery" ? "パスワード再設定" : "初回パスワード設定"
+  const formDescription =
+    authType === "recovery" ? "新しいパスワードを設定してください" : "新しいパスワードを設定してください"
+  const successTitle = authType === "recovery" ? "パスワードを更新しました" : "パスワードを設定しました"
 
   // Success state
   if (success) {
@@ -374,7 +392,7 @@ export default function SetPasswordPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-            <CardTitle>パスワードを設定しました</CardTitle>
+            <CardTitle>{successTitle}</CardTitle>
             <CardDescription>
               画面を切り替えます…
             </CardDescription>
@@ -402,10 +420,8 @@ export default function SetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>初回パスワード設定</CardTitle>
-          <CardDescription>
-            新しいパスワードを設定してください
-          </CardDescription>
+          <CardTitle>{formTitle}</CardTitle>
+          <CardDescription>{formDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
