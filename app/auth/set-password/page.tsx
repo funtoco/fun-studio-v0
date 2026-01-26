@@ -123,39 +123,32 @@ export default function SetPasswordPage() {
           search: window.location.search
         })
 
-        // If we have a token from Supabase verify endpoint, handle it directly
-        if (token && type === 'invite') {
-          setAuthType("invite")
-          console.log('Detected Supabase invite token, verifying directly...')
-          
+        const verifyToken = async (tokenValue: string, tokenType: 'invite' | 'recovery') => {
           try {
-            // Try to verify the invitation token
             let data, error
-            
+
             try {
-              // First try with token_hash
               const result = await supabase.auth.verifyOtp({
-                token_hash: token,
-                type: 'invite'
+                token_hash: tokenValue,
+                type: tokenType
               })
               data = result.data
               error = result.error
             } catch (verifyError) {
               console.log('verifyOtp failed, trying alternative method:', verifyError)
-              // If verifyOtp fails, try to use the token directly
               const result = await supabase.auth.verifyOtp({
-                token: token,
-                type: 'invite'
+                token: tokenValue,
+                type: tokenType
               })
               data = result.data
               error = result.error
             }
-            
+
             console.log('Token verification attempt:', {
-              token: token ? `${token.substring(0, 10)}...` : 'missing',
-              tokenLength: token?.length,
-              type: 'invite',
-              fullToken: token // デバッグ用（本番では削除）
+              token: tokenValue ? `${tokenValue.substring(0, 10)}...` : 'missing',
+              tokenLength: tokenValue?.length,
+              type: tokenType,
+              fullToken: tokenValue // デバッグ用（本番では削除）
             })
 
             console.log('Direct OTP verification result:', {
@@ -165,26 +158,36 @@ export default function SetPasswordPage() {
             })
 
             if (error) {
-              console.error('Direct invitation verification error:', error)
+              console.error('Direct verification error:', error)
               setError("リンクの有効期限が切れています。メールを再送してください。")
               setInvalidLink(true)
-              return
+              return false
             }
 
             if (data.session && data.user) {
               console.log('User metadata:', data.user.user_metadata)
               setSessionEstablished(true)
-              // Clear the URL parameters
               window.history.replaceState({}, document.title, window.location.pathname)
-              return
-            } else {
-              console.log('No session established after direct verification')
-              setInvalidLink(true)
-              return
+              return true
             }
-          } catch (error) {
-            console.error('Direct verification error:', error)
+
+            console.log('No session established after direct verification')
             setInvalidLink(true)
+            return false
+          } catch (verifyError) {
+            console.error('Direct verification error:', verifyError)
+            setInvalidLink(true)
+            return false
+          }
+        }
+
+        // If we have a token from Supabase verify endpoint, handle it directly
+        if (token && (type === 'invite' || type === 'recovery')) {
+          setAuthType(type)
+          console.log(`Detected Supabase ${type} token, verifying directly...`)
+
+          const verifiedToken = await verifyToken(token, type)
+          if (verifiedToken) {
             return
           }
         }
