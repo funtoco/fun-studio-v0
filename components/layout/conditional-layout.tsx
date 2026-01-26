@@ -15,7 +15,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 
   // 認証が不要なページ（ログイン、サインアップ）
   const publicPages = ["/login", "/signup"]
-  const isPublicPage = publicPages.includes(pathname)
+  const isPublicPage = publicPages.includes(pathname) || pathname.startsWith("/auth")
 
   if (loading) {
     return (

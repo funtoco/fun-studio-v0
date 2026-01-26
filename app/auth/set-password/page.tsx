@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function SetPasswordPage() {
   const [password, setPassword] = useState("")
@@ -317,9 +318,12 @@ export default function SetPasswordPage() {
   // Already logged in
   if (isAlreadyLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
             <CardTitle>すでに設定済みです</CardTitle>
             <CardDescription>
@@ -342,9 +346,12 @@ export default function SetPasswordPage() {
   // Invalid link
   if (invalidLink) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
             <CardTitle>このリンクは無効です</CardTitle>
             <CardDescription>
@@ -388,9 +395,12 @@ export default function SetPasswordPage() {
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
             <CardTitle>{successTitle}</CardTitle>
             <CardDescription>
@@ -405,9 +415,12 @@ export default function SetPasswordPage() {
   // Show form only if session is established
   if (!sessionEstablished) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
             <CardTitle>セッションを確立中...</CardTitle>
           </CardHeader>
@@ -417,9 +430,12 @@ export default function SetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+          </div>
           <CardTitle>{formTitle}</CardTitle>
           <CardDescription>{formDescription}</CardDescription>
         </CardHeader>
