@@ -31,13 +31,6 @@ export default function SetPasswordPage() {
   useEffect(() => {
     const initializeSession = async () => {
       try {
-        // Check if user is already logged in
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          setIsAlreadyLoggedIn(true)
-          return
-        }
-
         // Parse hash from URL (for direct invitation links and errors)
         const hash = window.location.hash.substring(1)
         const hashParams = new URLSearchParams(hash)
@@ -73,6 +66,14 @@ export default function SetPasswordPage() {
         const error = urlParams.get('error')
         const verified = urlParams.get('verified')
         const userId = urlParams.get('user_id')
+
+        if (!type) {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            setIsAlreadyLoggedIn(true)
+            return
+          }
+        }
 
         console.log('URL parameters:', {
           error,
