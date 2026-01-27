@@ -81,6 +81,12 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-4 text-center text-sm">
+            <Link href="/auth/reset-password" className="text-primary hover:underline">
+              パスワードをお忘れの方はこちら
+            </Link>
+          </div>
+
+          <div className="mt-4 text-center text-sm">
             アカウントをお持ちでない方は{" "}
             <Link href="/signup" className="text-primary hover:underline">
               新規登録

@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 export default function SetPasswordPage() {
   const [password, setPassword] = useState("")
@@ -22,6 +23,7 @@ export default function SetPasswordPage() {
   const [sessionEstablished, setSessionEstablished] = useState(false)
   const [isAlreadyLoggedIn, setIsAlreadyLoggedIn] = useState(false)
   const [invalidLink, setInvalidLink] = useState(false)
+  const [authType, setAuthType] = useState<"signup" | "invite" | "recovery" | null>(null)
   
   const router = useRouter()
   const supabase = createClient()
@@ -29,13 +31,6 @@ export default function SetPasswordPage() {
   useEffect(() => {
     const initializeSession = async () => {
       try {
-        // Check if user is already logged in
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          setIsAlreadyLoggedIn(true)
-          return
-        }
-
         // Parse hash from URL (for direct invitation links and errors)
         const hash = window.location.hash.substring(1)
         const hashParams = new URLSearchParams(hash)
@@ -56,7 +51,7 @@ export default function SetPasswordPage() {
           })
           
           if (hashErrorCode === 'otp_expired') {
-            setError("リンクの有効期限が切れています。招待メールを再送してください。")
+            setError("リンクの有効期限が切れています。メールを再送してください。")
           } else {
             setError("このリンクは無効です。もう一度お試しください。")
           }
@@ -72,6 +67,14 @@ export default function SetPasswordPage() {
         const verified = urlParams.get('verified')
         const userId = urlParams.get('user_id')
 
+        if (!type) {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            setIsAlreadyLoggedIn(true)
+            return
+          }
+        }
+
         console.log('URL parameters:', {
           error,
           verified,
@@ -82,7 +85,7 @@ export default function SetPasswordPage() {
         // Handle errors from verify-invite route
         if (error) {
           if (error === 'expired') {
-            setError("リンクの有効期限が切れています。招待メールを再送してください。")
+            setError("リンクの有効期限が切れています。メールを再送してください。")
           } else {
             setError("このリンクは無効です。もう一度お試しください。")
           }
@@ -92,6 +95,7 @@ export default function SetPasswordPage() {
 
         // If verified by verify-invite route, check if user is now logged in
         if (verified === 'true') {
+          setAuthType("invite")
           const { data: { user } } = await supabase.auth.getUser()
           console.log('User after verification:', {
             hasUser: !!user,
@@ -120,38 +124,32 @@ export default function SetPasswordPage() {
           search: window.location.search
         })
 
-        // If we have a token from Supabase verify endpoint, handle it directly
-        if (token && type === 'invite') {
-          console.log('Detected Supabase invite token, verifying directly...')
-          
+        const verifyToken = async (tokenValue: string, tokenType: 'invite' | 'recovery') => {
           try {
-            // Try to verify the invitation token
             let data, error
-            
+
             try {
-              // First try with token_hash
               const result = await supabase.auth.verifyOtp({
-                token_hash: token,
-                type: 'invite'
+                token_hash: tokenValue,
+                type: tokenType
               })
               data = result.data
               error = result.error
             } catch (verifyError) {
               console.log('verifyOtp failed, trying alternative method:', verifyError)
-              // If verifyOtp fails, try to use the token directly
               const result = await supabase.auth.verifyOtp({
-                token: token,
-                type: 'invite'
+                token: tokenValue,
+                type: tokenType
               })
               data = result.data
               error = result.error
             }
-            
+
             console.log('Token verification attempt:', {
-              token: token ? `${token.substring(0, 10)}...` : 'missing',
-              tokenLength: token?.length,
-              type: 'invite',
-              fullToken: token // デバッグ用（本番では削除）
+              token: tokenValue ? `${tokenValue.substring(0, 10)}...` : 'missing',
+              tokenLength: tokenValue?.length,
+              type: tokenType,
+              fullToken: tokenValue // デバッグ用（本番では削除）
             })
 
             console.log('Direct OTP verification result:', {
@@ -161,26 +159,36 @@ export default function SetPasswordPage() {
             })
 
             if (error) {
-              console.error('Direct invitation verification error:', error)
-              setError("リンクの有効期限が切れています。招待メールを再送してください。")
+              console.error('Direct verification error:', error)
+              setError("リンクの有効期限が切れています。メールを再送してください。")
               setInvalidLink(true)
-              return
+              return false
             }
 
             if (data.session && data.user) {
               console.log('User metadata:', data.user.user_metadata)
               setSessionEstablished(true)
-              // Clear the URL parameters
               window.history.replaceState({}, document.title, window.location.pathname)
-              return
-            } else {
-              console.log('No session established after direct verification')
-              setInvalidLink(true)
-              return
+              return true
             }
-          } catch (error) {
-            console.error('Direct verification error:', error)
+
+            console.log('No session established after direct verification')
             setInvalidLink(true)
+            return false
+          } catch (verifyError) {
+            console.error('Direct verification error:', verifyError)
+            setInvalidLink(true)
+            return false
+          }
+        }
+
+        // If we have a token from Supabase verify endpoint, handle it directly
+        if (token && (type === 'invite' || type === 'recovery')) {
+          setAuthType(type)
+          console.log(`Detected Supabase ${type} token, verifying directly...`)
+
+          const verifiedToken = await verifyToken(token, type)
+          if (verifiedToken) {
             return
           }
         }
@@ -205,6 +213,8 @@ export default function SetPasswordPage() {
           setInvalidLink(true)
           return
         }
+
+        setAuthType(type)
 
         // Establish session
         const { data, error } = await supabase.auth.setSession({
@@ -269,7 +279,7 @@ export default function SetPasswordPage() {
 
       if (updateError) {
         if (updateError.message.includes('refresh_token') || updateError.message.includes('expired')) {
-          setError("リンクの有効期限が切れています。招待メールを再送してください。")
+          setError("リンクの有効期限が切れています。メールを再送してください。")
         } else {
           setError(updateError.message)
         }
@@ -312,9 +322,12 @@ export default function SetPasswordPage() {
   // Already logged in
   if (isAlreadyLoggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
             <CardTitle>すでに設定済みです</CardTitle>
             <CardDescription>
@@ -337,9 +350,12 @@ export default function SetPasswordPage() {
   // Invalid link
   if (invalidLink) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
             <CardTitle>このリンクは無効です</CardTitle>
             <CardDescription>
@@ -353,13 +369,21 @@ export default function SetPasswordPage() {
             >
               ログインページへ
             </Button>
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <Link 
                 href="/auth/resend-invite" 
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
                 リンクが期限切れの場合はこちら（再送）
               </Link>
+              <div>
+                <Link
+                  href="/auth/reset-password"
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  パスワード再設定メールを送信する
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -367,14 +391,22 @@ export default function SetPasswordPage() {
     )
   }
 
+  const formTitle = authType === "recovery" ? "パスワード再設定" : "初回パスワード設定"
+  const formDescription =
+    authType === "recovery" ? "新しいパスワードを設定してください" : "新しいパスワードを設定してください"
+  const successTitle = authType === "recovery" ? "パスワードを更新しました" : "パスワードを設定しました"
+
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-            <CardTitle>パスワードを設定しました</CardTitle>
+            <CardTitle>{successTitle}</CardTitle>
             <CardDescription>
               画面を切り替えます…
             </CardDescription>
@@ -387,9 +419,12 @@ export default function SetPasswordPage() {
   // Show form only if session is established
   if (!sessionEstablished) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+            </div>
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
             <CardTitle>セッションを確立中...</CardTitle>
           </CardHeader>
@@ -399,13 +434,14 @@ export default function SetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>初回パスワード設定</CardTitle>
-          <CardDescription>
-            新しいパスワードを設定してください
-          </CardDescription>
+          <div className="flex justify-center mb-4">
+            <Image src="/funstudio-logo.webp" alt="FunBase" width={120} height={32} className="h-8 w-auto" />
+          </div>
+          <CardTitle>{formTitle}</CardTitle>
+          <CardDescription>{formDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
