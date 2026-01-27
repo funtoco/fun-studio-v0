@@ -215,19 +215,7 @@ export default function VisasPage() {
                         {visa.person.tenantId && <span>テナントID: {visa.person.tenantId}</span>}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {visa.expiryDate && (
-                        <DeadlineChip 
-                          date={visa.expiryDate} 
-                          label="期限"
-                        />
-                      )}
-                      {(isWarning || isUrgent) && (
-                        <Badge variant={isUrgent ? "destructive" : "secondary"} className="text-xs">
-                          期限注意
-                        </Badge>
-                      )}
-                    </div>
+                    <div className="flex flex-col items-end gap-2" />
                   </div>
                 </CardContent>
               </Card>

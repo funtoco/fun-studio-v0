@@ -211,7 +211,7 @@ export default function VisasPage() {
           id: visa.id,
           title: person.name,
           subtitle: visa.type,
-          badge: isWarning ? "期限注意" : undefined,
+          badge: undefined,
           badgeVariant: isUrgent ? ("destructive" as const) : ("secondary" as const),
           metadata: {
             personId: person.id,
@@ -478,7 +478,7 @@ export default function VisasPage() {
                 <SelectItem value="90">90日以内</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground">期限切れ</span>
+            <span className="text-xs text-muted-foreground">期限</span>
           </div>
 
           <Popover>
