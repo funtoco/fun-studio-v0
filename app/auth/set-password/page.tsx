@@ -193,6 +193,16 @@ export default function SetPasswordPage() {
           }
         }
 
+        // Handle PKCE flow: session was already established by /auth/callback
+        if (type === 'recovery' || type === 'invite') {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            setSessionEstablished(true)
+            window.history.replaceState({}, document.title, window.location.pathname)
+            return
+          }
+        }
+
         // Validate required parameters for direct hash links
         if (!type || !accessToken || !refreshToken) {
           setInvalidLink(true)

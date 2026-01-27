@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
 
     try {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-      const redirectTo = `${appUrl}/auth/set-password`
+      const redirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent('/auth/set-password?type=recovery')}`
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
       })
