@@ -478,7 +478,7 @@ export default function VisasPage() {
                 <SelectItem value="90">90日以内</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground">期限切れ</span>
+            <span className="text-xs text-muted-foreground">期限</span>
           </div>
 
           <Popover>

@@ -14,18 +14,7 @@ export function DeadlineChip({ date, label = "期限", className }: DeadlineChip
   const isWarning = isExpiringSoon(date, 30)
 
   if (daysUntil < 0) {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
-          "bg-red-100 text-red-800",
-          className,
-        )}
-      >
-        <AlertTriangle className="h-3 w-3" />
-        期限切れ
-      </span>
-    )
+    return null
   }
 
   if (isUrgent) {
