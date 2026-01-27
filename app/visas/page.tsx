@@ -211,7 +211,7 @@ export default function VisasPage() {
           id: visa.id,
           title: person.name,
           subtitle: visa.type,
-          badge: isWarning ? "期限間近" : undefined,
+          badge: undefined,
           badgeVariant: isUrgent ? ("destructive" as const) : ("secondary" as const),
           metadata: {
             personId: person.id,
