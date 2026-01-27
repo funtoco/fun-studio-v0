@@ -391,7 +391,7 @@ export default function VisasPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">ビザ進捗管理</h1>
-          <p className="text-muted-foreground mt-2">ビザ申請の進捗状況をKanban形式で確認</p>
+          <p className="text-muted-foreground mt-2">ビザ申請の進捗状況確認</p>
         </div>
         <div className="flex items-center justify-center py-8">
           <div className="text-muted-foreground">読み込み中...</div>
@@ -405,7 +405,7 @@ export default function VisasPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">ビザ進捗管理</h1>
-          <p className="text-muted-foreground mt-2">ビザ申請の進捗状況をKanban形式で確認</p>
+          <p className="text-muted-foreground mt-2">ビザ申請の進捗状況確認</p>
         </div>
         <div className="flex items-center justify-center py-8">
           <div className="text-red-500">{error}</div>
@@ -419,7 +419,7 @@ export default function VisasPage() {
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">ビザ進捗管理</h1>
-        <p className="text-muted-foreground mt-2">ビザ申請の進捗状況をKanban形式で確認</p>
+        <p className="text-muted-foreground mt-2">ビザ申請の進捗状況確認</p>
       </div>
 
       {/* Filters */}
