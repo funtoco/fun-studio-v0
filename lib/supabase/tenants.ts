@@ -186,42 +186,82 @@ export async function activateUserTenantMembership(
   userId: string,
   email: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = createClient()
-  console.log('userId', userId)
+  const supabase = createAdminClient()
   try {
-    // Find pending user_tenants records for this email
+    const identityFilter = email
+      ? `user_id.eq.${userId},email.eq.${email}`
+      : `user_id.eq.${userId}`
+
+    // Find pending user_tenants records for this user/email
     const { data: pendingMemberships, error: fetchError } = await supabase
       .from('user_tenants')
       .select()
-      .eq('user_id', userId)
-      // .eq('status', 'pending')
-    
+      .or(identityFilter)
+
     if (fetchError) {
       console.error('Error fetching pending memberships:', fetchError)
       return { success: false, error: fetchError.message }
     }
-    console.log('pendingMemberships', pendingMemberships)
+
     if (!pendingMemberships || pendingMemberships.length === 0) {
-      return { success: true } // No pending memberships to activate
+      const { data: userInfo, error: userError } = await supabase.auth.admin.getUserById(userId)
+
+      if (userError) {
+        console.error('Error fetching user metadata:', userError)
+        return { success: false, error: userError.message }
+      }
+
+      const metadata = userInfo?.user?.user_metadata ?? {}
+      const tenantId = metadata.tenant_id as string | undefined
+      const role = (metadata.role as UserTenant['role'] | undefined) ?? 'member'
+      const invitedBy = metadata.invited_by as string | undefined
+
+      if (!tenantId) {
+        return { success: false, error: 'No pending memberships found for user' }
+      }
+
+      const { error: insertError } = await supabase
+        .from('user_tenants')
+        .insert({
+          user_id: userId,
+          tenant_id: tenantId,
+          email,
+          role,
+          status: 'active',
+          invited_by: invitedBy,
+          joined_at: new Date().toISOString()
+        })
+
+      if (insertError) {
+        console.error('Error inserting user tenant membership:', insertError)
+        return { success: false, error: insertError.message }
+      }
+
+      return { success: true }
     }
-    
+
     // Update each pending membership with the user ID and activate
     for (const membership of pendingMemberships) {
+      if (membership.status === 'active') {
+        continue
+      }
+
       const { error: updateError } = await supabase
         .from('user_tenants')
         .update({
           user_id: userId,
+          email,
           status: 'active',
           joined_at: new Date().toISOString()
         })
         .eq('id', membership.id)
-      
+
       if (updateError) {
         console.error('Error updating user tenant membership:', updateError)
         return { success: false, error: updateError.message }
       }
     }
-    
+
     return { success: true }
   } catch (error) {
     console.error('Error in activateUserTenantMembership:', error)
