@@ -227,7 +227,7 @@ export default function PeoplePage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">人材一覧</h1>
-          <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
+          <p className="text-muted-foreground mt-2">人材の一覧と基本情報</p>
         </div>
         <div className="flex items-center justify-center py-8">
           <div className="text-muted-foreground">読み込み中...</div>
@@ -241,7 +241,7 @@ export default function PeoplePage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">人材一覧</h1>
-          <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
+          <p className="text-muted-foreground mt-2">人材の一覧と基本情報</p>
         </div>
         <div className="flex items-center justify-center py-8">
           <div className="text-red-500">{error}</div>
@@ -256,7 +256,7 @@ export default function PeoplePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">人材一覧</h1>
-          <p className="text-muted-foreground mt-2">外国人人材の一覧と基本情報</p>
+          <p className="text-muted-foreground mt-2">人材の一覧と基本情報</p>
         </div>
       </div>
 
