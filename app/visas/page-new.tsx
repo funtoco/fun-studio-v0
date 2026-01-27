@@ -224,7 +224,7 @@ export default function VisasPage() {
                       )}
                       {(isWarning || isUrgent) && (
                         <Badge variant={isUrgent ? "destructive" : "secondary"} className="text-xs">
-                          期限注意
+                          期限間近
                         </Badge>
                       )}
                     </div>
