@@ -83,7 +83,8 @@ export function PersonDetailTabs({ personMeetings, personSupportActions, personV
 
   const visaGroups = (() => {
     const byType = new Map<string, Visa[]>()
-    personVisas.forEach((visa) => {
+    const excludedVisaStatuses = new Set<string>(['内定[辞退•取消]•退職'])
+    personVisas.filter((visa) => !excludedVisaStatuses.has(visa.status)).forEach((visa) => {
       const type = visa.type || "不明"
       const group = byType.get(type) || []
       group.push(visa)

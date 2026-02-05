@@ -12,13 +12,21 @@ export interface VisaStatusCounts {
   [key: string]: number
 }
 
+const EXCLUDED_VISA_STATUSES = ["内定取消", "内定辞退", "退職"]
+
+const applyVisaStatusExclusions = (query: ReturnType<typeof createClient>["from"]) => {
+  return query.not('status', 'in', `(${EXCLUDED_VISA_STATUSES.map((status) => `"${status}"`).join(',')})`)
+}
+
 export async function getVisas(): Promise<Visa[]> {
   const supabase = createClient()
   
-  const { data, error } = await supabase
+  const { data, error } = await applyVisaStatusExclusions(
+    supabase
     .from('visas')
     .select()
     .order('updated_at', { ascending: false })
+  )
   
   if (error) {
     console.error('Error fetching visas:', error)
@@ -50,11 +58,13 @@ export async function getVisas(): Promise<Visa[]> {
 export async function getVisaById(id: string): Promise<Visa | null> {
   const supabase = createClient()
   
-  const { data, error } = await supabase
+  const { data, error } = await applyVisaStatusExclusions(
+    supabase
     .from('visas')
     .select()
     .eq('id', id)
     .single()
+  )
   
   if (error) {
     console.error('Error fetching visa:', error)
@@ -85,11 +95,13 @@ export async function getVisaById(id: string): Promise<Visa | null> {
 export async function getVisasByPersonId(personId: string): Promise<Visa[]> {
   const supabase = createClient()
   
-  const { data, error } = await supabase
+  const { data, error } = await applyVisaStatusExclusions(
+    supabase
     .from('visas')
     .select()
     .eq('person_id', personId)
     .order('updated_at', { ascending: false })
+  )
   
   if (error) {
     console.error('Error fetching visas by person ID:', error)
@@ -238,10 +250,12 @@ export async function deleteVisa(id: string): Promise<void> {
 export async function getVisaStatusCounts(): Promise<VisaStatusCounts> {
   const supabase = createClient()
   
-  const { data, error } = await supabase
+  const { data, error } = await applyVisaStatusExclusions(
+    supabase
     .from('visas')
     .select('status')
-  
+  )
+
   if (error) {
     console.error('Error fetching visa status counts:', error)
     throw error
@@ -279,6 +293,8 @@ export async function getVisasPaginated(
     `, { count: 'exact' })
     .order('updated_at', { ascending: false })
     .range(offset, offset + pageSize - 1)
+
+  query = applyVisaStatusExclusions(query)
   
   if (status && status !== 'all') {
     query = query.eq('status', status)
