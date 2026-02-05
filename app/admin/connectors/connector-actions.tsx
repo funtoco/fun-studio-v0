@@ -29,8 +29,12 @@ export function ConnectorActions({ tenantId, connector, connectionStatus, showLa
     
     setIsLoading(true)
     try {
-      const returnTo = encodeURIComponent(`/admin/connectors/${connector.id}${tenantId ? `?tenantId=${tenantId}` : ''}&connected=true`)
-      const startUrl = `/api/auth/connectors/${connector.provider}/start${tenantId ? `?tenantId=${tenantId}` : ''}&connectorId=${connector.id}&returnTo=${returnTo}`
+      const returnTo = `/admin/connectors/${connector.id}${tenantId ? `?tenantId=${tenantId}` : ''}&connected=true`
+      const params = new URLSearchParams()
+      if (tenantId) params.set('tenantId', tenantId)
+      params.set('connectorId', connector.id)
+      params.set('returnTo', returnTo)
+      const startUrl = `/api/auth/connectors/${connector.provider}/start?${params.toString()}`
       window.location.href = startUrl
     } catch (err) {
       console.error('Connection failed:', err)
