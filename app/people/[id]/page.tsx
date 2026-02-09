@@ -21,7 +21,9 @@ interface PersonDetailPageProps {
 export default async function PersonDetailPage({ params }: PersonDetailPageProps) {
   const person = await getPersonById(params.id)
   const personVisas = await getVisasByPersonId(params.id)
-  const visa = personVisas[0] // 最新のvisa
+  const excludedVisaStatuses = new Set<string>(['内定[辞退•取消]•退職'])
+  const filteredVisas = personVisas.filter((item) => !excludedVisaStatuses.has(item.status))
+  const visa = filteredVisas[0] // 最新のvisa (除外済み)
   const personMeetings = allMeetings.filter((m) => m.personId === params.id)
   const personSupportActions = supportActions.filter((sa) => sa.personId === params.id)
 
@@ -84,9 +86,9 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
                 {visa && (
                   <div className="text-right">
                     <StatusBadge status={visa.status} type="visa" />
-                    {visa.expiryDate && (
+                    {person.residenceCardExpiryDate && (
                       <div className="mt-2">
-                        <DeadlineChip date={visa.expiryDate} />
+                        <DeadlineChip date={person.residenceCardExpiryDate} label="在留カード期限" />
                       </div>
                     )}
                   </div>
@@ -143,13 +145,15 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
                   <span className="text-sm">{person.residenceCardNo}</span>
                 </div>
               )}
-              {person.residenceCardExpiryDate && (
+              {(person.residenceCardExpiryDate || visa?.expiryDate) && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">在留カード有効期限</span>
                   </div>
-                  <span className="text-sm">{person.residenceCardExpiryDate}</span>
+                  <span className="text-sm">
+                    {person.residenceCardExpiryDate ?? (visa?.expiryDate ? formatDate(visa.expiryDate) : "")}
+                  </span>
                 </div>
               )}
               {person.residenceCardIssuedDate && (
@@ -224,22 +228,10 @@ export default async function PersonDetailPage({ params }: PersonDetailPageProps
                   <span className="text-sm text-muted-foreground">状況</span>
                   <StatusBadge status={visa.status} type="visa" />
                 </div>
-                {visa.expiryDate && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">期限</span>
-                    <span className="text-sm">{formatDate(visa.expiryDate)}</span>
-                  </div>
-                )}
                 {visa.manager && (
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">担当者</span>
                     <span className="text-sm">{visa.manager}</span>
-                  </div>
-                )}
-                {visa.submittedAt && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">申請日</span>
-                    <span className="text-sm">{formatDate(visa.submittedAt)}</span>
                   </div>
                 )}
               </CardContent>
