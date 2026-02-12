@@ -6,7 +6,7 @@ import Select from "react-select"
 import { useKintoneWizardStore } from "./kintone-wizard-store"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { Loader2, Trash2 } from "lucide-react"
 
 function Stepper() {
   const state = useKintoneWizardStore((s) => s.uiFlowState)
@@ -617,7 +617,7 @@ function MappingFields() {
       <div className="text-sm text-muted-foreground">フィールドの対応関係を設定してください（最低1件必須）</div>
       <div className="space-y-2">
         {draftFieldMappings.map((m, idx) => (
-          <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border rounded">
+          <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-3 p-3 border rounded items-center">
             <KintoneFieldSelect
               value={m.source_field_code}
               onChange={(value) => {
@@ -656,6 +656,19 @@ function MappingFields() {
                 更新キー
               </label>
             </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-destructive shrink-0"
+              onClick={() => {
+                const copy = draftFieldMappings.filter((_, i) => i !== idx)
+                setDraftFieldMappings(copy)
+              }}
+              title="この行を削除"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         ))}
         <div>

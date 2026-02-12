@@ -691,7 +691,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, 
           action={
             <Button disabled title="先に接続してください">
               <Plus className="h-4 w-4 mr-2" />
-              ＋ Kintone から追加
+              Kintone から追加
             </Button>
           }
         />
@@ -727,7 +727,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, 
             openWizard({ connectorId: connector.id, tenantId })
           }}>
             <Plus className="h-4 w-4 mr-2" />
-            ＋ Kintone から追加
+            Kintone から追加
           </Button>
         </div>
         
@@ -745,7 +745,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, 
                 </Button>
                 <Button onClick={() => setShowAppPicker(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  ＋ Kintone から追加
+                  Kintone から追加
                 </Button>
               </div>
             </div>
@@ -934,7 +934,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, 
             openWizard({ connectorId: connector.id, tenantId })
           }}>
             <Plus className="h-4 w-4 mr-2" />
-            ＋ Kintone から追加
+            Kintone から追加
           </Button>
         </div>
         
@@ -947,7 +947,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, 
               openWizard({ connectorId: connector.id, tenantId })
             }}>
               <Plus className="h-4 w-4 mr-2" />
-              ＋ Kintone から追加
+              Kintone から追加
             </Button>
           }
         />
@@ -1068,7 +1068,7 @@ export function ConnectorAppMappingTab({ connector, tenantId, connectionStatus, 
           openWizard({ connectorId: connector.id, tenantId })
         }}>
           <Plus className="h-4 w-4 mr-2" />
-          ＋ Kintone から追加
+          Kintone から追加
         </Button>
       </div>
 

@@ -26,10 +26,7 @@ export async function getPeople(): Promise<Person[]> {
     return []
   }
   
-  // SupabaseのデータをPerson型に変換
-  return data.map((person: any) => {
-    console.log(`Person ${person.name} imagePath from DB:`, person.image_path)
-    return {
+  return data.map((person: any) => ({
       id: person.id,
       name: person.name,
       kana: person.kana,
@@ -52,8 +49,7 @@ export async function getPeople(): Promise<Person[]> {
       imagePath: person.image_path,
       createdAt: person.created_at,
       updatedAt: person.updated_at
-    }
-  })
+  }))
 }
 
 export async function getPersonById(id: string): Promise<Person | null> {
@@ -256,8 +252,9 @@ export async function getPersonByExternalId(externalId: string): Promise<Person 
       tenant:tenant_id (id, name)
     `)
     .eq('external_id', externalId)
-    .single()
-  
+    .limit(1)
+    .maybeSingle()
+
   console.log('Query result:', { data, error })
   
   if (error) {
