@@ -14,15 +14,15 @@ export async function GET(
   { params }: { params: { app: string } }
 ) {
   try {
-    const table = params.app
-    const allow = new Set(['people', 'visas', 'meetings'])
-    if (!allow.has(table)) {
+    const appKey = params.app
+    const allow = new Set(['people', 'people_image', 'visas', 'meetings'])
+    if (!allow.has(appKey)) {
       return NextResponse.json({ error: 'Table not allowed' }, { status: 400 })
     }
+    // 人材画像は people テーブルに書き込む
+    const table = appKey === 'people_image' ? 'people' : appKey
 
     const supabase = getAdminClient()
-    
-    // 動的取得: 新しいRPC関数を使用
     const { data, error } = await supabase.rpc('get_table_columns_raw', { p_table: table })
 
     if (error || !data) {
@@ -30,11 +30,15 @@ export async function GET(
       return NextResponse.json({ error: 'Schema RPC failed', code: 'SCHEMA_RPC_FAILED', detail: error?.message }, { status: 500 })
     }
 
-    const system = new Set(['created_at', 'updated_at'])
+    // マッピング対象外: システムで設定するため選択肢から除外
+    const system = new Set(['created_at', 'updated_at', 'tenant_id'])
+    const columnLabels: Record<string, string> = {
+      image_path: 'image_path (画像)',
+    }
     const columns = (data as any[])
       .map((c) => ({
         key: c.column_name,
-        label: c.column_name,
+        label: columnLabels[c.column_name] ?? c.column_name,
         type: c.data_type,
         nullable: !!c.is_nullable,
         position: c.ordinal_position,
@@ -49,5 +53,4 @@ export async function GET(
     return NextResponse.json({ error: 'Failed to fetch schema' }, { status: 500 })
   }
 }
-
 
