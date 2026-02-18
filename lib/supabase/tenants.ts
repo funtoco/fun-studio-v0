@@ -371,6 +371,11 @@ export async function deleteTenant(tenantId: string): Promise<{ success: boolean
       },
     })
 
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("text/html")) {
+      return { success: false, error: `Server error (${response.status}): Unexpected response format` }
+    }
+
     const result = await response.json()
     
     if (!response.ok) {
@@ -380,6 +385,41 @@ export async function deleteTenant(tenantId: string): Promise<{ success: boolean
     return { success: true }
   } catch (error) {
     console.error('Error in deleteTenant:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
+export async function updateTenant(
+  tenantId: string,
+  tenantData: {
+    name?: string
+    slug?: string
+    description?: string
+  }
+): Promise<{ success: boolean; tenant?: Tenant; error?: string }> {
+  try {
+    const response = await fetch(`/api/tenants/${tenantId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tenantData)
+    })
+
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("text/html")) {
+      return { success: false, error: `Server error (${response.status}): Unexpected response format` }
+    }
+
+    const result = await response.json()
+    
+    if (!response.ok) {
+      return { success: false, error: result.error || 'Failed to update tenant' }
+    }
+    
+    return { success: true, tenant: result.tenant }
+  } catch (error) {
+    console.error('Error in updateTenant:', error)
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }

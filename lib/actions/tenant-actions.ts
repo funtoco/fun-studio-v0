@@ -119,7 +119,8 @@ export async function createTenantAction(data: CreateTenantData) {
     }
 
     revalidatePath('/admin/tenants')
-    return { success: true, tenant }
+    // Return only serializable data (no Date objects) to avoid Server Components render error
+    return { success: true }
   } catch (error) {
     console.error('Create tenant error:', error)
     throw error
@@ -156,12 +157,12 @@ export async function getTenantsAction(): Promise<Tenant[]> {
     return []
   }
 
-  // Extract tenant information from user_tenants
+  // Extract tenant information from user_tenants and ensure serializable (no Date objects)
   const tenants = userTenants
     .map(ut => (ut as any).tenant)
     .filter(tenant => tenant !== null && tenant !== undefined) as Tenant[]
 
-  return tenants
+  return JSON.parse(JSON.stringify(tenants))
 }
 
 // Get tenant members

@@ -20,7 +20,7 @@ export async function DELETE(
       .select('role')
       .eq('tenant_id', params.tenantId)
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (userTenantError || !userTenant) {
       return NextResponse.json(
@@ -37,36 +37,132 @@ export async function DELETE(
     }
 
     // Use admin client for deletion to ensure all related data is deleted
-    const adminSupabase = createAdminClient()
-    
+    let adminSupabase;
     try {
-      // Delete tenant (this will cascade delete user_tenants due to foreign key constraint)
-      const { error: deleteError } = await adminSupabase
-        .from('tenants')
-        .delete()
-        .eq('id', params.tenantId)
+      adminSupabase = createAdminClient()
+    } catch (adminError) {
+      console.error('Error creating admin client:', adminError)
+      return NextResponse.json(
+        { error: "Configuration error: Failed to initialize admin client" },
+        { status: 500 }
+      )
+    }
+    
+    const { error: deleteError } = await adminSupabase
+      .from('tenants')
+      .delete()
+      .eq('id', params.tenantId)
 
-      if (deleteError) {
-        console.error('Error deleting tenant:', deleteError)
-        return NextResponse.json(
-          { error: "Failed to delete tenant" },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ 
-        success: true, 
-        message: "Tenant deleted successfully" 
-      })
-    } catch (error) {
-      console.error('Error in tenant deletion process:', error)
+    if (deleteError) {
+      console.error('Error deleting tenant:', deleteError)
       return NextResponse.json(
         { error: "Failed to delete tenant" },
         { status: 500 }
       )
     }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Tenant deleted successfully" 
+    })
   } catch (error) {
-    console.error("Error in tenant deletion API:", error)
+    console.error("Internal exception in tenant deletion:", error)
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { tenantId: string } }
+) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Check if user has permission (owner or admin)
+    const { data: userTenant, error: userTenantError } = await supabase
+      .from('user_tenants')
+      .select('role')
+      .eq('tenant_id', params.tenantId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (userTenantError || !userTenant) {
+      return NextResponse.json(
+        { error: "Tenant not found or access denied" },
+        { status: 404 }
+      )
+    }
+
+    if (userTenant.role !== 'owner' && userTenant.role !== 'admin') {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+    const { name, description, slug } = body
+
+    // Validate required fields
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json(
+        { error: "Tenant name is required" },
+        { status: 400 }
+      )
+    }
+
+    if (!slug || typeof slug !== 'string' || !slug.trim()) {
+      return NextResponse.json(
+        { error: "Slug is required" },
+        { status: 400 }
+      )
+    }
+
+    if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/.test(slug)) {
+      return NextResponse.json(
+        { error: "Slug must contain only lowercase letters, numbers, and hyphens" },
+        { status: 400 }
+      )
+    }
+
+    const updatePayload: Record<string, any> = {
+      name: name.trim(),
+      slug: slug.trim(),
+      updated_at: new Date().toISOString()
+    }
+    if (description !== undefined) {
+      updatePayload.description = description
+    }
+
+    const { data, error: updateError } = await supabase
+      .from('tenants')
+      .update(updatePayload)
+      .eq('id', params.tenantId)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Error updating tenant:', updateError)
+      return NextResponse.json(
+        { error: "Failed to update tenant" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      tenant: data
+    })
+  } catch (error) {
+    console.error("Error in tenant update API:", error)
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

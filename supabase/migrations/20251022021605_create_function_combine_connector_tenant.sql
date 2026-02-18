@@ -7,9 +7,15 @@ declare
     tenant_id uuid;
     connector_id uuid;
 begin 
-    select create_tenant
-    into tenant_id
-    from create_tenant(combine_tenant_with_connector.company_name, combine_tenant_with_connector.company_id, combine_tenant_with_connector.company_name);
+    tenant_id := create_tenant(
+        combine_tenant_with_connector.company_name, 
+        combine_tenant_with_connector.company_id, 
+        combine_tenant_with_connector.company_name
+    );
+
+    if tenant_id is null then
+        raise exception 'Failed to create tenant for company: %', combine_tenant_with_connector.company_name;
+    end if;
 
     select create_connector
     into connector_id
