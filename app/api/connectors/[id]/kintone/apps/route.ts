@@ -622,6 +622,7 @@ export async function POST(
           .single()
 
         if (tenant?.slug) {
+          const isNumeric = /^\d+$/.test(tenant.slug)
           const { error: filterError } = await supabase
             .from('connector_app_filters')
             .insert({
@@ -629,7 +630,7 @@ export async function POST(
               app_mapping_id: mapping.id,
               field_code: 'COID',
               field_name: '法人ID',
-              field_type: 'NUMBER',
+              field_type: isNumeric ? 'NUMBER' : 'SINGLE_LINE_TEXT',
               filter_value: tenant.slug,
               is_active: true
             })

@@ -92,7 +92,7 @@ export async function PATCH(
       .select('role')
       .eq('tenant_id', params.tenantId)
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (userTenantError || !userTenant) {
       return NextResponse.json(
@@ -111,14 +111,40 @@ export async function PATCH(
     const body = await request.json()
     const { name, description, slug } = body
 
+    // Validate required fields
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json(
+        { error: "Tenant name is required" },
+        { status: 400 }
+      )
+    }
+
+    if (!slug || typeof slug !== 'string' || !slug.trim()) {
+      return NextResponse.json(
+        { error: "Slug is required" },
+        { status: 400 }
+      )
+    }
+
+    if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/.test(slug)) {
+      return NextResponse.json(
+        { error: "Slug must contain only lowercase letters, numbers, and hyphens" },
+        { status: 400 }
+      )
+    }
+
+    const updatePayload: Record<string, any> = {
+      name: name.trim(),
+      slug: slug.trim(),
+      updated_at: new Date().toISOString()
+    }
+    if (description !== undefined) {
+      updatePayload.description = description
+    }
+
     const { data, error: updateError } = await supabase
       .from('tenants')
-      .update({
-        name,
-        description,
-        slug,
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', params.tenantId)
       .select()
       .single()

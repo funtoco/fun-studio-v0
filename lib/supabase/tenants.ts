@@ -406,6 +406,11 @@ export async function updateTenant(
       body: JSON.stringify(tenantData)
     })
 
+    const contentType = response.headers.get("content-type")
+    if (contentType && contentType.includes("text/html")) {
+      return { success: false, error: `Server error (${response.status}): Unexpected response format` }
+    }
+
     const result = await response.json()
     
     if (!response.ok) {

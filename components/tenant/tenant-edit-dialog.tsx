@@ -39,7 +39,7 @@ export function TenantEditDialog({
       setDescription(tenant.description || "")
       setSlug(tenant.slug)
     }
-  }, [tenant])
+  }, [tenant, open])
 
   const handleSave = async () => {
     if (!tenant) return
@@ -96,7 +96,7 @@ export function TenantEditDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             キャンセル
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving || !name.trim() || !slug.trim()}>
             {isSaving ? "保存中..." : "保存する"}
           </Button>
         </DialogFooter>
