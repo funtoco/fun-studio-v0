@@ -1,19 +1,34 @@
-create or replace function create_tenant(name text, slug text, description text)
+create or replace function create_tenant(name text, slug text, description text, owner_id uuid default null)
 returns uuid
 language plpgsql
+security definer
 as $$
 declare
     new_id uuid;
+    actual_owner_id uuid;
 begin
+    -- Determine the owner ID: use provided, then auth.uid()
+    actual_owner_id := coalesce(owner_id, auth.uid());
+    
     insert into tenants(name, slug, description, created_at, updated_at)
     values (create_tenant.name, create_tenant.slug, create_tenant.description, now(), now())
     returning id into new_id;
 
-    insert into user_tenants(user_id, tenant_id, role, status, email) values 
-        ('40effd49-899e-4581-bbab-a8a7037c2d28', new_id, 'admin', 'active','raffi@funtoco.jp'),
-        ('8e655bd3-a6fd-430e-8301-d6e842d997e6', new_id, 'owner', 'active','tomoaki.nashimura@funtoco.jp');
+    if actual_owner_id is not null then
+        insert into user_tenants(user_id, tenant_id, role, status, email) 
+        select 
+            actual_owner_id, 
+            new_id, 
+            'owner', 
+            'active',
+            coalesce(email, 'owner@funtoco.jp')
+        from auth.users where id = actual_owner_id;
+    end if;
     
     return new_id;
+exception when others then
+    raise log 'Error in create_tenant: %', sqlerrm;
+    return null;
 end;
 $$;
 

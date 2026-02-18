@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Building2, Users, Plus, MoreHorizontal, Trash2 } from "lucide-react"
+import { ArrowLeft, Building2, Users, Plus, MoreHorizontal, Trash2, Pencil } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { TenantMembersPage } from "@/components/tenant/tenant-members-page"
 import { CreateTenantDialog } from "@/components/tenant/create-tenant-dialog"
+import { TenantEditDialog } from "@/components/tenant/tenant-edit-dialog"
 import { createTenantAction, getTenantsAction, isUserOwnerOfAnyTenant, type CreateTenantData } from "@/lib/actions/tenant-actions"
-import { deleteTenant } from "@/lib/supabase/tenants"
+import { deleteTenant, updateTenant } from "@/lib/supabase/tenants"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/lib/hooks/use-toast"
 import { Tenant } from "@/tenant-management/types/tenant"
@@ -25,6 +26,7 @@ export default function AdminTenantsPage() {
   const [userTenants, setUserTenants] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTenant, setSelectedTenant] = useState<string | null>(null)
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
 
@@ -52,6 +54,32 @@ export default function AdminTenantsPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleUpdateTenant = async (tenantId: string, data: { name: string; description: string; slug: string }) => {
+    try {
+      const result = await updateTenant(tenantId, data)
+      if (result.success) {
+        toast({
+          title: "成功",
+          description: "テナント情報が更新されました",
+        })
+        await fetchData()
+      } else {
+        toast({
+          title: "エラー",
+          description: result.error || "更新に失敗しました",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error('Error updating tenant:', error)
+      toast({
+        title: "エラー",
+        description: "テナントの更新に失敗しました",
+        variant: "destructive",
+      })
     }
   }
 
@@ -186,7 +214,11 @@ export default function AdminTenantsPage() {
           const userRole = userTenant?.role || 'guest'
           
           return (
-            <Card key={tenant.id} className="cursor-pointer hover:shadow-md transition-shadow">
+            <Card 
+              key={tenant.id} 
+              className="hover:shadow-md transition-shadow relative"
+              onClick={() => setSelectedTenant(tenant.id)}
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -200,30 +232,24 @@ export default function AdminTenantsPage() {
                       <CardDescription>{tenant.slug}</CardDescription>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setSelectedTenant(tenant.id)}>
-                        <Users className="h-4 w-4 mr-2" />
-                        メンバー管理
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Building2 className="h-4 w-4 mr-2" />
-                        設定
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        削除
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => setEditingTenant(tenant)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -290,6 +316,13 @@ export default function AdminTenantsPage() {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onCreateTenant={handleCreateTenant}
+      />
+
+      <TenantEditDialog
+        tenant={editingTenant}
+        open={!!editingTenant}
+        onOpenChange={(open) => !open && setEditingTenant(null)}
+        onSave={handleUpdateTenant}
       />
     </div>
   )

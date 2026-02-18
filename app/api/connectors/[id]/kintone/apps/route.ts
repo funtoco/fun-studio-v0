@@ -612,6 +612,35 @@ export async function POST(
 
       const mapping = newMapping
 
+      // Auto-add filter by tenant slug (e.g. COID = "1611") so sync only fetches this tenant's data
+      const tenantId = connector.tenant_id
+      if (tenantId) {
+        const { data: tenant } = await supabase
+          .from('tenants')
+          .select('slug')
+          .eq('id', tenantId)
+          .single()
+
+        if (tenant?.slug) {
+          const { error: filterError } = await supabase
+            .from('connector_app_filters')
+            .insert({
+              connector_id: connectorId,
+              app_mapping_id: mapping.id,
+              field_code: 'COID',
+              field_name: '法人ID',
+              field_type: 'NUMBER',
+              filter_value: tenant.slug,
+              is_active: true
+            })
+
+          if (filterError) {
+            console.error('Error inserting default COID filter:', filterError)
+            // Don't fail the request; mapping was created, user can add filter manually
+          }
+        }
+      }
+
       return NextResponse.json({
         success: true,
         mapping
