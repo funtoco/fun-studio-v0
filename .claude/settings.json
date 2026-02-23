@@ -1,0 +1,7 @@
+{
+  "projectName": "fun-studio-v0",
+  "projectType": "nextjs-app",
+  "language": "javascript/typescript",
+  "buildCommand": "npm run build",
+  "developCommand": "npm run dev || npm run develop"
+}
