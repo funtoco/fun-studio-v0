@@ -1,1 +1,0 @@
--- This migration file is now empty as RPC function has been moved to a separate migration

@@ -11,11 +11,18 @@
 ## プロジェクト構造
 
 ```
-fun-studio-v0/
+fun-base/
 ├── src/                    # ソースコード
-├── package.json           # npm依存関係（存在する場合）
+├── supabase/              # git submodule (funtoco/fun-base-infra)
+│   ├── config.toml        # Supabase設定
+│   ├── migrations/        # DBマイグレーション
+│   ├── seed.sql           # シードデータ
+│   └── seed_people_data.sql
+├── package.json           # npm依存関係
 └── README.md              # プロジェクトドキュメント
 ```
+
+> **Note:** `supabase/` は git submodule です。`funtoco/fun-base-infra` リポジトリを参照しています。
 
 ## 技術スタック
 
@@ -27,7 +34,8 @@ fun-studio-v0/
 
 1. **セットアップ**
    ```bash
-   npm install  # または yarn install
+   git submodule update --init   # supabase/ submodule を取得
+   npm install                    # 依存関係インストール
    ```
 
 2. **ビルド/実行**
