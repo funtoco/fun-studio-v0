@@ -1,9 +1,0 @@
-select * from combine_tenant_with_connector('株式会社マルタマフーズ', '17460');
-select * from combine_tenant_with_connector('四日市マルタマフーズ株式会社', '3771');
-select * from combine_tenant_with_connector('京都マルタマフーズ株式会社', '3223');
-select * from combine_tenant_with_connector('滋賀マルタマフーズ株式会社', '3222');
-select * from combine_tenant_with_connector('東住吉マルタマフーズ株式会社', '2992');
-select * from combine_tenant_with_connector('東住吉中央マルタマフーズ株式会社', '2991');
-select * from combine_tenant_with_connector('和泉マルタマフーズ株式会社', '2914');
-select * from combine_tenant_with_connector('柏原マルタマフーズ株式会社', '2787');
-select * from combine_tenant_with_connector('株式会社グッドライフケア東京', '3090');
